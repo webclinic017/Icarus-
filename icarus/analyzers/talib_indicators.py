@@ -96,82 +96,30 @@ class TALibIndicators():
 
     # Pattern Recognition
     async def _trendmode(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdl2crows(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdl3blackcrows(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdl3inside(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdl3linestrike(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdl3outside(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdl3starsinsouth(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdl3whitesoldiers(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlabandonedbaby(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdladvanceblock(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlbelthold(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlbreakaway(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _closingmarubozu(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlconcealbabyswall(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlcounterattack(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdldarkcloudcover(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdldoji(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdldojistart(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdldragonflydoji(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlenfulging(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdleveningdojistar(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdleveningstar(self, candlesticks, **kwargs):
-        # TODO: Optimize the logic
-        flags = list(ta.CDLEVENINGSTAR(candlesticks['open'], candlesticks['high'], candlesticks['low'], candlesticks['close'], penetration=0))
+
+    async def _cdl_handler(self, candlesticks, pattern):
+        pattern_name = pattern[1:].upper()
+        flags = list(getattr(ta, pattern_name)(candlesticks['open'], candlesticks['high'], candlesticks['low'], candlesticks['close']))
+        return self._multiclass_pattern_handler(flags, candlesticks)
+
+    def _singleclass_pattern_handler(self, flags, candlesticks, key='low', offset=0):
         indices = np.where(np.array(flags) != 0)[0]
         result = [None]*len(flags)
         for idx in indices:
-            # NOTE: The pattern has the length 3. Thus the returned values are the index that the pattern completed
-            #       Thus, the star is the 2nd point in the patter which is 'idx-1'
-            result[idx-1] = candlesticks['high'].iloc[idx-1]
+            result[idx+offset] = candlesticks[key].iloc[idx+offset]
         return result
-    async def _cdlgapsidesidewhite(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlgravestonedoji(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlhammer(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlhanginman(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlharami(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlharamicross(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlhighwave(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlhikkake(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlhikkakemod(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlhomingpigeon(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlidentical3crows(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlinneck(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlinvertedhammer(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlkicking(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlkickingbylength(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlladderbottom(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdllongleggeddoji(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdllongline(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlmarubozu(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlmatchinglow(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlmathold(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlmorningdojistar(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlmorningstar(self, candlesticks, **kwargs):
-        # TODO: Optimize the logic
-        flags = list(ta.CDLMORNINGSTAR(candlesticks['open'], candlesticks['high'], candlesticks['low'], candlesticks['close'], penetration=0))
-        indices = np.where(np.array(flags) != 0)[0]
-        result = [None]*len(flags)
-        for idx in indices:
-            # NOTE: The pattern has the length 3. Thus the returned values are the index that the pattern completed
-            #       Thus, the star is the 2nd point in the patter which is 'idx-1'
-            result[idx-1] = candlesticks['low'].iloc[idx-1]
-        return result
-    async def _cdlonneck(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlpiercing(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlrickshawman(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlrisefall3methods(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlseparatinglines(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlshootingstar(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlshortline(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlspinningtop(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlstalledpattern(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlsticksandwich(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdltakuri(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdltasukigap(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlthrusting(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdltristar(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlunique3river(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlupsidegap2crows(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cdlxsidegap3methods(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
+
+
+    def _multiclass_pattern_handler(self, flags, candlesticks):
+        bearish_indices = np.where(np.array(flags) < 0)[0]
+        bullish_indices = np.where(np.array(flags) > 0)[0]
+        
+        bearish_prices = [None]*len(flags)
+        for idx in bearish_indices:
+            bearish_prices[idx] = candlesticks['high'].iloc[idx]
+
+        bullish_prices = [None]*len(flags)
+        for idx in bullish_indices:
+            bullish_prices[idx] = candlesticks['low'].iloc[idx]
+
+        return {'bearish':bearish_prices, 'bullish':bullish_prices}
