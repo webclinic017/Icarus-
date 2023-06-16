@@ -97,9 +97,13 @@ class TALibIndicators():
     # Pattern Recognition
     async def _trendmode(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
 
-    async def _cdl_handler(self, candlesticks, pattern):
+    async def _cdl_handler(self, candlesticks, pattern, is_raw=False):
         pattern_name = pattern[1:].upper()
         flags = list(getattr(ta, pattern_name)(candlesticks['open'], candlesticks['high'], candlesticks['low'], candlesticks['close']))
+        
+        if is_raw:
+            return flags
+        
         return self._multiclass_pattern_handler(flags, candlesticks)
 
     def _singleclass_pattern_handler(self, flags, candlesticks, key='low', offset=0):

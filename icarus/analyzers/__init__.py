@@ -32,7 +32,7 @@ class Analyzer(Indicators, TALibIndicators, Patterns, SupportResistance, MarketC
                     if hasattr(self, ind_method): 
                         indicator_coroutines.append(getattr(self, ind_method)(candlesticks, **self.analysis_config.get(ind_name,{})))
                     elif ind_method[:4] == '_cdl':
-                        indicator_coroutines.append(getattr(self, '_cdl_handler')(candlesticks, ind_method))
+                        indicator_coroutines.append(getattr(self, '_cdl_handler')(candlesticks, ind_method, **self.analysis_config.get(ind_name,{})))
 
                     else: raise RuntimeError(f'Unknown Analyzer: "{ind_method}"')
 
