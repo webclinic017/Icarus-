@@ -84,7 +84,7 @@ def evaluate_filename(indice, reporter=None, special_char=True):
             if ind[1] != timeframe:
                 timeframe = '<timeframe>'
 
-            if ind[1] != timeframe:
+            if ind[2] != analyzer:
                 analyzer = '<analyzer>'
     
     if reporter == None:

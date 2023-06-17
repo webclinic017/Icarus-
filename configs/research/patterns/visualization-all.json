@@ -22,7 +22,7 @@
         "MACDStrategy": {
             "pairs": ["BTCUSDT", "SHIBUSDT"],
             "time_scales": [
-                "1d", "1h"
+                "1w", "1d", "1h"
             ]
         }
     },
@@ -184,6 +184,7 @@
         ]
     },
     "time_scales": {
+        "1w": 1,
         "1d": 1,
         "1h": 1
     },

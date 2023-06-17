@@ -523,6 +523,7 @@ async def symbol_price_change(index, reporter_input):
 
 
 async def pattern_counter(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
     counts = {}
     for idx, rep in zip(index, reporter_input):
         bearish_count = sum(map(lambda x : x < 0, rep))
@@ -534,4 +535,4 @@ async def pattern_counter(index, reporter_input):
             'occ_ratio': round((bearish_count+bullish_count)/len(rep),2)}
     count_df = pd.DataFrame(counts).T
     count_df_sorted = count_df.sort_values(by = 'total', ascending = False)
-    return Report(ReportMeta(title='{}-{}'.format(idx[0],idx[1])), data=count_df_sorted)
+    return Report(ReportMeta(title=filename,filename=filename), data=count_df_sorted)
