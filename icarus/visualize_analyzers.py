@@ -37,12 +37,21 @@ def change_asset(*args, **kwargs):
     # Visualize indicators
     if indicator != 'clean':
         if hasattr(indicator_plot, indicator):
-            handler = getattr(indicator_plot, indicator)
+            plotter_name = indicator
+        elif indicator[:3] == 'cdl':
+            plotter_name = 'cdl_handler'
+        else:
+            ax.set_visible(xaxis=True)
+            # restores saved zoom position, if in range
+            fplt.refresh()
+            return
 
-            if indicator not in analysis_dict[symbol][interval]:
-                indicator = indicator.rsplit('_', 1)[0]
-            handler(data_dict[symbol][interval].index, analysis_dict[symbol][interval][indicator], 
-                {'ax':ax, 'axo':axo, 'ax_bot':ax_bot, 'axo_bot':axo_bot})
+        handler = getattr(indicator_plot, plotter_name)
+
+        if indicator not in analysis_dict[symbol][interval]:
+            indicator = indicator.rsplit('_', 1)[0]
+        handler(data_dict[symbol][interval].index, analysis_dict[symbol][interval][indicator], 
+            {'ax':ax, 'axo':axo, 'ax_bot':ax_bot, 'axo_bot':axo_bot})
 
     ax.set_visible(xaxis=True)
     # restores saved zoom position, if in range
@@ -219,12 +228,9 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, config
         # NOTE: Following 2 lines are about the feature of generate_report tool
         #if 'plot' in config['analysis'][key].keys():
         #    analyzer_names = analyzer_names + [key+'_'+name for name in config['analysis'][key]['plot']]
-        if hasattr(indicator_plot, key):
+        if hasattr(indicator_plot, key) or key[:3] == 'cdl':
             analyzer_names.append(key)
     analyzer_names.sort()
-
-    indicators = [key for key in config['analysis'].keys() if hasattr(indicator_plot, key)]
-    indicators.sort()
     analysis_dashboard(pair_pool, time_scale_pool, analyzer_names, title=f'Visualizing Time Frame: {config["backtest"]["start_time"]} - {config["backtest"]["end_time"]}')
 
 

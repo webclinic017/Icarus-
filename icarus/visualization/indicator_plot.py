@@ -3,6 +3,11 @@ from statistics import mean
 import pandas as pd
 import numpy as np
 
+BLUE='#0000FF'
+GREEN='#00FF00'
+RED='#FF0000'
+CYAN='#00FFFF'
+MAGENTA='#FF00FF'
 
 color_map_support = [
     ('#0000FF', '#CCCCFF'),
@@ -110,7 +115,14 @@ def bar_handler(x, y, axis):
 
 
 def scatter_handler(x, y, axis):
-    fplt.plot(x=x, y=y, kind='scatter', color='#0000ff', width=1, ax=axis, zoomscale=False, style='d')
+    # Type check for 'y'
+    if type(y) == list:
+        fplt.plot(x=x, y=y, kind='scatter', color=MAGENTA, width=2, ax=axis, zoomscale=False, style='d')
+    elif type(y) == dict:
+        keys = list(y.keys())
+        fplt.plot(x=x, y=y[keys[0]], kind='scatter', color=BLUE, width=2, ax=axis, zoomscale=False, style='d')
+        fplt.plot(x=x, y=y[keys[1]], kind='scatter', color=MAGENTA, width=2, ax=axis, zoomscale=False, style='d')
+
 
 def add_time_separator(x, period_in_ms, **kwargs):
     diff_in_ms = int((x[1]-x[0]))
@@ -310,8 +322,5 @@ def natr(x, y, axes): enable_ax_bot(axes); line_handler(x, y, axes['ax_bot'])
 def trange(x, y, axes): enable_ax_bot(axes); line_handler(x, y, axes['ax_bot'])
 
 # TA-LIB Patterns
-def cdleveningstar(x, y, axes): disable_ax_bot(axes); scatter_handler(x, y, axes['ax'])
-def cdlmorningstar(x, y, axes): disable_ax_bot(axes); scatter_handler(x, y, axes['ax'])
-
-
+def cdl_handler(x, y, axes): disable_ax_bot(axes); scatter_handler(x, y, axes['ax'])
 
