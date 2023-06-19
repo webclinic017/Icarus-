@@ -1,0 +1,152 @@
+{
+    "tag": "test-bot",
+    "log-level": "DEBUG",
+    "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
+    "mongodb": {
+        "host": "localhost",
+        "port": 27017,
+        "clean": false
+    },
+    "balances": [
+        {
+            "asset": "USDT",
+            "free": 10000,
+            "locked": 0
+        }
+    ],
+    "broker": {
+        "quote_currency": "USDT",
+        "fee_rate": 0.001
+    },
+    "strategy": {
+        "MACDStrategy": {
+            "pairs": ["BTCUSDT", "SHIBUSDT", "XRPUSDT", "SPELLUSDT"],
+            "time_scales": [
+                "1w", "1d", "1h"
+            ]
+        }
+    },
+    "analysis": {
+        "direction_macd": {"fastperiod":12, "slowperiod":26, "signalperiod":9}
+    },
+    "report_folder_name": "reports_occ",
+    "report": [
+    ],
+    "grid_search_reporters": {
+        "grid": {
+            "<pair>": [
+                "BTCUSDT", "SHIBUSDT", "XRPUSDT", "SPELLUSDT"
+            ],
+            "<timeframe>": [
+                "1w", "1d", "1h"
+            ]
+        },
+        "reporters": [
+            {
+                "parameters": {
+
+                    "<analyzer>": [
+                        "cdl2crows",
+                        "cdl3blackcrows",
+                        "cdl3inside",
+                        "cdl3linestrike",
+                        "cdl3outside",
+                        "cdl3starsinsouth",
+                        "cdl3whitesoldiers",
+                        "cdlabandonedbaby",
+                        "cdladvanceblock",
+                        "cdlbelthold",
+                        "cdlbreakaway",
+                        "cdlclosingmarubozu",
+                        "cdlconcealbabyswall",
+                        "cdlcounterattack",
+                        "cdldarkcloudcover",
+                        "cdldoji",
+                        "cdldojistar",
+                        "cdldragonflydoji",
+                        "cdlengulfing",
+                        "cdleveningdojistar",
+                        "cdleveningstar",
+                        "cdlgapsidesidewhite",
+                        "cdlgravestonedoji",
+                        "cdlhammer",
+                        "cdlhangingman",
+                        "cdlharami",
+                        "cdlharamicross",
+                        "cdlhighwave",
+                        "cdlhikkake",
+                        "cdlhikkakemod",
+                        "cdlhomingpigeon",
+                        "cdlidentical3crows",
+                        "cdlinneck",
+                        "cdlinvertedhammer",
+                        "cdlkicking",
+                        "cdlkickingbylength",
+                        "cdlladderbottom",
+                        "cdllongleggeddoji",
+                        "cdllongline",
+                        "cdlmarubozu",
+                        "cdlmatchinglow",
+                        "cdlmathold",
+                        "cdlmorningdojistar",
+                        "cdlmorningstar",
+                        "cdlonneck",
+                        "cdlpiercing",
+                        "cdlrickshawman",
+                        "cdlrisefall3methods",
+                        "cdlseparatinglines",
+                        "cdlshootingstar",
+                        "cdlshortline",
+                        "cdlspinningtop",
+                        "cdlstalledpattern",
+                        "cdlsticksandwich",
+                        "cdltakuri",
+                        "cdltasukigap",
+                        "cdlthrusting",
+                        "cdltristar",
+                        "cdlunique3river",
+                        "cdlupsidegap2crows",
+                        "cdlxsidegap3methods"
+                    ]
+                },
+                "reporter": "pattern_counter",
+                "source": "analyzer",
+                "indice_template": [
+                    "<pair>",
+                    "<timeframe>",
+                    "<analyzer>"
+                ],
+                "writers": [
+                    "markdown_table",
+                    "json_file"
+                ]
+            }
+        ]
+    },
+    "time_scales": {
+        "1d": 1,
+        "1h": 1,
+        "1w": 1
+    },
+    "backtest": {
+        "start_time": "2021-10-10 13:00:00",
+        "end_time": "2022-10-10 13:00:00",
+        "online": true
+    },
+    "visualization": {
+        "observers": {
+            "qc": [
+                "free",
+                "total",
+                "in_trade"
+            ],
+            "qc_leak": [
+                "binary"
+            ],
+            "breakpoints": {
+                "1562371200000": "decision_time",
+                "1562803200000": "result.enter.time"
+            }
+        }
+    }
+}

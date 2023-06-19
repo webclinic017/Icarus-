@@ -4,9 +4,10 @@ from analyzers.indicators import Indicators
 from analyzers.market_classification import MarketClassification
 from analyzers.patterns import Patterns
 from analyzers.support_resistance import SupportResistance
+from analyzers.market_direction import MarketDirection
 
 
-class Analyzer(Indicators, TALibIndicators, Patterns, SupportResistance, MarketClassification):
+class Analyzer(Indicators, TALibIndicators, Patterns, SupportResistance, MarketClassification, MarketDirection):
 
     def __init__(self, config):
         self.analysis_config = config.get('analysis')
