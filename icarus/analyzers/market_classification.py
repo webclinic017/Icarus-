@@ -74,6 +74,7 @@ class MarketClassification():
 
         class_indexes = {}
         class_indexes['downtrend'] = np.where(np.array(analysis_output) < 0)[0]
+        class_indexes['ranging'] = np.where(np.array(analysis_output) == 0)[0]
         class_indexes['uptrend'] = np.where(np.array(analysis_output) > 0)[0]
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
 
@@ -127,6 +128,43 @@ class MarketClassification():
         return detected_market_regimes
 
 
+    async def _market_class_macd(self, candlesticks, **kwargs):
+        analyzer = '_macd'
+
+        if hasattr(self, analyzer):
+            analysis_output = await getattr(self, analyzer)(candlesticks)
+
+        # The class detection logic depends on the data source strictly.
+        class_indexes = {}
+        class_indexes['downtrend'] = np.where(np.nan_to_num(analysis_output['macdhist']) <= 0)[0]
+        class_indexes['uptrend'] = np.where(np.nan_to_num(analysis_output['macdhist']) > 0)[0]
+        nan_value_offset = np.count_nonzero(np.isnan(analysis_output['macdhist']))
+
+        # Class occurence indexes
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, class_indexes, kwargs.get('validation_threshold', 0), nan_value_offset)
+
+        return detected_market_regimes
+
+
+    async def _market_class_rsi(self, candlesticks, **kwargs):
+        analyzer = '_rsi'
+
+        if hasattr(self, analyzer):
+            analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
+
+        classified_market = np.zeros(len(analysis_output))
+        # The class detection logic depends on the data source strictly.
+        class_indexes = {}
+        class_indexes['downtrend'] = np.where(np.nan_to_num(analysis_output) <= 50)[0]
+        class_indexes['uptrend'] = np.where(np.nan_to_num(analysis_output) > 50)[0]
+        nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
+
+        # Class occurence indexes
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, class_indexes, kwargs.get('validation_threshold', 0), nan_value_offset)
+
+        return detected_market_regimes
+
+
     async def detect_regime_instances(candlesticks, class_indexes, validation_threshold, nan_value_offset=None):
         '''
         The essential features of classes is start and end timestamps. The rest is evaluated using these initial points
@@ -168,3 +206,20 @@ class MarketClassification():
             # TODO: No need to have a seperation between the calss instances since they are all labeled and self sufficient to be alice in visu.
         return result
 
+
+    async def _market_class_index(self, candlesticks, **kwargs):
+
+        market_class_table = {}
+        for key, value in kwargs.items():
+            analysis_output = await getattr(self, '_'+key)(candlesticks, **value)
+
+            current_market_class = None
+            newest_end_ts = 0
+            for name, regime in analysis_output.items():
+                if regime[-1].end_ts < newest_end_ts:
+                    continue
+                current_market_class = name
+            market_class_table[key] = current_market_class
+
+
+        return market_class_table
