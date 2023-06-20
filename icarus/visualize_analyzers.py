@@ -219,7 +219,8 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, config
     meta_data_pool = list(itertools.product(time_scale_pool, pair_pool))
 
     global data_dict, analysis_dict
-    data_dict = await bwrapper.download_all_data(meta_data_pool, start_timestamp, end_timestamp)
+    await bwrapper.obtain_candlesticks(meta_data_pool, start_timestamp, end_timestamp)
+    data_dict = bwrapper.downloaded_data
     analyzer = Analyzer(config)
     analysis_dict = await analyzer.analyze(data_dict)
 

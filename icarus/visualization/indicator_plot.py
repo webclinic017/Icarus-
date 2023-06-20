@@ -191,6 +191,8 @@ def hmm(x, y, axes): market_class_handler(x, y, axes)
 def market_class_aroon(x, y, axes): market_class_handler(x, y, axes)
 def market_class_aroonosc(x, y, axes): market_class_handler(x, y, axes)
 def market_class_fractal_aroon(x, y, axes): market_class_handler(x, y, axes)
+def market_class_macd(x, y, axes): market_class_handler(x, y, axes)
+def market_class_rsi(x, y, axes): market_class_handler(x, y, axes)
 
 def mkfi_colorfilter(item, datasrc, df):
     tokens = df['tokens'].copy()
@@ -324,3 +326,4 @@ def trange(x, y, axes): enable_ax_bot(axes); line_handler(x, y, axes['ax_bot'])
 # TA-LIB Patterns
 def cdl_handler(x, y, axes): disable_ax_bot(axes); scatter_handler(x, y, axes['ax'])
 
+def direction_macd(x, y, axes): disable_ax_bot(axes); scatter_handler(x, y, axes['ax'])

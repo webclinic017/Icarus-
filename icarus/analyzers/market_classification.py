@@ -3,6 +3,12 @@ import numpy as np
 from itertools import groupby
 from operator import itemgetter
 from hmmlearn.hmm import GaussianHMM
+from enum import Enum
+
+class Direction(Enum):
+    UP = 0
+    DOWN = 1
+    SIDE = 2
 
 @dataclass
 class MarketRegime():
@@ -68,113 +74,106 @@ class MarketClassification():
 
     async def _market_class_aroonosc(self, candlesticks, **kwargs):
         analyzer = '_aroonosc'
+        output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
 
-        class_indexes = {}
-        class_indexes['downtrend'] = np.where(np.array(analysis_output) < 0)[0]
-        class_indexes['ranging'] = np.where(np.array(analysis_output) == 0)[0]
-        class_indexes['uptrend'] = np.where(np.array(analysis_output) > 0)[0]
+        classification = np.where(np.nan_to_num(analysis_output) <= 0, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
+        classification[:nan_value_offset] = None
 
-        class_stats = await MarketClassification.detect_regime_instances(candlesticks, class_indexes, kwargs.get('validation_threshold', 0), nan_value_offset)
-        return class_stats
+        if output_format == 'direction':
+            return classification
+
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
 
     async def _market_class_fractal_aroon(self, candlesticks, **kwargs):
         analyzer = '_fractal_aroon'
+        output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
 
-        # The class detection logic depends on the data source strictly.
-        class_indexes = {}
-        class_indexes['downtrend'] = np.where(np.nan_to_num(analysis_output['aroondown']) > 80)[0]
-        class_indexes['ranging'] = np.where(np.logical_and(
-            np.nan_to_num(analysis_output['aroonup']) < 80, 
-            np.nan_to_num(analysis_output['aroondown']) < 80))[0]
-        class_indexes['uptrend'] = np.where(np.nan_to_num(analysis_output['aroonup']) > 80)[0]
+        classification = np.where(np.nan_to_num(analysis_output['aroondown']) > 80, Direction.DOWN, Direction.SIDE)
+        classification = np.where(np.nan_to_num(analysis_output['aroonup']) > 80, Direction.UP, classification)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['aroonup']))
+        classification[:nan_value_offset] = None
 
-        # Class occurence indexes
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, class_indexes, kwargs.get('validation_threshold', 0), nan_value_offset)
+        if output_format == 'direction':
+            return classification
 
-        # if last closed candle is in uptrend, then then 'end' parameter wikk be equal to its timestamp
-        # so the day_diff will be 1
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
     async def _market_class_aroon(self, candlesticks, **kwargs):
-        # TODO: Fix the shit code
         analyzer = '_aroon'
+        output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
-
-        # The class detection logic depends on the data source strictly.
-        class_indexes = {}
-        class_indexes['downtrend'] = np.where(np.nan_to_num(analysis_output['aroondown']) > 80)[0]
-        class_indexes['ranging'] = np.where(np.logical_and(
-            np.nan_to_num(analysis_output['aroonup']) < 80, 
-            np.nan_to_num(analysis_output['aroondown']) < 80))[0]
-        class_indexes['uptrend'] = np.where(np.nan_to_num(analysis_output['aroonup']) > 80)[0]
+        
+        classification = np.where(np.nan_to_num(analysis_output['aroondown']) > 80, Direction.DOWN, Direction.SIDE)
+        classification = np.where(np.nan_to_num(analysis_output['aroonup']) > 80, Direction.UP, classification)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['aroonup']))
+        classification[:nan_value_offset] = None
 
-        # Class occurence indexes
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, class_indexes, kwargs.get('validation_threshold', 0), nan_value_offset)
+        if output_format == 'direction':
+            return classification
 
-        # if last closed candle is in uptrend, then then 'end' parameter wikk be equal to its timestamp
-        # so the day_diff will be 1
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
     async def _market_class_macd(self, candlesticks, **kwargs):
         analyzer = '_macd'
+        output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        # The class detection logic depends on the data source strictly.
-        class_indexes = {}
-        class_indexes['downtrend'] = np.where(np.nan_to_num(analysis_output['macdhist']) <= 0)[0]
-        class_indexes['uptrend'] = np.where(np.nan_to_num(analysis_output['macdhist']) > 0)[0]
+        classification = np.where(np.nan_to_num(analysis_output['macdhist']) <= 0, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['macdhist']))
+        classification[:nan_value_offset] = None
 
-        # Class occurence indexes
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, class_indexes, kwargs.get('validation_threshold', 0), nan_value_offset)
+        if output_format == 'direction':
+            return classification
 
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
     async def _market_class_rsi(self, candlesticks, **kwargs):
         analyzer = '_rsi'
+        output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
 
-        classified_market = np.zeros(len(analysis_output))
-        # The class detection logic depends on the data source strictly.
-        class_indexes = {}
-        class_indexes['downtrend'] = np.where(np.nan_to_num(analysis_output) <= 50)[0]
-        class_indexes['uptrend'] = np.where(np.nan_to_num(analysis_output) > 50)[0]
+        classification = np.where(np.nan_to_num(analysis_output) <= 50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
+        classification[:nan_value_offset] = None
 
-        # Class occurence indexes
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, class_indexes, kwargs.get('validation_threshold', 0), nan_value_offset)
-
+        if output_format == 'direction':
+            return classification
+        
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def detect_regime_instances(candlesticks, class_indexes, validation_threshold, nan_value_offset=None):
+    async def detect_regime_instances(candlesticks, classification, validation_threshold):
         '''
         The essential features of classes is start and end timestamps. The rest is evaluated using these initial points
         '''
         # NOTE: Since some indicators are lagging ones with a timeperiod, no market class should be detected until this timeperiod completed
         # for the first time.
 
-        if nan_value_offset != None:
-            for class_name in class_indexes.keys():
-                class_indexes[class_name] = class_indexes[class_name][class_indexes[class_name] >= nan_value_offset]
+        class_indexes = {}
+        class_indexes['downtrend'] = np.where(classification == Direction.DOWN)[0]
+        class_indexes['ranging'] = np.where(classification == Direction.SIDE)[0]
+        class_indexes['uptrend'] = np.where(classification == Direction.UP)[0]
 
         ts_index = candlesticks.index
         result = {}
@@ -204,6 +203,8 @@ class MarketClassification():
                 class_item_list.append(pmr)
             result[class_name] = class_item_list
             # TODO: No need to have a seperation between the calss instances since they are all labeled and self sufficient to be alice in visu.
+        
+        # TODO: Drop unused class
         return result
 
 
@@ -211,15 +212,6 @@ class MarketClassification():
 
         market_class_table = {}
         for key, value in kwargs.items():
-            analysis_output = await getattr(self, '_'+key)(candlesticks, **value)
-
-            current_market_class = None
-            newest_end_ts = 0
-            for name, regime in analysis_output.items():
-                if regime[-1].end_ts < newest_end_ts:
-                    continue
-                current_market_class = name
-            market_class_table[key] = current_market_class
-
+            market_class_table[key] = await getattr(self, '_'+key)(candlesticks, **value)
 
         return market_class_table

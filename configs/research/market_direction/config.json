@@ -20,14 +20,71 @@
     },
     "strategy": {
         "MACDStrategy": {
-            "pairs": ["BTCUSDT", "SHIBUSDT", "XRPUSDT", "SPELLUSDT"],
+            "pairs": ["BTCUSDT"],
             "time_scales": [
-                "1w", "1d", "1h"
+                "1d", "1h"
             ]
         }
     },
     "analysis": {
-        "direction_macd": {"fastperiod":12, "slowperiod":26, "signalperiod":9}
+        "aroon": {
+            "timeperiod": 30
+        },
+        "aroonosc": {
+            "timeperiod": 30
+        },
+        "fractal_aroon": {
+            "timeperiod": 30
+        },
+        "bearish_fractal_3": {},
+        "bullish_fractal_3": {},
+        "market_class_rsi": {
+            "validation_threshold": 0,
+            "format": "market_regime",
+            "timeperiod": 30
+        },
+        "market_class_macd": {
+            "validation_threshold": 0,
+            "format": "market_regime",
+            "timeperiod": 30
+        },
+        "market_class_aroon": {
+            "validation_threshold": 0,
+            "format": "market_regime",
+            "timeperiod": 30
+        },
+        "market_class_aroonosc": {
+            "validation_threshold": 0,
+            "format": "market_regime",
+            "timeperiod": 30
+        },
+        "market_class_index": {
+            "market_class_rsi": {
+                "validation_threshold": 0,
+                "format": "direction",
+                "timeperiod": 30
+            },
+            "market_class_macd": {
+                "validation_threshold": 0,
+                "format": "direction",
+                "timeperiod": 30
+            },
+            "market_class_aroon": {
+                "validation_threshold": 0,
+                "format": "direction",
+                "timeperiod": 30
+            },
+            "market_class_fractal_aroon": {
+                "validation_threshold": 0,
+                "format": "direction",
+                "timeperiod": 30
+            },
+            "market_class_aroonosc": {
+                "validation_threshold": 0,
+                "format": "direction",
+                "timeperiod": 30
+            }
+        }
     },
     "report_folder_name": "reports_occ",
     "report": [
