@@ -335,6 +335,13 @@ class MarketClassification():
         # TODO: Drop unused class
         return result
 
+    async def _market_regime_index(self, candlesticks, **kwargs):
+
+        market_regime_dict = {}
+        for key, value in kwargs.items():
+            market_regime_dict[key] = await getattr(self, '_'+key)(candlesticks, **value)
+
+        return market_regime_dict
 
     async def _market_class_index(self, candlesticks, **kwargs):
 

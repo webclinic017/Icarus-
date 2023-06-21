@@ -22,7 +22,7 @@
         "MACDStrategy": {
             "pairs": ["BTCUSDT"],
             "time_scales": [
-                "1d"
+                "1d", "1h"
             ]
         }
     },
@@ -36,74 +36,39 @@
         "fractal_aroon": {
             "timeperiod": 30
         },
-        "bearish_fractal_3": {},
-        "bullish_fractal_3": {},
-        "market_class_rsi": {
-            "format": "market_regime"
-        },
-        "market_class_stoch": {
-            "format": "market_regime"
-        },
-        "market_class_stochf": {
-            "format": "market_regime"
-        },
-        "market_class_macd": {
-            "format": "market_regime"
-        },
-        "market_class_aroon": {
-            "format": "market_regime"
-        },
-        "market_class_aroonosc": {
-            "format": "market_regime"
-        },
-        "market_class_fractal_aroon": {
-            "format": "market_regime"
-        },
-        "market_class_willr": {
-            "format": "market_regime"
-        },
-        "market_class_cci": {
-            "format": "market_regime"
-        },
-        "market_class_cmo": {
-            "format": "market_regime"
-        },
-        "market_class_mfi": {
-            "format": "market_regime"
-        },
-        "market_class_index": {
+        "market_regime_index": {
             "market_class_rsi": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_macd": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_stoch": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_stochf": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_aroon": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_fractal_aroon": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_aroonosc": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_willr": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_cci": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_cmo": {
-                "format": "direction"
+                "format": "market_regime"
             },
             "market_class_mfi": {
-                "format": "direction"
+                "format": "market_regime"
             }
         }
     },

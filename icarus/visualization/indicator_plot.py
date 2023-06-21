@@ -189,7 +189,7 @@ def market_class_handler(x, y, axes):
             fplt.add_rect((market_regime.start_ts, market_regime.start_price), (market_regime.end_ts, market_regime.end_price), color=color_set[class_idx%6], interactive=False, ax=axes['ax'])
 
 
-def market_class_index(x, y, axes): 
+def market_regime_index(x, y, axes): 
     # Visualization on ax_bot as class rows
     color_dict = {
         'downtrend': '#FF8080',
@@ -197,31 +197,19 @@ def market_class_index(x, y, axes):
         'uptrend': '#80FF80'
     }
 
-    classifers = list(y.columns)
-    #enable_ax_bot(axes, y_range=(0,len(y.keys())))
-    enable_ax_bot(axes, y_range=(0,len(classifers)))
-    fplt.plot(x, y=[len(classifers)]*len(x), ax=axes['ax_bot'])
+    enable_ax_bot(axes, y_range=(0,len(y)))
+    fplt.plot(x, y=[len(y)]*len(x), ax=axes['ax_bot'])
 
     # NOTE: No difference in the evaluation of the y even if it is a dictionary or a list. Since it helps in visualizaiton. The dict format is left as it is.
-    for class_idx, column in enumerate(y):
+    # y = {indicator: {class1: instance, class2: instances}}
+    for indicator_idx, (classifier, class_instance_dict) in enumerate(y.items()):
+        print(indicator_idx)
+        for class_name, instances  in class_instance_dict.items():
+            for market_regime in instances:
+                fplt.add_rect((market_regime.start_ts, indicator_idx+1), (market_regime.end_ts, indicator_idx), color=color_dict[class_name], interactive=False, ax=axes['ax_bot'])
+                fplt.add_text((market_regime.start_ts, indicator_idx+1), str(market_regime.duration_in_candle), color='#000000',anchor=(0,0), ax=axes['ax_bot'])
 
-        class_indexes = {}
-        class_indexes['downtrend'] = np.where(y[column] == Direction.DOWN)[0]
-        class_indexes['ranging'] = np.where(y[column] == Direction.SIDE)[0]
-        class_indexes['uptrend'] = np.where(y[column] == Direction.UP)[0]
-
-        for class_name, filter_idx in class_indexes.items():
-            for k, g in groupby(enumerate(filter_idx), lambda ix: ix[0] - ix[1]):
-                seq_idx = list(map(itemgetter(1), g))
-
-                if len(seq_idx) == 0:
-                    continue
-                fplt.add_rect((x[seq_idx[0]], class_idx+1), (x[seq_idx[-1]], class_idx), color=color_dict[class_name], interactive=False, ax=axes['ax_bot'])
-        
-                num_of_candle = str(len(seq_idx))
-                fplt.add_text((x[seq_idx[0]], class_idx+1), num_of_candle, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
-
-        fplt.add_text((x[0], class_idx+1), column, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
+        fplt.add_text((x[0], indicator_idx+1), classifier, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
 
 
 def disable_ax_bot(axes):
