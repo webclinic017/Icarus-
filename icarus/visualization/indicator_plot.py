@@ -2,6 +2,10 @@ import finplot as fplt
 from statistics import mean
 import pandas as pd
 import numpy as np
+from analyzers.market_classification import Direction
+from itertools import groupby
+from operator import itemgetter
+
 
 BLUE='#0000FF'
 GREEN='#00FF00'
@@ -151,48 +155,80 @@ def enable_ax_bot(axes, **kwargs):
     if band := kwargs.get('band', None): fplt.add_band(band[0], band[1], color='#6335', ax=axes['ax_bot'])
 
 
-def market_class_handler(x, y, axes): 
+def market_class_handler(x, y, axes):
     # Visualization on ax_bot as class rows
     color_set = ['#FF8080', '#8080FF', '#80FF80', '#80FFFF', '#FF80FF', '#FFFF80'] # 6 Color is enough to distinguish classes
 
-    enable_ax_bot(axes, y_range=(0,len(y.keys())))
-    fplt.plot(x, y=[len(y.keys())]*len(x), ax=axes['ax_bot'])
+    #enable_ax_bot(axes, y_range=(0,len(y.keys())))
+    enable_ax_bot(axes, y_range=(0,1))
+    fplt.plot(x, y=[1]*len(x), ax=axes['ax_bot'])
 
+    num_of_classifier = 0
     # NOTE: No difference in the evaluation of the y even if it is a dictionary or a list. Since it helps in visualizaiton. The dict format is left as it is.
     for class_idx, (class_name, class_item_list) in enumerate(y.items()):
         for market_regime in class_item_list:
-            fplt.add_rect((market_regime.start_ts, class_idx+1), (market_regime.end_ts, class_idx), color=color_set[class_idx%6], interactive=False, ax=axes['ax_bot'])
+            fplt.add_rect((market_regime.start_ts, num_of_classifier+1), (market_regime.end_ts, num_of_classifier), color=color_set[class_idx%6], interactive=False, ax=axes['ax_bot'])
             
             perc_price_change = f'PPC: %{str(market_regime.perc_price_change)}'
-            fplt.add_text((market_regime.start_ts, class_idx+1), perc_price_change, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
+            fplt.add_text((market_regime.start_ts, num_of_classifier+1), perc_price_change, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
 
             perc_val_price_change = f'PVPC: %{str(market_regime.perc_val_price_change)}'
-            fplt.add_text((market_regime.start_ts, class_idx+0.8), perc_val_price_change, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
+            fplt.add_text((market_regime.start_ts, num_of_classifier+0.8), perc_val_price_change, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
 
             num_of_candle = f'#Candle: {str(market_regime.duration_in_candle)}'
-            fplt.add_text((market_regime.start_ts, class_idx+0.6), num_of_candle, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
+            fplt.add_text((market_regime.start_ts, num_of_classifier+0.6), num_of_candle, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
 
-            fplt.add_line((market_regime.validation_ts, class_idx+1), (market_regime.validation_ts, class_idx), style='.', color='#000000', width=2, interactive=False, ax=axes['ax_bot'])
+            fplt.add_line((market_regime.validation_ts, num_of_classifier+1), (market_regime.validation_ts, num_of_classifier), style='.', color='#000000', width=2, interactive=False, ax=axes['ax_bot'])
             #fplt.add_line((market_regime.validation_ts, class_idx+1), (market_regime.validation_ts, class_idx), style='.', color='#000000', width=2, interactive=False, ax=axes['ax_bot'])
 
-        fplt.add_text((x[0], class_idx+0.5), class_name, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
+        fplt.add_text((x[0], num_of_classifier+0.5), class_name, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
 
     # Visualization on ax as class rows
     for class_idx, (class_name, class_item_list) in enumerate(y.items()):
         for market_regime in class_item_list:
             fplt.add_rect((market_regime.start_ts, market_regime.start_price), (market_regime.end_ts, market_regime.end_price), color=color_set[class_idx%6], interactive=False, ax=axes['ax'])
 
+
+def market_class_index(x, y, axes): 
+    # Visualization on ax_bot as class rows
+    color_dict = {
+        'downtrend': '#FF8080',
+        'ranging': '#8080FF',
+        'uptrend': '#80FF80'
+    }
+
+    classifers = list(y.columns)
+    #enable_ax_bot(axes, y_range=(0,len(y.keys())))
+    enable_ax_bot(axes, y_range=(0,len(classifers)))
+    fplt.plot(x, y=[len(classifers)]*len(x), ax=axes['ax_bot'])
+
+    # NOTE: No difference in the evaluation of the y even if it is a dictionary or a list. Since it helps in visualizaiton. The dict format is left as it is.
+    for class_idx, column in enumerate(y):
+
+        class_indexes = {}
+        class_indexes['downtrend'] = np.where(y[column] == Direction.DOWN)[0]
+        class_indexes['ranging'] = np.where(y[column] == Direction.SIDE)[0]
+        class_indexes['uptrend'] = np.where(y[column] == Direction.UP)[0]
+
+        for class_name, filter_idx in class_indexes.items():
+            for k, g in groupby(enumerate(filter_idx), lambda ix: ix[0] - ix[1]):
+                seq_idx = list(map(itemgetter(1), g))
+
+                if len(seq_idx) == 0:
+                    continue
+                fplt.add_rect((x[seq_idx[0]], class_idx+1), (x[seq_idx[-1]], class_idx), color=color_dict[class_name], interactive=False, ax=axes['ax_bot'])
+        
+                num_of_candle = str(len(seq_idx))
+                fplt.add_text((x[seq_idx[0]], class_idx+1), num_of_candle, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
+
+        fplt.add_text((x[0], class_idx+1), column, color='#000000',anchor=(0,0), ax=axes['ax_bot'])
+
+
 def disable_ax_bot(axes):
     axes['ax'].set_visible(xaxis=True)
     axes['ax_bot'].hide()
 
 #####################################  Custom Analyzer Visualization #####################################
-def hmm(x, y, axes): market_class_handler(x, y, axes)
-def market_class_aroon(x, y, axes): market_class_handler(x, y, axes)
-def market_class_aroonosc(x, y, axes): market_class_handler(x, y, axes)
-def market_class_fractal_aroon(x, y, axes): market_class_handler(x, y, axes)
-def market_class_macd(x, y, axes): market_class_handler(x, y, axes)
-def market_class_rsi(x, y, axes): market_class_handler(x, y, axes)
 
 def mkfi_colorfilter(item, datasrc, df):
     tokens = df['tokens'].copy()

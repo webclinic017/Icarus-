@@ -22,7 +22,7 @@
         "MACDStrategy": {
             "pairs": ["BTCUSDT"],
             "time_scales": [
-                "1d", "1h"
+                "1d"
             ]
         }
     },
@@ -39,147 +39,78 @@
         "bearish_fractal_3": {},
         "bullish_fractal_3": {},
         "market_class_rsi": {
-            "validation_threshold": 0,
-            "format": "market_regime",
-            "timeperiod": 30
+            "format": "market_regime"
+        },
+        "market_class_stoch": {
+            "format": "market_regime"
+        },
+        "market_class_stochf": {
+            "format": "market_regime"
         },
         "market_class_macd": {
-            "validation_threshold": 0,
-            "format": "market_regime",
-            "timeperiod": 30
+            "format": "market_regime"
         },
         "market_class_aroon": {
-            "validation_threshold": 0,
-            "format": "market_regime",
-            "timeperiod": 30
+            "format": "market_regime"
         },
         "market_class_aroonosc": {
-            "validation_threshold": 0,
-            "format": "market_regime",
-            "timeperiod": 30
+            "format": "market_regime"
+        },
+        "market_class_fractal_aroon": {
+            "format": "market_regime"
+        },
+        "market_class_willr": {
+            "format": "market_regime"
+        },
+        "market_class_cci": {
+            "format": "market_regime"
+        },
+        "market_class_cmo": {
+            "format": "market_regime"
+        },
+        "market_class_mfi": {
+            "format": "market_regime"
         },
         "market_class_index": {
             "market_class_rsi": {
-                "validation_threshold": 0,
-                "format": "direction",
-                "timeperiod": 30
+                "format": "direction"
             },
             "market_class_macd": {
-                "validation_threshold": 0,
-                "format": "direction",
-                "timeperiod": 30
+                "format": "direction"
+            },
+            "market_class_stoch": {
+                "format": "direction"
+            },
+            "market_class_stochf": {
+                "format": "direction"
             },
             "market_class_aroon": {
-                "validation_threshold": 0,
-                "format": "direction",
-                "timeperiod": 30
+                "format": "direction"
             },
             "market_class_fractal_aroon": {
-                "validation_threshold": 0,
-                "format": "direction",
-                "timeperiod": 30
+                "format": "direction"
             },
             "market_class_aroonosc": {
-                "validation_threshold": 0,
-                "format": "direction",
-                "timeperiod": 30
+                "format": "direction"
+            },
+            "market_class_willr": {
+                "format": "direction"
+            },
+            "market_class_cci": {
+                "format": "direction"
+            },
+            "market_class_cmo": {
+                "format": "direction"
+            },
+            "market_class_mfi": {
+                "format": "direction"
             }
         }
     },
     "report_folder_name": "reports_occ",
     "report": [
     ],
-    "grid_search_reporters": {
-        "grid": {
-            "<pair>": [
-                "BTCUSDT", "SHIBUSDT", "XRPUSDT", "SPELLUSDT"
-            ],
-            "<timeframe>": [
-                "1w", "1d", "1h"
-            ]
-        },
-        "reporters": [
-            {
-                "parameters": {
-
-                    "<analyzer>": [
-                        "cdl2crows",
-                        "cdl3blackcrows",
-                        "cdl3inside",
-                        "cdl3linestrike",
-                        "cdl3outside",
-                        "cdl3starsinsouth",
-                        "cdl3whitesoldiers",
-                        "cdlabandonedbaby",
-                        "cdladvanceblock",
-                        "cdlbelthold",
-                        "cdlbreakaway",
-                        "cdlclosingmarubozu",
-                        "cdlconcealbabyswall",
-                        "cdlcounterattack",
-                        "cdldarkcloudcover",
-                        "cdldoji",
-                        "cdldojistar",
-                        "cdldragonflydoji",
-                        "cdlengulfing",
-                        "cdleveningdojistar",
-                        "cdleveningstar",
-                        "cdlgapsidesidewhite",
-                        "cdlgravestonedoji",
-                        "cdlhammer",
-                        "cdlhangingman",
-                        "cdlharami",
-                        "cdlharamicross",
-                        "cdlhighwave",
-                        "cdlhikkake",
-                        "cdlhikkakemod",
-                        "cdlhomingpigeon",
-                        "cdlidentical3crows",
-                        "cdlinneck",
-                        "cdlinvertedhammer",
-                        "cdlkicking",
-                        "cdlkickingbylength",
-                        "cdlladderbottom",
-                        "cdllongleggeddoji",
-                        "cdllongline",
-                        "cdlmarubozu",
-                        "cdlmatchinglow",
-                        "cdlmathold",
-                        "cdlmorningdojistar",
-                        "cdlmorningstar",
-                        "cdlonneck",
-                        "cdlpiercing",
-                        "cdlrickshawman",
-                        "cdlrisefall3methods",
-                        "cdlseparatinglines",
-                        "cdlshootingstar",
-                        "cdlshortline",
-                        "cdlspinningtop",
-                        "cdlstalledpattern",
-                        "cdlsticksandwich",
-                        "cdltakuri",
-                        "cdltasukigap",
-                        "cdlthrusting",
-                        "cdltristar",
-                        "cdlunique3river",
-                        "cdlupsidegap2crows",
-                        "cdlxsidegap3methods"
-                    ]
-                },
-                "reporter": "pattern_counter",
-                "source": "analyzer",
-                "indice_template": [
-                    "<pair>",
-                    "<timeframe>",
-                    "<analyzer>"
-                ],
-                "writers": [
-                    "markdown_table",
-                    "json_file"
-                ]
-            }
-        ]
-    },
+    "grid_search_reporters": {},
     "time_scales": {
         "1d": 1,
         "1h": 1,
