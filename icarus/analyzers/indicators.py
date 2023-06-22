@@ -1,6 +1,7 @@
 import talib as ta
 import pandas as pd
 import numpy as np
+import pandas_ta as pd_ta
 
 class Indicators():
 
@@ -128,3 +129,19 @@ class Indicators():
 
         price_density = candle_volatility.rolling(timeperiod).sum() / (highest_highs - lowest_lows)
         return list(price_density)
+    
+
+    async def _dmi(self, candlesticks, **kwargs):
+        adx = list(ta.ADX(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
+        plus_di = list(ta.PLUS_DI(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
+        minus_di = list(ta.MINUS_DI(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
+        return {'adx': adx, 'minus_di': minus_di, 'plus_di': plus_di}
+
+
+    async def _supertrend(self, candlesticks, **kwargs):
+
+        st = pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'])
+        upper_band = st['SUPERT_7_3.0'].where(st['SUPERTd_7_3.0'] == 1, None).tolist()
+        lower_band = st['SUPERT_7_3.0'].where(st['SUPERTd_7_3.0'] == -1, None).tolist()
+        
+        return {'upper_band': upper_band, 'lower_band': lower_band}

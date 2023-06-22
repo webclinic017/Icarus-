@@ -203,7 +203,6 @@ def market_regime_index(x, y, axes):
     # NOTE: No difference in the evaluation of the y even if it is a dictionary or a list. Since it helps in visualizaiton. The dict format is left as it is.
     # y = {indicator: {class1: instance, class2: instances}}
     for indicator_idx, (classifier, class_instance_dict) in enumerate(y.items()):
-        print(indicator_idx)
         for class_name, instances  in class_instance_dict.items():
             for market_regime in instances:
                 fplt.add_rect((market_regime.start_ts, indicator_idx+1), (market_regime.end_ts, indicator_idx), color=color_dict[class_name], interactive=False, ax=axes['ax_bot'])
@@ -310,6 +309,9 @@ def rvol(x, y, axes):
 
 def kaufman_efficiency_ratio(x, y, axes): enable_ax_bot(axes, y_range=(np.nanmin(y),np.nanmax(y))); line_handler(x, y, axes['ax_bot'])
 def price_density(x, y, axes): enable_ax_bot(axes, y_range=(np.nanmin(y),np.nanmax(y))); line_handler(x, y, axes['ax_bot'])
+def dmi(x, y, axes): enable_ax_bot(axes); line_handler(x, y, axes['ax_bot'])
+def supertrend(x, y, axes): disable_ax_bot(axes); line_handler(x, y, axes['ax'])
+
 
 ####################################  TA-LIB Indicators Visualization ####################################
 

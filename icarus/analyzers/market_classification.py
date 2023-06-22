@@ -5,6 +5,7 @@ from operator import itemgetter
 from hmmlearn.hmm import GaussianHMM
 from enum import Enum
 import pandas as pd
+import pandas_ta as pd_ta
 
 class Direction(Enum):
     UP = 0
@@ -289,6 +290,88 @@ class MarketClassification():
         detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
+
+    async def _market_class_ultosc(self, candlesticks, **kwargs):
+        analyzer = '_ultosc'
+        output_format = kwargs.get('format','direction')
+
+        if hasattr(self, analyzer):
+            analysis_output = await getattr(self, analyzer)(candlesticks)
+
+        classification = np.where(np.nan_to_num(analysis_output) <= 50, Direction.DOWN, Direction.UP)
+        nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
+        classification[:nan_value_offset] = None
+
+        if output_format == 'direction':
+            return classification
+        
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
+
+    async def _market_class_dmi_3(self, candlesticks, **kwargs):
+        analyzer = '_dmi'
+        output_format = kwargs.get('format','direction')
+
+        if hasattr(self, analyzer):
+            analysis_output = await getattr(self, analyzer)(candlesticks)
+
+        classification = np.where(
+            np.logical_and(
+                np.nan_to_num(analysis_output['plus_di']) > np.nan_to_num(analysis_output['minus_di']),
+                np.nan_to_num(analysis_output['adx']) > 20
+            ), Direction.UP, Direction.SIDE)
+        classification = np.where(
+            np.logical_and(
+                np.nan_to_num(analysis_output['minus_di']) > np.nan_to_num(analysis_output['plus_di']),
+                np.nan_to_num(analysis_output['adx']) > 20
+            ), Direction.DOWN, classification)
+
+        nan_value_offset = np.count_nonzero(np.isnan(analysis_output['plus_di']))
+        classification[:nan_value_offset] = None
+
+        if output_format == 'direction':
+            return classification
+        
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
+
+    async def _market_class_dmi(self, candlesticks, **kwargs):
+        analyzer = '_dmi'
+        output_format = kwargs.get('format','direction')
+
+        if hasattr(self, analyzer):
+            analysis_output = await getattr(self, analyzer)(candlesticks)
+
+        classification = np.where(np.nan_to_num(analysis_output['plus_di']) > np.nan_to_num(analysis_output['minus_di']), Direction.UP, Direction.DOWN)
+
+        nan_value_offset = np.count_nonzero(np.isnan(analysis_output['plus_di']))
+        classification[:nan_value_offset] = None
+
+        if output_format == 'direction':
+            return classification
+        
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
+
+    async def _market_class_supertrend(self, candlesticks, **kwargs):
+
+        output_format = kwargs.get('format','direction')
+
+        analysis_output = pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs)
+        direction_col = analysis_output.iloc[:,1]
+        classification = np.where(direction_col == -1, Direction.DOWN, Direction.UP)
+
+        nan_value_offset = np.count_nonzero(np.isnan(direction_col))
+        classification[:nan_value_offset] = None
+
+        if output_format == 'direction':
+            return classification
+        
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
 
 
     async def detect_regime_instances(candlesticks, classification, validation_threshold):

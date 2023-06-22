@@ -65,7 +65,7 @@ class TALibIndicators():
         fastk, fastd = ta.STOCHF(candlesticks['close'], **kwargs)
         return {'fastk':list(fastk), 'fastd': list(fastd)}
     async def _trix(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _ultosc(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
+    async def _ultosc(self, candlesticks, **kwargs): return list(ta.ULTOSC(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
     async def _willr(self, candlesticks, **kwargs):
         return list(ta.WILLR(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
 
