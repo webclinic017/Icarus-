@@ -1,0 +1,137 @@
+{
+    "tag": "test-bot",
+    "log-level": "DEBUG",
+    "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
+    "mongodb": {
+        "host": "localhost",
+        "port": 27017,
+        "clean": false
+    },
+    "balances": [
+        {
+            "asset": "USDT",
+            "free": 10000,
+            "locked": 0
+        }
+    ],
+    "broker": {
+        "quote_currency": "USDT",
+        "fee_rate": 0.001
+    },
+    "strategy": {
+        "MACDStrategy": {
+            "pairs": ["BTCUSDT", "SHIBUSDT", "SPELLUSDT"],
+            "time_scales": [
+                "1d", "4h", "1h", "15m"
+            ]
+        }
+    },
+    "analysis": {
+        "market_class_index": {
+            "market_class_rsi": {
+                "format": "direction"
+            },
+            "market_class_macd": {
+                "format": "direction"
+            },
+            "market_class_stoch": {
+                "format": "direction"
+            },
+            "market_class_stochf": {
+                "format": "direction"
+            },
+            "market_class_aroonosc": {
+                "format": "direction"
+            },
+            "market_class_willr": {
+                "format": "direction"
+            },
+            "market_class_cci": {
+                "format": "direction"
+            },
+            "market_class_cmo": {
+                "format": "direction"
+            },
+            "market_class_mfi": {
+                "format": "direction"
+            },
+            "market_class_ultosc": {
+                "format": "direction"
+            },
+            "market_class_dmi": {
+                "format": "direction"
+            },
+            "market_class_supertrend": {
+                "format": "direction"
+            },
+            "market_class_dmi_3": {
+                "format": "direction"
+            },
+            "market_class_aroon": {
+                "format": "direction"
+            },
+            "market_class_fractal_aroon": {
+                "format": "direction"
+            }
+        }
+    },
+    "report_folder_name": "reports",
+    "report": [
+    ],
+
+    "grid_search_reporters": {
+        "grid": {
+            "<pair>": [
+                "BTCUSDT", "SHIBUSDT", "SPELLUSDT"
+            ],
+            "<timeframe>": [
+                "1d", "4h", "1h", "15m"
+            ],
+            "<analyzer>": [
+                "market_class_index"
+            ]
+        },
+        "reporters": [
+            {
+                "parameters": {},
+                "reporter": "market_direction_correlation",
+                "source": "analyzer",
+                "indice_template": [
+                    "<pair>",
+                    "<timeframe>",
+                    "<analyzer>"
+                ],
+                "writers": [
+                    "heatmap_plot"
+                ]
+            }
+        ]
+    },
+    "time_scales": {
+        "1d": 1,
+        "1h": 1,
+        "15m": 1,
+        "4h": 1
+    },
+    "backtest": {
+        "start_time": "2021-10-10 13:00:00",
+        "end_time": "2022-10-10 13:00:00",
+        "online": true
+    },
+    "visualization": {
+        "observers": {
+            "qc": [
+                "free",
+                "total",
+                "in_trade"
+            ],
+            "qc_leak": [
+                "binary"
+            ],
+            "breakpoints": {
+                "1562371200000": "decision_time",
+                "1562803200000": "result.enter.time"
+            }
+        }
+    }
+}

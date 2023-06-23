@@ -536,3 +536,15 @@ async def pattern_counter(index, reporter_input):
     count_df = pd.DataFrame(counts).T
     count_df_sorted = count_df.sort_values(by = 'total', ascending = False)
     return Report(ReportMeta(title=filename,filename=filename), data=count_df_sorted)
+
+
+async def market_direction_correlation(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    df = reporter_input[0]
+    corr_matrix = df.apply(lambda x : pd.factorize(x)[0]).corr(method='pearson', min_periods=1)
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=corr_matrix)
