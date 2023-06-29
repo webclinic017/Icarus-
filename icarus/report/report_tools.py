@@ -548,3 +548,68 @@ async def market_direction_correlation(index, reporter_input):
         filename=filename
         )
     return Report(meta=report_meta, data=corr_matrix)
+
+
+async def market_regime_duration_up(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    filename += '_up'
+    tabular_stats = {}
+    for classifier, regimes in reporter_input[0].items():
+        tabular_stats[classifier.replace('market_class_', '')] = [trend.duration_in_candle for trend in regimes['uptrend']]
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_stats)
+
+async def market_regime_duration_down(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    filename += '_down'
+    tabular_stats = {}
+    for classifier, regimes in reporter_input[0].items():
+        tabular_stats[classifier.replace('market_class_', '')] = [trend.duration_in_candle for trend in regimes['downtrend']]
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_stats)
+
+
+async def market_regime_duration_up_stat(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    filename += '_up'
+    tabular_stats = {}
+    for classifier, regimes in reporter_input[0].items():
+        downtrend_dist = [trend.duration_in_candle for trend in regimes['uptrend']]
+        tabular_stats[classifier.replace('market_class_', '')] = {
+            'q1': np.percentile(downtrend_dist, 25),
+            'median': np.median(downtrend_dist),
+            'q3': np.percentile(downtrend_dist, 75)
+            }
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_stats)
+
+
+async def market_regime_duration_down_stat(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    filename += '_down'
+    tabular_stats = {}
+    for classifier, regimes in reporter_input[0].items():
+        downtrend_dist = [trend.duration_in_candle for trend in regimes['downtrend']]
+        tabular_stats[classifier.replace('market_class_', '')] = {
+            'q1': np.percentile(downtrend_dist, 25),
+            'median': np.median(downtrend_dist),
+            'q3': np.percentile(downtrend_dist, 75)
+            }
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_stats)

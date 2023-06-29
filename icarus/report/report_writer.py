@@ -155,21 +155,21 @@ class ImageWriter():
         pass
 
 
-    def box_plot(self, indice, report_dict, **kwargs):
-        filename = evaluate_filename(indice, kwargs['reporter'])
-        target_path = evaluate_target_path(self.report_folder,filename)
+    def box_plot(self, indice, report: Report, **kwargs):
+        target_path = evaluate_target_path(self.report_folder, report.meta.filename)
 
         fig, ax = plt.subplots()
 
-        ax.set_title(filename)
+        ax.set_title(report.meta.filename)
 
-        bplot = ax.boxplot(report_dict.values(), patch_artist=True)
+        bplot = ax.boxplot(report.data.values(), patch_artist=True)
         plt.grid(True)
-        ax.set_xticklabels(report_dict.keys())
+        plt.xticks(rotation=45)
+        ax.set_xticklabels(report.data.keys())
 
         colors = ['pink', 'lightblue', 'lightgreen', 'lightsalmon', 'lightgrey', 'lightyellow']
 
-        for patch, color in zip(bplot['boxes'], colors):
+        for patch, color in zip(bplot['boxes'], colors*3):
             patch.set_facecolor(color)
 
         plt_add_footnote(kwargs)

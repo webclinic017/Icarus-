@@ -1,0 +1,167 @@
+{
+    "tag": "test-bot",
+    "log-level": "DEBUG",
+    "credential_file": "test_credentials.json",
+    "mongodb": {
+        "host": "localhost",
+        "port": 27017,
+        "clean": false
+    },
+    "balances": [
+        {
+            "asset": "USDT",
+            "free": 10000,
+            "locked": 0
+        }
+    ],
+    "broker": {
+        "quote_currency": "USDT",
+        "fee_rate": 0.001
+    },
+    "strategy": {
+        "MACDStrategy": {
+            "pairs": ["BTCUSDT"],
+            "time_scales": [
+                "1d", "4h", "1h", "15m"
+            ]
+        }
+    },
+    "analysis": {
+        "market_regime_index": {
+            "market_class_rsi": {
+                "format": "regime"
+            },
+            "market_class_macd": {
+                "format": "regime"
+            },
+            "market_class_stoch": {
+                "format": "regime"
+            },
+            "market_class_stochf": {
+                "format": "regime"
+            },
+            "market_class_aroonosc": {
+                "format": "regime"
+            },
+            "market_class_willr": {
+                "format": "regime"
+            },
+            "market_class_cci": {
+                "format": "regime"
+            },
+            "market_class_cmo": {
+                "format": "regime"
+            },
+            "market_class_mfi": {
+                "format": "regime"
+            },
+            "market_class_ultosc": {
+                "format": "regime"
+            },
+            "market_class_dmi": {
+                "format": "regime"
+            },
+            "market_class_supertrend": {
+                "format": "regime"
+            }
+        }
+    },
+    "report_folder_name": "reports_duration",
+    "report": [
+    ],
+
+    "grid_search_reporters": {
+        "grid": {
+            "<pair>": [
+                "BTCUSDT"
+            ],
+            "<timeframe>": [
+                "1d", "4h", "1h", "15m"
+            ],
+            "<analyzer>": [
+                "market_regime_index"
+            ]
+        },
+        "reporters": [
+            {
+                "parameters": {},
+                "reporter": "market_regime_duration_up",
+                "source": "analyzer",
+                "indice_template": [
+                    "<pair>",
+                    "<timeframe>",
+                    "<analyzer>"
+                ],
+                "writers": [
+                    "box_plot"
+                ]
+            },
+            {
+                "parameters": {},
+                "reporter": "market_regime_duration_down",
+                "source": "analyzer",
+                "indice_template": [
+                    "<pair>",
+                    "<timeframe>",
+                    "<analyzer>"
+                ],
+                "writers": [
+                    "box_plot"
+                ]
+            },
+            {
+                "parameters": {},
+                "reporter": "market_regime_duration_down_stat",
+                "source": "analyzer",
+                "indice_template": [
+                    "<pair>",
+                    "<timeframe>",
+                    "<analyzer>"
+                ],
+                "writers": [
+                    "markdown_table"
+                ]
+            },
+            {
+                "parameters": {},
+                "reporter": "market_regime_duration_up_stat",
+                "source": "analyzer",
+                "indice_template": [
+                    "<pair>",
+                    "<timeframe>",
+                    "<analyzer>"
+                ],
+                "writers": [
+                    "markdown_table"
+                ]
+            }
+        ]
+    },
+    "time_scales": {
+        "1d": 1,
+        "1h": 1,
+        "15m": 1,
+        "4h": 1
+    },
+    "backtest": {
+        "start_time": "2022-06-25 00:00:00",
+        "end_time": "2023-06-25 00:00:00",
+        "online": true
+    },
+    "visualization": {
+        "observers": {
+            "qc": [
+                "free",
+                "total",
+                "in_trade"
+            ],
+            "qc_leak": [
+                "binary"
+            ],
+            "breakpoints": {
+                "1562371200000": "decision_time",
+                "1562803200000": "result.enter.time"
+            }
+        }
+    }
+}
