@@ -1,7 +1,7 @@
 {
     "tag": "test-bot",
     "log-level": "DEBUG",
-    "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
+    "credential_file": "test_credentials.json",
     "mongodb": {
         "host": "localhost",
         "port": 27017,
@@ -20,7 +20,7 @@
     },
     "strategy": {
         "MACDStrategy": {
-            "pairs": ["BTCUSDT", "SHIBUSDT", "SPELLUSDT"],
+            "pairs": ["BTCUSDT", "XRPUSDT", "SHIBUSDT", "SPELLUSDT"],
             "time_scales": [
                 "1d", "4h", "1h", "15m"
             ]
@@ -82,7 +82,7 @@
     "grid_search_reporters": {
         "grid": {
             "<pair>": [
-                "BTCUSDT", "SHIBUSDT", "SPELLUSDT"
+                "BTCUSDT", "XRPUSDT", "SHIBUSDT", "SPELLUSDT"
             ],
             "<timeframe>": [
                 "1d", "4h", "1h", "15m"
@@ -114,8 +114,8 @@
         "4h": 1
     },
     "backtest": {
-        "start_time": "2021-10-10 13:00:00",
-        "end_time": "2022-10-10 13:00:00",
+        "start_time": "2022-06-25 00:00:00",
+        "end_time": "2023-06-25 00:00:00",
         "online": true
     },
     "visualization": {

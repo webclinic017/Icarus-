@@ -80,11 +80,18 @@ async def correlation_matrix(indices, analysis):
 
 # *ppc: price percentage change
 async def market_class_ppc(index, detected_market_regimes):
+    filename = 'ppc_' + evaluate_filename(index, special_char=False)
+
     tabular_dict = {}
     for regime_name, regime_instances in detected_market_regimes[0].items():
         perc_price_change_list = [instance.perc_price_change for instance in regime_instances]
         tabular_dict[regime_name] = perc_price_change_list
-    return tabular_dict
+    
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_dict)
 
 
 async def market_class_pvpc(index, detected_market_regimes):
@@ -96,6 +103,7 @@ async def market_class_pvpc(index, detected_market_regimes):
 
 
 async def market_class_table_stats(index, detected_market_regimes):
+    filename = evaluate_filename(index, special_char=False)
 
     tabular_dict = {}
     for regime_name, regime_instances in detected_market_regimes[0].items():
@@ -118,12 +126,18 @@ async def market_class_table_stats(index, detected_market_regimes):
 
         tabular_dict[regime_name] = regime_stats
     
-    return tabular_dict
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_dict)
 
 
-async def perc_pos_change_stats_in_market_class(index, detected_market_regimes):
-    market_regimes = detected_market_regimes[0]
-    df_change = copy.deepcopy(detected_market_regimes[1])
+async def perc_pos_change_stats_in_market_class(index, analysis):
+    filename = 'ppc_accuracy_' +evaluate_filename([index[0]], special_char=False)
+
+    market_regimes = analysis[0]
+    df_change = copy.deepcopy(analysis[1])
     df_change['downtrend'] = False
 
     perc_price_change_list = [(instance.start_ts, instance.end_ts)  for instance in market_regimes['downtrend']]
@@ -142,13 +156,17 @@ async def perc_pos_change_stats_in_market_class(index, detected_market_regimes):
         coroutines.append(perc_pos_change_stats(index, [df_change[df_change[regime_name]]]))
 
     results = await asyncio.gather(*coroutines)
-    result_dict = {key:value for key, value in zip(['all'] + list(market_regimes.keys()), results)}
+    result_dict = {key:regime_report.data for key, regime_report in zip(['all'] + list(market_regimes.keys()), results)}
 
     # NOTE: FOR '1d':
     # I think the results are meaningful. As expected in downtrend,
     # neg_change possibility is higher and pos_change is lower. It is vice-versa in
     # uptrend
-    return result_dict
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=result_dict)
 
 
 async def supres_tables_per_metric(index, analysis_data):
@@ -613,3 +631,6 @@ async def market_regime_duration_down_stat(index, reporter_input):
         filename=filename
         )
     return Report(meta=report_meta, data=tabular_stats)
+
+async def market_regime_accuracy():
+    pass
