@@ -20,7 +20,7 @@
     },
     "strategy": {
         "MACDStrategy": {
-            "pairs": ["BTCUSDT"],
+            "pairs": ["BTCUSDT", "SPELLUSDT"],
             "time_scales": [
                 "1d", "4h", "1h", "15m"
             ]
@@ -73,7 +73,7 @@
     "grid_search_reporters": {
         "grid": {
             "<pair>": [
-                "BTCUSDT"
+                "BTCUSDT","SPELLUSDT"
             ],
             "<timeframe>": [
                 "1d", "4h", "1h", "15m"
