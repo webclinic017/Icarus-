@@ -80,11 +80,18 @@ async def correlation_matrix(indices, analysis):
 
 # *ppc: price percentage change
 async def market_class_ppc(index, detected_market_regimes):
+    filename = 'ppc_' + evaluate_filename(index, special_char=False)
+
     tabular_dict = {}
     for regime_name, regime_instances in detected_market_regimes[0].items():
         perc_price_change_list = [instance.perc_price_change for instance in regime_instances]
         tabular_dict[regime_name] = perc_price_change_list
-    return tabular_dict
+    
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_dict)
 
 
 async def market_class_pvpc(index, detected_market_regimes):
@@ -96,6 +103,7 @@ async def market_class_pvpc(index, detected_market_regimes):
 
 
 async def market_class_table_stats(index, detected_market_regimes):
+    filename = evaluate_filename(index, special_char=False)
 
     tabular_dict = {}
     for regime_name, regime_instances in detected_market_regimes[0].items():
@@ -118,18 +126,18 @@ async def market_class_table_stats(index, detected_market_regimes):
 
         tabular_dict[regime_name] = regime_stats
     
-    return tabular_dict
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_dict)
 
 
-async def perc_pos_change_stats_in_market_class(index, detected_market_regimes):
-    market_regimes = detected_market_regimes[0]
-    df_change = copy.deepcopy(detected_market_regimes[1])
-    df_change['downtrend'] = False
+async def perc_pos_change_stats_in_market_class(index, analysis):
+    filename = 'ppc_accuracy_' +evaluate_filename([index[0]], special_char=False)
 
-    perc_price_change_list = [(instance.start_ts, instance.end_ts)  for instance in market_regimes['downtrend']]
-    #step_ts = time_scale_to_minute(index[0][1]) * 60 * 1000
-    #start_ts = regime_instances[0]
-    #end_ts = regime_instances[-1]
+    market_regimes = analysis[0]
+    df_change = copy.deepcopy(analysis[1])
 
     coroutines = []
     results = []
@@ -142,13 +150,39 @@ async def perc_pos_change_stats_in_market_class(index, detected_market_regimes):
         coroutines.append(perc_pos_change_stats(index, [df_change[df_change[regime_name]]]))
 
     results = await asyncio.gather(*coroutines)
-    result_dict = {key:value for key, value in zip(['all'] + list(market_regimes.keys()), results)}
+    result_dict = {key:regime_report.data for key, regime_report in zip(['all'] + list(market_regimes.keys()), results)}
 
-    # NOTE: FOR '1d':
-    # I think the results are meaningful. As expected in downtrend,
-    # neg_change possibility is higher and pos_change is lower. It is vice-versa in
-    # uptrend
-    return result_dict
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=result_dict)
+
+
+async def ppc_trigger_stats_in_market_class(index, analysis):
+    filename = 'ppc_trigger_accuracy_' +evaluate_filename([index[0]], special_char=False)
+
+    market_regimes = analysis[0]
+    df_change = copy.deepcopy(analysis[1])
+
+    coroutines = []
+    results = []
+    coroutines.append(perc_pos_change_stats(index, [df_change]))
+
+    for regime_name, regime_instances in market_regimes.items():
+        df_change[regime_name] = False
+        for instance in regime_instances:
+            df_change.loc[instance.start_ts, regime_name]=True
+        coroutines.append(perc_pos_change_stats(index, [df_change[df_change[regime_name]]]))
+
+    results = await asyncio.gather(*coroutines)
+    result_dict = {key:regime_report.data for key, regime_report in zip(['all'] + list(market_regimes.keys()), results)}
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=result_dict)
 
 
 async def supres_tables_per_metric(index, analysis_data):
@@ -536,3 +570,83 @@ async def pattern_counter(index, reporter_input):
     count_df = pd.DataFrame(counts).T
     count_df_sorted = count_df.sort_values(by = 'total', ascending = False)
     return Report(ReportMeta(title=filename,filename=filename), data=count_df_sorted)
+
+
+async def market_direction_correlation(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    df = reporter_input[0]
+    corr_matrix = df.apply(lambda x : pd.factorize(x)[0]).corr(method='pearson', min_periods=1)
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=corr_matrix)
+
+
+async def market_regime_duration_up(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    filename += '_up'
+    tabular_stats = {}
+    for classifier, regimes in reporter_input[0].items():
+        tabular_stats[classifier.replace('market_class_', '')] = [trend.duration_in_candle for trend in regimes['uptrend']]
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_stats)
+
+async def market_regime_duration_down(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    filename += '_down'
+    tabular_stats = {}
+    for classifier, regimes in reporter_input[0].items():
+        tabular_stats[classifier.replace('market_class_', '')] = [trend.duration_in_candle for trend in regimes['downtrend']]
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_stats)
+
+
+async def market_regime_duration_up_stat(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    filename += '_up'
+    tabular_stats = {}
+    for classifier, regimes in reporter_input[0].items():
+        downtrend_dist = [trend.duration_in_candle for trend in regimes['uptrend']]
+        tabular_stats[classifier.replace('market_class_', '')] = {
+            'q1': np.percentile(downtrend_dist, 25),
+            'median': np.median(downtrend_dist),
+            'q3': np.percentile(downtrend_dist, 75)
+            }
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_stats)
+
+
+async def market_regime_duration_down_stat(index, reporter_input):
+    filename = evaluate_filename(index, special_char=False)
+    filename += '_down'
+    tabular_stats = {}
+    for classifier, regimes in reporter_input[0].items():
+        downtrend_dist = [trend.duration_in_candle for trend in regimes['downtrend']]
+        tabular_stats[classifier.replace('market_class_', '')] = {
+            'q1': np.percentile(downtrend_dist, 25),
+            'median': np.median(downtrend_dist),
+            'q3': np.percentile(downtrend_dist, 75)
+            }
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=tabular_stats)
+
+async def market_regime_accuracy():
+    pass

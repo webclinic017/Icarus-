@@ -42,7 +42,7 @@
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/backtest/FixedTargetv2/config_backtest.json"
+                "${workspaceFolder}/configs/research/market_direction/class_accuracy.json"
             ]
         },
         {
@@ -56,10 +56,10 @@
             "name": "visualize_analyzers",
             "type": "python",
             "request": "launch",
-            "program": "icarus/visualize_analyzers",
+            "program": "icarus/visualize_analyzers.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/research/support-resistance/config.json"
+                "${workspaceFolder}/configs/research/market_direction/config.json"
             ]
         },
         {

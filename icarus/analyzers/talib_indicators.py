@@ -34,9 +34,9 @@ class TALibIndicators():
         return {'aroonup':list(aroonup), 'aroondown': list(aroondown)}
     async def _aroonosc(self, candlesticks, **kwargs): return list(ta.AROONOSC(candlesticks['high'], candlesticks['low'], **kwargs))
     async def _bop(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cci(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _cmo(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _dx(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
+    async def _cci(self, candlesticks, **kwargs): return list(ta.CCI(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
+    async def _cmo(self, candlesticks, **kwargs): return list(ta.CMO(candlesticks['close'], **kwargs))
+    async def _dx(self, candlesticks, **kwargs): return list(ta.DX(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
     async def _macd(self, candlesticks, **kwargs):
         macd, macdsignal, macdhist = ta.MACD(candlesticks['close'], **kwargs)
         return {'macd':list(macd), 'macdsignal': list(macdsignal), 'macdhist':list(macdhist)}
@@ -61,11 +61,13 @@ class TALibIndicators():
     async def _stochf(self, candlesticks, **kwargs):
         fastk, fastd = ta.STOCHF(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs)
         return {'fastk':list(fastk), 'fastd': list(fastd)}
-    async def _stochrsi(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
+    async def _stochrsi(self, candlesticks, **kwargs):
+        fastk, fastd = ta.STOCHF(candlesticks['close'], **kwargs)
+        return {'fastk':list(fastk), 'fastd': list(fastd)}
     async def _trix(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _ultosc(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-    async def _willr(self, candlesticks, **kwargs): raise NotImplementedException('indicator')
-
+    async def _ultosc(self, candlesticks, **kwargs): return list(ta.ULTOSC(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
+    async def _willr(self, candlesticks, **kwargs):
+        return list(ta.WILLR(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs))
 
     # Volume indicators
     async def _ad(self, candlesticks, **kwargs): return list(ta.AD(candlesticks['high'], candlesticks['low'], candlesticks['close'], candlesticks['volume']))

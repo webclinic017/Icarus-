@@ -155,21 +155,21 @@ class ImageWriter():
         pass
 
 
-    def box_plot(self, indice, report_dict, **kwargs):
-        filename = evaluate_filename(indice, kwargs['reporter'])
-        target_path = evaluate_target_path(self.report_folder,filename)
+    def box_plot(self, indice, report: Report, **kwargs):
+        target_path = evaluate_target_path(self.report_folder, report.meta.filename)
 
         fig, ax = plt.subplots()
 
-        ax.set_title(filename)
+        ax.set_title(report.meta.filename)
 
-        bplot = ax.boxplot(report_dict.values(), patch_artist=True)
+        bplot = ax.boxplot(report.data.values(), patch_artist=True)
         plt.grid(True)
-        ax.set_xticklabels(report_dict.keys())
+        plt.xticks(rotation=45)
+        ax.set_xticklabels(report.data.keys())
 
         colors = ['pink', 'lightblue', 'lightgreen', 'lightsalmon', 'lightgrey', 'lightyellow']
 
-        for patch, color in zip(bplot['boxes'], colors):
+        for patch, color in zip(bplot['boxes'], colors*3):
             patch.set_facecolor(color)
 
         plt_add_footnote(kwargs)
@@ -258,13 +258,13 @@ class ImageWriter():
         print(f'File saved: {target_path}')
 
 
-    def heatmap_multiplot(self, indice, report_data, **kwargs):
-        filename = evaluate_filename(indice, kwargs['reporter'])
+    def heatmap_multiplot(self, indice, report, **kwargs):
+        filename = report.meta.filename
         target_path = evaluate_target_path(self.report_folder,filename)
 
         sub_matrices = []
 
-        if type(report_data) == dict:
+        if type(report) == Report:
             #x_labels = list(report_data.keys())
             #y_labels = [""]
             #sub_matrices = [pd.DataFrame(data=datum).values for datum in report_data.values()]
@@ -272,11 +272,11 @@ class ImageWriter():
         else:
             return
 
-        for key, report_datum in report_data.items():
+        for key, report_datum in report.data.items():
             tabular_df = pd.DataFrame(data=report_datum)
             sub_matrices.append(tabular_df.values)
 
-        x_labels, y_labels, sub_x_labels, sub_y_labels = [""], list(report_data.keys()), tabular_df.columns.to_list(), tabular_df.index.to_list()
+        x_labels, y_labels, sub_x_labels, sub_y_labels = [""], list(report.data.keys()), tabular_df.columns.to_list(), tabular_df.index.to_list()
 
         fig = plt.figure(figsize=evaluate_figsize((len(sub_x_labels)*len(x_labels),len(sub_y_labels)*len(y_labels))))
         fig.suptitle(filename, fontsize=24)

@@ -1,0 +1,130 @@
+{
+    "tag": "test-bot",
+    "log-level": "DEBUG",
+    "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
+    "mongodb": {
+        "host": "localhost",
+        "port": 27017,
+        "clean": false
+    },
+    "balances": [
+        {
+            "asset": "USDT",
+            "free": 10000,
+            "locked": 0
+        }
+    ],
+    "broker": {
+        "quote_currency": "USDT",
+        "fee_rate": 0.001
+    },
+    "strategy": {
+        "MACDStrategy": {
+            "pairs": ["BTCUSDT", "SHIBUSDT"],
+            "time_scales": [
+                "1d", "1h"
+            ]
+        }
+    },
+    "analysis": {
+        "aroon": {
+            "timeperiod": 30
+        },
+        "aroonosc": {
+            "timeperiod": 30
+        },
+        "fractal_aroon": {
+            "timeperiod": 30
+        },
+        "dmi": {
+        },
+        "supertrend": {
+        },
+        "market_class_dmi": {
+            "format": "market_regime"
+        },
+        "market_class_dmi_3": {
+            "format": "market_regime"
+        },
+        "market_class_supertrend": {
+            "format": "market_regime"
+        },
+        "market_regime_index": {
+            "market_class_rsi": {
+                "format": "market_regime"
+            },
+            "market_class_macd": {
+                "format": "market_regime"
+            },
+            "market_class_stoch": {
+                "format": "market_regime"
+            },
+            "market_class_stochf": {
+                "format": "market_regime"
+            },
+            "market_class_aroonosc": {
+                "format": "market_regime"
+            },
+            "market_class_willr": {
+                "format": "market_regime"
+            },
+            "market_class_cci": {
+                "format": "market_regime"
+            },
+            "market_class_cmo": {
+                "format": "market_regime"
+            },
+            "market_class_mfi": {
+                "format": "market_regime"
+            },
+            "market_class_ultosc": {
+                "format": "market_regime"
+            },
+            "market_class_dmi": {
+                "format": "market_regime"
+            },
+            "market_class_supertrend": {
+                "format": "market_regime"
+            },
+            "market_class_dmi_3": {
+                "format": "market_regime"
+            },
+            "market_class_aroon": {
+                "format": "market_regime"
+            },
+            "market_class_fractal_aroon": {
+                "format": "market_regime"
+            }
+        }
+    },
+    "report_folder_name": "reports_occ",
+    "report": [
+    ],
+    "grid_search_reporters": {},
+    "time_scales": {
+        "1d": 1,
+        "1h": 1,
+        "1w": 1
+    },
+    "backtest": {
+        "start_time": "2021-10-10 13:00:00",
+        "end_time": "2022-10-10 13:00:00",
+        "online": true
+    },
+    "visualization": {
+        "observers": {
+            "qc": [
+                "free",
+                "total",
+                "in_trade"
+            ],
+            "qc_leak": [
+                "binary"
+            ],
+            "breakpoints": {
+                "1562371200000": "decision_time",
+                "1562803200000": "result.enter.time"
+            }
+        }
+    }
+}

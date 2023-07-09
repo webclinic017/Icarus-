@@ -40,6 +40,8 @@ def change_asset(*args, **kwargs):
             plotter_name = indicator
         elif indicator[:3] == 'cdl':
             plotter_name = 'cdl_handler'
+        elif 'market_class' in indicator:
+            plotter_name = 'market_class_handler'
         else:
             ax.set_visible(xaxis=True)
             # restores saved zoom position, if in range
@@ -219,7 +221,8 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, config
     meta_data_pool = list(itertools.product(time_scale_pool, pair_pool))
 
     global data_dict, analysis_dict
-    data_dict = await bwrapper.download_all_data(meta_data_pool, start_timestamp, end_timestamp)
+    await bwrapper.obtain_candlesticks(meta_data_pool, start_timestamp, end_timestamp)
+    data_dict = bwrapper.downloaded_data
     analyzer = Analyzer(config)
     analysis_dict = await analyzer.analyze(data_dict)
 
@@ -228,7 +231,7 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, config
         # NOTE: Following 2 lines are about the feature of generate_report tool
         #if 'plot' in config['analysis'][key].keys():
         #    analyzer_names = analyzer_names + [key+'_'+name for name in config['analysis'][key]['plot']]
-        if hasattr(indicator_plot, key) or key[:3] == 'cdl':
+        if hasattr(indicator_plot, key) or key[:3] == 'cdl' or 'market_class' in key:
             analyzer_names.append(key)
     analyzer_names.sort()
     analysis_dashboard(pair_pool, time_scale_pool, analyzer_names, title=f'Visualizing Time Frame: {config["backtest"]["start_time"]} - {config["backtest"]["end_time"]}')
