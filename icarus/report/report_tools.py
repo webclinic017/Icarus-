@@ -138,12 +138,6 @@ async def perc_pos_change_stats_in_market_class(index, analysis):
 
     market_regimes = analysis[0]
     df_change = copy.deepcopy(analysis[1])
-    df_change['downtrend'] = False
-
-    perc_price_change_list = [(instance.start_ts, instance.end_ts)  for instance in market_regimes['downtrend']]
-    #step_ts = time_scale_to_minute(index[0][1]) * 60 * 1000
-    #start_ts = regime_instances[0]
-    #end_ts = regime_instances[-1]
 
     coroutines = []
     results = []
@@ -158,10 +152,32 @@ async def perc_pos_change_stats_in_market_class(index, analysis):
     results = await asyncio.gather(*coroutines)
     result_dict = {key:regime_report.data for key, regime_report in zip(['all'] + list(market_regimes.keys()), results)}
 
-    # NOTE: FOR '1d':
-    # I think the results are meaningful. As expected in downtrend,
-    # neg_change possibility is higher and pos_change is lower. It is vice-versa in
-    # uptrend
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    return Report(meta=report_meta, data=result_dict)
+
+
+async def ppc_trigger_stats_in_market_class(index, analysis):
+    filename = 'ppc_trigger_accuracy_' +evaluate_filename([index[0]], special_char=False)
+
+    market_regimes = analysis[0]
+    df_change = copy.deepcopy(analysis[1])
+
+    coroutines = []
+    results = []
+    coroutines.append(perc_pos_change_stats(index, [df_change]))
+
+    for regime_name, regime_instances in market_regimes.items():
+        df_change[regime_name] = False
+        for instance in regime_instances:
+            df_change.loc[instance.start_ts, regime_name]=True
+        coroutines.append(perc_pos_change_stats(index, [df_change[df_change[regime_name]]]))
+
+    results = await asyncio.gather(*coroutines)
+    result_dict = {key:regime_report.data for key, regime_report in zip(['all'] + list(market_regimes.keys()), results)}
+
     report_meta = ReportMeta(
         title=filename,
         filename=filename

@@ -101,6 +101,24 @@
                 ]
             },
             {
+                "parameters": {
+                    "<analyzer2>": [
+                        "<analyzer>",
+                        "percentage_possible_change"
+                    ]
+                },
+                "reporter": "ppc_trigger_stats_in_market_class",
+                "source": "analyzer",
+                "indice_template": [
+                    "<pair>",
+                    "<timeframe>",
+                    "<analyzer2>"
+                ],
+                "writers": [
+                    "heatmap_multiplot"
+                ]
+            },
+            {
                 "parameters": {},
                 "reporter": "market_class_ppc",
                 "source": "analyzer",

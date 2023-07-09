@@ -31,6 +31,13 @@ class Indicators():
 
 
     async def _percentage_possible_change(self, candlesticks, **kwargs):
+        '''
+        Market regime start_ts and end_ts are the starttime of the first and last candle of that regime.
+        Thus when I want to evaluate _percentage_possible_change for the start time, it should not include
+        the candle with start_ts
+        as a result df[['high','low']] = df[['high','low']].shift(-timeperiod+1) is replaced with 
+        df[['high','low']] = df[['high','low']].shift(-timeperiod)
+        '''
         pd.options.mode.chained_assignment = None 
         timeperiod = kwargs.get('timeperiod',24)
         digit = kwargs.get('digit',3)
@@ -40,7 +47,7 @@ class Indicators():
 
         df['high'] = df['high'].rolling(window=timeperiod).apply(max)
         df['low'] = df['low'].rolling(window=timeperiod).apply(min)
-        df[['high','low']] = df[['high','low']].shift(-timeperiod+1)
+        df[['high','low']] = df[['high','low']].shift(-timeperiod)
         df.dropna(inplace=True)
 
         df['pos_change'] = round(df['high']/df['open'] - 1, digit)
