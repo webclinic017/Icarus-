@@ -89,7 +89,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/backtest/FixedTargetv2/config_backtest.json"
+                "${workspaceFolder}/configs/trend_follower/single_mci.json"
             ]
         },
         {

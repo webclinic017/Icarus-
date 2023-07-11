@@ -3,11 +3,21 @@ from strategies.StrategyBase import StrategyBase
 import json
 from utils import time_scale_to_minute
 import position_sizing
+from typing import Dict
+import collections
+from analyzers.market_classification import Direction
 
 class TrendFollowerMCI(StrategyBase):
 
     def __init__(self, _tag, _config, _symbol_info):
         super().__init__(_tag, _config, _symbol_info)
+        self.max_loss_coeff = self.config['kwargs'].get('max_loss_coeff')
+        self.target_profit_coeff = self.config['kwargs'].get('target_profit_coeff')
+        self.exit_duration = self.config['kwargs'].get('exit_duration')
+
+        self.uprend_th = self.config['kwargs'].get('uprend_th')
+        self.downtrend_th = self.config['kwargs'].get('downtrend_th')
+
         return
 
 
@@ -19,8 +29,10 @@ class TrendFollowerMCI(StrategyBase):
 
 
         time_dict = analysis_dict[ao_pair]
-        mci = time_dict[self.min_period]
-        
+        mci_last = time_dict[self.min_period]['market_class_index'].iloc[-1]
+        mci_counts = dict(collections.Counter(mci_last))
+
+        uptrend_possibility = mci_counts[Direction.UP] / len(mci_last)
 
         enter_price = time_dict[self.min_period]['close'][-1]
         enter_ref_amount=pairwise_alloc_share
@@ -36,7 +48,7 @@ class TrendFollowerMCI(StrategyBase):
         return trade
 
 
-    async def on_update(self, trade, ikarus_time, **kwargs):
+    async def on_update(self, trade: Trade, ikarus_time, **kwargs):
         # NOTE: Things to change: price, limitPrice, stopLimitPrice, expire date
         trade.command = ECommand.UPDATE
         trade.stash_exit()
@@ -52,9 +64,9 @@ class TrendFollowerMCI(StrategyBase):
         return True
 
 
-    async def on_waiting_exit(self, trade, analysis_dict, **kwargs):
+    async def on_waiting_exit(self, trade: Trade, analysis_dict: Dict, **kwargs):
 
-        stop_loss_price = position_sizing.evaluate_stop_loss(kwargs['strategy_capital'], self.config['kwargs'].get('max_loss_coeff'), trade)
+        stop_loss_price = position_sizing.evaluate_stop_loss(kwargs['strategy_capital'], self.max_loss_coeff, trade)
 
         target_price = trade.result.enter.price * self.config['kwargs'].get('target_profit_coeff')
         stop_price = trade.result.enter.price * 0.95
@@ -69,7 +81,7 @@ class TrendFollowerMCI(StrategyBase):
             quantity=trade.result.enter.quantity,
             stop_price=stop_price,
             stop_limit_price=stop_limit_price,
-            expire=StrategyBase._eval_future_candle_time(kwargs['ikarus_time'], self.config['kwargs'].get('exit_duration'), time_scale_to_minute(self.min_period))
+            expire=StrategyBase._eval_future_candle_time(kwargs['ikarus_time'], self.exit_duration, time_scale_to_minute(self.min_period))
         )
         trade.set_exit(exit_oco_order)
 
