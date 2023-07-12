@@ -69,7 +69,7 @@
             "program": "icarus/visualize_backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/test/LimitLimit/config.json"
+                "${workspaceFolder}/configs/trend_follower/single_mci.json"
             ]
         },
         {

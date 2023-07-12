@@ -15,8 +15,8 @@ class TrendFollowerMCI(StrategyBase):
         self.target_profit_coeff = self.config['kwargs'].get('target_profit_coeff')
         self.exit_duration = self.config['kwargs'].get('exit_duration')
 
-        self.uprend_th = self.config['kwargs'].get('uprend_th')
-        self.downtrend_th = self.config['kwargs'].get('downtrend_th')
+        self.enter_uptrend_th = self.config['kwargs'].get('enter_uptrend_th')
+        self.exit_downtrend_th = self.config['kwargs'].get('exit_downtrend_th')
 
         return
 
@@ -32,8 +32,11 @@ class TrendFollowerMCI(StrategyBase):
         mci_last = time_dict[self.min_period]['market_class_index'].iloc[-1]
         mci_counts = dict(collections.Counter(mci_last))
 
-        uptrend_possibility = mci_counts[Direction.UP] / len(mci_last)
+        uptrend_possibility = mci_counts.get(Direction.UP,0) / len(mci_last)
 
+        if not (uptrend_possibility >= self.enter_uptrend_th):
+            return False
+        
         enter_price = time_dict[self.min_period]['close'][-1]
         enter_ref_amount=pairwise_alloc_share
 
@@ -48,13 +51,12 @@ class TrendFollowerMCI(StrategyBase):
         return trade
 
 
-    async def on_update(self, trade: Trade, ikarus_time, **kwargs):
+    async def on_exit_expire(self, trade: Trade, ikarus_time, analysis_dict, strategy_capital):
         # NOTE: Things to change: price, limitPrice, stopLimitPrice, expire date
         trade.command = ECommand.UPDATE
         trade.stash_exit()
-        close_price = kwargs['analysis_dict'][trade.pair][self.min_period]['close'][-1]
+        close_price = analysis_dict[trade.pair][self.min_period]['close'][-1]
         trade.set_exit( Market(quantity=trade.result.enter.quantity, price=close_price) )
-
 
         # Apply the filters
         # TODO: Add min notional fix (No need to add the check because we are not gonna do anything with that)
@@ -64,11 +66,34 @@ class TrendFollowerMCI(StrategyBase):
         return True
 
 
-    async def on_waiting_exit(self, trade: Trade, analysis_dict: Dict, **kwargs):
+    async def on_open_exit(self, trade: Trade, ikarus_time: int, analysis_dict: Dict, strategy_capital):
+        
+        # Check exit downtrend condition 
+        mci_last = analysis_dict[trade.pair][self.min_period]['market_class_index'].iloc[-1]
+        mci_counts = dict(collections.Counter(mci_last))
+        downtrend_possibility = mci_counts.get(Direction.DOWN,0) / len(mci_last)
 
-        stop_loss_price = position_sizing.evaluate_stop_loss(kwargs['strategy_capital'], self.max_loss_coeff, trade)
+        if not (downtrend_possibility >= self.exit_downtrend_th):
+            return True
 
-        target_price = trade.result.enter.price * self.config['kwargs'].get('target_profit_coeff')
+        trade.command = ECommand.UPDATE
+        trade.stash_exit()
+        close_price = analysis_dict[trade.pair][self.min_period]['close'][-1]
+        trade.set_exit( Market(quantity=trade.result.enter.quantity, price=close_price) )
+
+        # Apply the filters
+        # TODO: Add min notional fix (No need to add the check because we are not gonna do anything with that)
+        if not StrategyBase.apply_exchange_filters(trade.exit, self.symbol_info[trade.pair]):
+            # TODO: This is a critical case where the exit order failed to pass filters. Decide what to do
+            return False
+        return True
+
+
+    async def on_waiting_exit(self, trade: Trade, ikarus_time: int, analysis_dict: Dict, strategy_capital):
+
+        stop_loss_price = position_sizing.evaluate_stop_loss(strategy_capital, self.max_loss_coeff, trade)
+
+        target_price = trade.result.enter.price * self.target_profit_coeff
         stop_price = trade.result.enter.price * 0.95
 
         # If the stop_price causes more capital loss than max_loss_percentage, than do the adjustment
@@ -81,7 +106,7 @@ class TrendFollowerMCI(StrategyBase):
             quantity=trade.result.enter.quantity,
             stop_price=stop_price,
             stop_limit_price=stop_limit_price,
-            expire=StrategyBase._eval_future_candle_time(kwargs['ikarus_time'], self.exit_duration, time_scale_to_minute(self.min_period))
+            expire=StrategyBase._eval_future_candle_time(ikarus_time, self.exit_duration, time_scale_to_minute(self.min_period))
         )
         trade.set_exit(exit_oco_order)
 

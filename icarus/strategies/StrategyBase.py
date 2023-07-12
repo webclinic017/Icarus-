@@ -81,16 +81,19 @@ class StrategyBase(metaclass=abc.ABCMeta):
             is_success = await self.on_cancel(trade)
 
         elif trade.status == EState.EXIT_EXP:
-            is_success = await self.on_update(trade, ikarus_time, analysis_dict=analysis_dict, strategy_capital=strategy_capital)
+            is_success = await self.on_exit_expire(trade, ikarus_time, analysis_dict, strategy_capital)
             if hasattr(trade.exit, 'expire'):
                 logger.debug('Expire date: {}'.format(datetime.fromtimestamp(trade.exit.expire)))
 
         elif trade.status == EState.WAITING_EXIT:
             # LTO is entered succesfully, so exit order should be executed
             # NOTE: expire of the exit_module can be calculated after the trade entered
-            is_success = await self.on_waiting_exit(trade, analysis_dict, ikarus_time=ikarus_time, strategy_capital=strategy_capital)
+            is_success = await self.on_waiting_exit(trade, ikarus_time, analysis_dict, strategy_capital)
             if hasattr(trade.exit, 'expire'):
                 logger.debug('Expire date: {}'.format(datetime.fromtimestamp(trade.exit.expire)))
+
+        elif trade.status == EState.OPEN_EXIT:
+            is_success = await self.on_open_exit(trade, ikarus_time, analysis_dict, strategy_capital)
 
         elif trade.status == EState.CLOSED:
             is_success = await self.on_closed(trade)
