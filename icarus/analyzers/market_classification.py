@@ -364,8 +364,8 @@ class MarketClassification():
         direction_col = analysis_output.iloc[:,1]
         classification = np.where(direction_col == -1, Direction.DOWN, Direction.UP)
 
-        nan_value_offset = np.count_nonzero(np.isnan(direction_col))
-        classification[:nan_value_offset] = None
+        #nan_value_offset = np.count_nonzero(np.isnan(direction_col))
+        classification[:kwargs.get('length',7)] = None
 
         if output_format == 'direction':
             return classification
