@@ -29,38 +29,55 @@
             "distribution_config": ["TrendFollowerMCI"],
             "capital_coeff":0.9, 
             "stop_capital":null,
-            "capital_limit": 100
+            "capital_limit": null
         }
     },
     "strategy": {
         "TrendFollowerMCI": {
             "strategy": "TrendFollowerMCI",
             "pairs": ["BTCUSDT"],
-            "time_scales": ["1h"],
+            "time_scales": ["4h"],
             "max_live_trade": 1,
             "kwargs":{
-                "target_profit_coeff":1.03,
-                "exit_duration":72,
-                "max_loss_coeff": 0.03,
-                "uptrend_th": 1,
-                "downtrend_th": 0,
+                "target_profit_coeff":1.025,
+                "exit_duration":24,
+                "max_loss_coeff": 0.05,
                 "enter_uptrend_th": 1,
-                "exit_downtrend_th": 0.1
+                "exit_downtrend_th": 0.5
             }
         }
     },
     "analysis": {
         "close": {},
+        "market_regime_index": {
+            "market_class_supertrend": {
+                "format": "regime",
+                "length": 7
+            },
+            "market_class_dmi": {
+                "format": "regime"
+            },
+            "market_class_cmo": {
+                "format": "regime"
+            }
+        },
+        "market_class_stochf": {
+            "format": "regime"
+        },
         "market_class_index": {
             "market_class_supertrend": {
+                "format": "direction",
+                "length": 7
+            },
+            "market_class_dmi": {
                 "format": "direction"
             },
-            "market_class_rsi": {
+            "market_class_cmo": {
                 "format": "direction"
             }
         }
     },
-    "report_folder_name": "reports_backtest_0.03_dw0.1",
+    "report_folder_name": "reports_4h_multi",
     "report": [],
     "grid_search_reporters": {
         "grid": {
@@ -73,7 +90,7 @@
             {
                 "parameters": {
                     "<pair-indice>": ["BTCUSDT"],
-                    "<timeframe>": ["1h"],
+                    "<timeframe>": ["4h"],
                     "<analyzer>": ["close"]
                 },
                 "reporter": "symbol_price_change",
@@ -362,12 +379,16 @@
         ]
     },
     "time_scales": {
-        "1h": 20
+        "1h": 60,
+        "4h": 50
     },
     "backtest": {
         "start_time": "2023-06-10 00:00:00",
         "end_time": "2023-07-10 00:00:00",
-        "online": true
+        "online": true,
+        "breakpoints": {
+            "1686916800000":"entry time"
+        }
     },
     "visualization": {
         "observers": {
