@@ -12,6 +12,8 @@ import sys
 from itertools import chain
 import itertools
 import resource_allocator
+import collections
+from analyzers.market_classification import Direction
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -112,6 +114,11 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
     observation_obj['total'] = observation_obj['free'] + observation_obj['in_trade']
     obs_quote_asset = Observer(EObserverType.QUOTE_ASSET, ts=ikarus_time_sec, data=observation_obj).to_dict()
 
+    mci_last = list(analysis_dict['BTCUSDT']['4h']['market_class_index'].iloc[-1])
+    observation_obj = {}
+    observation_obj['text'] = [dir_enum.value for dir_enum in mci_last]
+    direction_obs = Observer('text', ts=ikarus_time_sec, data=observation_obj).to_dict()
+
     '''
     # NOTE: capital_limit is not integrated to this leak evaluation 
     observation_obj = {}
@@ -131,7 +138,8 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
         obs_quote_asset,
         #obs_quote_asset_leak,
         obs_balance,
-        obs_strategy_capitals
+        obs_strategy_capitals,
+        direction_obs
     ]
     #observer_objs = list(await asyncio.gather(*observer_list))
     await mongocli.do_insert_many("observer", observer_list)

@@ -1,5 +1,5 @@
 {
-    "tag": "mci_supertrend",
+    "tag": "mci_dmi",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
@@ -7,7 +7,7 @@
     },
     "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "mci_supertrend",
+        "database": "mci_dmi",
         "host": "localhost",
         "port": 27017,
         "clean": true
@@ -49,23 +49,21 @@
     },
     "analysis": {
         "close": {},
-        "market_class_supertrend": {
+        "market_class_dmi": {
             "format": "regime"
         },
         "market_class_index": {
-            "market_class_supertrend": {
-                "format": "direction",
-                "length": 7
+            "market_class_dmi": {
+                "format": "direction"
             }
         },
         "market_regime_index": {
-            "market_class_supertrend": {
-                "format": "regime",
-                "length": 7
+            "market_class_dmi": {
+                "format": "regime"
             }
         }
     },
-    "report_folder_name": "reports_4h_supertrend",
+    "report_folder_name": "reports_4h_dmi",
     "report": [],
     "grid_search_reporters": {
         "grid": {
@@ -374,7 +372,7 @@
         "end_time": "2023-07-10 00:00:00",
         "online": true,
         "breakpoints": {
-            "1686916800000":"entry time"
+            "1685980800000":"entry time"
         }
     },
     "visualization": {

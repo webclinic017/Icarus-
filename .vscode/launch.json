@@ -69,7 +69,17 @@
             "program": "icarus/visualize_backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/trend_follower/single_mci.json"
+                "${workspaceFolder}/configs/trend_follower/mci_dmi.json"
+            ]
+        },
+        {
+            "name": "visualize_dashboard",
+            "type": "python",
+            "request": "launch",
+            "program": "icarus/visualize_dashboard.py",
+            "console": "integratedTerminal",
+            "args": [
+                "${workspaceFolder}/configs/trend_follower/mci_supertrend.json"
             ]
         },
         {
@@ -89,7 +99,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/trend_follower/single_mci.json"
+                "${workspaceFolder}/configs/trend_follower/mci_dmi.json"
             ]
         },
         {

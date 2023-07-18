@@ -81,7 +81,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
 
-        classification = np.where(np.nan_to_num(analysis_output) <= 0, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output) <= 0,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
         classification[:nan_value_offset] = None
 
@@ -98,8 +98,8 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
 
-        classification = np.where(np.nan_to_num(analysis_output['aroondown']) > 80, Direction.DOWN, Direction.SIDE)
-        classification = np.where(np.nan_to_num(analysis_output['aroonup']) > 80, Direction.UP, classification)
+        classification = np.where(np.round(np.nan_to_num(analysis_output['aroondown']) > 80,2), Direction.DOWN, Direction.SIDE)
+        classification = np.where(np.round(np.nan_to_num(analysis_output['aroonup']) > 80,2), Direction.UP, classification)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['aroonup']))
         classification[:nan_value_offset] = None
 
@@ -117,8 +117,8 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
         
-        classification = np.where(np.nan_to_num(analysis_output['aroondown']) > 80, Direction.DOWN, Direction.SIDE)
-        classification = np.where(np.nan_to_num(analysis_output['aroonup']) > 80, Direction.UP, classification)
+        classification = np.where(np.round(np.nan_to_num(analysis_output['aroondown']) > 80,2), Direction.DOWN, Direction.SIDE)
+        classification = np.where(np.round(np.nan_to_num(analysis_output['aroonup']) > 80,2), Direction.UP, classification)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['aroonup']))
         classification[:nan_value_offset] = None
 
@@ -136,7 +136,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output['macdhist']) <= 0, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output['macdhist']) <= 0,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['macdhist']))
         classification[:nan_value_offset] = None
 
@@ -154,7 +154,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
 
-        classification = np.where(np.nan_to_num(analysis_output) <= 50, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output) <= 50,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
         classification[:nan_value_offset] = None
 
@@ -172,7 +172,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output['slowk']) <= 50, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output['slowk']),2) <= 50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['slowk']))
         classification[:nan_value_offset] = None
 
@@ -190,7 +190,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output['fastk']) <= 50, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output['fastk']) <= 50,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['fastk']))
         classification[:nan_value_offset] = None
 
@@ -208,7 +208,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output['fastk']) <= 50, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output['fastk']) <= 50,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['fastk']))
         classification[:nan_value_offset] = None
 
@@ -226,7 +226,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output) <= -50, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output) <= -50,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
         classification[:nan_value_offset] = None
 
@@ -244,7 +244,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output) <= 0, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output) <= 0,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
         classification[:nan_value_offset] = None
 
@@ -262,7 +262,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output) <= 0, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output) <= 0,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
         classification[:nan_value_offset] = None
 
@@ -280,7 +280,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output) <= 50, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output) <= 50,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
         classification[:nan_value_offset] = None
 
@@ -298,7 +298,7 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output) <= 50, Direction.DOWN, Direction.UP)
+        classification = np.where(np.round(np.nan_to_num(analysis_output) <= 50,2), Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
         classification[:nan_value_offset] = None
 
@@ -318,13 +318,13 @@ class MarketClassification():
 
         classification = np.where(
             np.logical_and(
-                np.nan_to_num(analysis_output['plus_di']) > np.nan_to_num(analysis_output['minus_di']),
-                np.nan_to_num(analysis_output['adx']) > 20
+                np.round(np.nan_to_num(analysis_output['plus_di']),2) > np.round(np.nan_to_num(analysis_output['minus_di']),2),
+                np.round(np.nan_to_num(analysis_output['adx']),2) > 20
             ), Direction.UP, Direction.SIDE)
         classification = np.where(
             np.logical_and(
-                np.nan_to_num(analysis_output['minus_di']) > np.nan_to_num(analysis_output['plus_di']),
-                np.nan_to_num(analysis_output['adx']) > 20
+                np.round(np.nan_to_num(analysis_output['minus_di']),2) > np.round(np.nan_to_num(analysis_output['plus_di']),2),
+                np.round(np.nan_to_num(analysis_output['adx']),2) > 20
             ), Direction.DOWN, classification)
 
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['plus_di']))
@@ -344,7 +344,9 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks)
 
-        classification = np.where(np.nan_to_num(analysis_output['plus_di']) > np.nan_to_num(analysis_output['minus_di']), Direction.UP, Direction.DOWN)
+        classification = np.where(
+            np.round(np.nan_to_num(analysis_output['plus_di']),2) > np.round(np.nan_to_num(analysis_output['minus_di']),2),
+            Direction.UP, Direction.DOWN)
 
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['plus_di']))
         classification[:nan_value_offset] = None
