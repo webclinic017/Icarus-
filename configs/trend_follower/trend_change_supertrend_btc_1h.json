@@ -1,5 +1,5 @@
 {
-    "tag": "mci_supertrend",
+    "tag": "trend_change_supertrend_btc_1h",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
@@ -7,7 +7,7 @@
     },
     "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "mci_supertrend",
+        "database": "trend_change_supertrend_btc_1h",
         "host": "localhost",
         "port": 27017,
         "clean": true
@@ -26,24 +26,24 @@
     "strategy_allocation":{
         "type": "DiscreteStrategyAllocator",
         "kwargs": {
-            "distribution_config": ["TrendFollowerMCI"],
+            "distribution_config": ["TrendChangeMCI"],
             "capital_coeff":0.9, 
             "stop_capital":null,
             "capital_limit": null
         }
     },
     "strategy": {
-        "TrendFollowerMCI": {
-            "strategy": "TrendFollowerMCI",
+        "TrendChangeMCI": {
+            "strategy": "TrendChangeMCI",
             "pairs": ["BTCUSDT"],
-            "time_scales": ["4h"],
+            "time_scales": ["1h"],
             "max_live_trade": 1,
             "kwargs":{
-                "target_profit_coeff":1.025,
+                "target_profit_coeff":1.0276,
                 "exit_duration":24,
                 "max_loss_coeff": 0.05,
                 "enter_uptrend_th": 1,
-                "exit_downtrend_th": 0.5
+                "exit_downtrend_th": 1
             }
         }
     },
@@ -65,11 +65,11 @@
             }
         }
     },
-    "report_folder_name": "reports_4h_supertrend",
+    "report_folder_name": "reports_trend_change_supertrend_btc_1h",
     "report": [],
     "grid_search_reporters": {
         "grid": {
-            "<strategy>": ["TrendFollowerMCI"],
+            "<strategy>": ["TrendChangeMCI"],
             "<pair>": ["BTCUSDT"],
             "<start_time>": [0],
             "<end_time>": [1688947200]
@@ -78,7 +78,7 @@
             {
                 "parameters": {
                     "<pair-indice>": ["BTCUSDT"],
-                    "<timeframe>": ["4h"],
+                    "<timeframe>": ["1h"],
                     "<analyzer>": ["close"]
                 },
                 "reporter": "symbol_price_change",
@@ -367,7 +367,9 @@
         ]
     },
     "time_scales": {
-        "4h": 170
+        "1d": 170,
+        "4h": 170,
+        "1h": 170
     },
     "backtest": {
         "start_time": "2023-04-10 00:00:00",
@@ -383,9 +385,6 @@
                 "free",
                 "total",
                 "in_trade"
-            ],
-            "text":[
-                "text"
             ]
         }
     }

@@ -114,32 +114,12 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
     observation_obj['total'] = observation_obj['free'] + observation_obj['in_trade']
     obs_quote_asset = Observer(EObserverType.QUOTE_ASSET, ts=ikarus_time_sec, data=observation_obj).to_dict()
 
-    mci_last = list(analysis_dict['BTCUSDT']['4h']['market_class_index'].iloc[-1])
-    observation_obj = {}
-    observation_obj['text'] = [dir_enum.value for dir_enum in mci_last]
-    direction_obs = Observer('text', ts=ikarus_time_sec, data=observation_obj).to_dict()
-
-    '''
-    # NOTE: capital_limit is not integrated to this leak evaluation 
-    observation_obj = {}
-    free = df_balance.loc[config['broker']['quote_currency'],'free']
-    in_trade = eval_total_capital_in_lto(live_trade_list+new_trade_list)
-    observation_obj['total'] = safe_sum(free, in_trade)
-    observation_obj['ideal_free'] = safe_multiply(observation_obj['total'], safe_substract(1, config['strategy_allocation']['kwargs']['capital_coeff']))
-    observation_obj['real_free'] = free
-    observation_obj['binary'] = int(observation_obj['ideal_free'] < observation_obj['real_free'])
-
-    obs_quote_asset_leak = Observer('quote_asset_leak', ts=ikarus_time_ms, data=observation_obj).to_dict()
-    '''
-
-
     # TODO: NEXT: Observer configuration needs to be implemented just like analyzers
     observer_list = [
         obs_quote_asset,
         #obs_quote_asset_leak,
         obs_balance,
         obs_strategy_capitals,
-        direction_obs
     ]
     #observer_objs = list(await asyncio.gather(*observer_list))
     await mongocli.do_insert_many("observer", observer_list)

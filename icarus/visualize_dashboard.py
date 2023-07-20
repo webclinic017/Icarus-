@@ -194,6 +194,40 @@ def create_ctrl_panel(win, pairs, time_scales, indicators):
     return panel
 
 
+'''
+async def get_trade_data(bwrapper, mongocli, config):
+    start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
+    start_timestamp = int(datetime.datetime.timestamp(start_time))*1000
+    end_time = datetime.datetime.strptime(config['backtest']['end_time'], "%Y-%m-%d %H:%M:%S")
+    end_timestamp = int(datetime.datetime.timestamp(end_time))*1000
+
+    # Create pools for pair-scales
+    meta_data_pool = []
+    for strategy_tag, strategy in config['strategy'].items():
+        meta_data_pool.append(list(itertools.product([strategy_tag], strategy['time_scales'], strategy['pairs'])))
+
+    meta_data_pool = list(set(chain(*meta_data_pool)))
+
+    dashboard_data_pack = {}
+    
+    for strategy_tag, timeframe, symbol in meta_data_pool:
+        canceled = await mongo_utils.do_find_trades(mongocli, 'hist-trades', {'result.cause':ECause.ENTER_EXP, 'pair':symbol, 'strategy':strategy_tag})
+        closed = await mongo_utils.do_find_trades(mongocli, 'hist-trades', {'result.cause':{'$in':[ECause.MARKET, ECause.STOP_LIMIT, ECause.LIMIT]}, 'pair':symbol, 'strategy':strategy_tag})
+
+        if symbol not in dashboard_data_pack:
+            dashboard_data_pack[symbol] = {}
+          
+        if timeframe not in dashboard_data_pack[symbol]:
+            dashboard_data_pack[symbol][timeframe] = {}
+
+        dashboard_data_pack[symbol][timeframe]['trades'] = {
+            'canceled':canceled,
+            'closed':closed
+        }
+
+    return dashboard_data_pack
+
+'''
 async def get_trade_data(bwrapper, mongocli, config):
     start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
     start_timestamp = int(datetime.datetime.timestamp(start_time))*1000
