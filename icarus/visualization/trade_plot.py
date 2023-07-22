@@ -32,7 +32,8 @@ def colorize_exit_order(trade):
     if trade.order_stash:
         # If there is stashed orders then use the "expire" of last stashed order
         try:
-            fplt.add_rect((trade.order_stash[-1].expire, rect_top), (trade.result.exit.time, rect_bot), color=color, interactive=False)
+            #fplt.add_rect((trade.order_stash[-1].expire, rect_top), (trade.result.exit.time, rect_bot), color=color, interactive=False)
+            fplt.add_rect((trade.result.enter.time, rect_top), (trade.result.exit.time, rect_bot), color=color)
         except Exception as e:
             print('Exception occured: {}'.format(e))
     else:

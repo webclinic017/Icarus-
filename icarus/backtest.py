@@ -12,6 +12,8 @@ import sys
 from itertools import chain
 import itertools
 import resource_allocator
+import collections
+from analyzers.market_classification import Direction
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -112,26 +114,12 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
     observation_obj['total'] = observation_obj['free'] + observation_obj['in_trade']
     obs_quote_asset = Observer(EObserverType.QUOTE_ASSET, ts=ikarus_time_sec, data=observation_obj).to_dict()
 
-    '''
-    # NOTE: capital_limit is not integrated to this leak evaluation 
-    observation_obj = {}
-    free = df_balance.loc[config['broker']['quote_currency'],'free']
-    in_trade = eval_total_capital_in_lto(live_trade_list+new_trade_list)
-    observation_obj['total'] = safe_sum(free, in_trade)
-    observation_obj['ideal_free'] = safe_multiply(observation_obj['total'], safe_substract(1, config['strategy_allocation']['kwargs']['capital_coeff']))
-    observation_obj['real_free'] = free
-    observation_obj['binary'] = int(observation_obj['ideal_free'] < observation_obj['real_free'])
-
-    obs_quote_asset_leak = Observer('quote_asset_leak', ts=ikarus_time_ms, data=observation_obj).to_dict()
-    '''
-
-
     # TODO: NEXT: Observer configuration needs to be implemented just like analyzers
     observer_list = [
         obs_quote_asset,
         #obs_quote_asset_leak,
         obs_balance,
-        obs_strategy_capitals
+        obs_strategy_capitals,
     ]
     #observer_objs = list(await asyncio.gather(*observer_list))
     await mongocli.do_insert_many("observer", observer_list)

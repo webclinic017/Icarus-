@@ -42,7 +42,7 @@
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/research/market_direction/class_accuracy.json"
+                "${workspaceFolder}/configs/trend_follower/mci_supertrend_btc_1h.json"
             ]
         },
         {
@@ -69,7 +69,17 @@
             "program": "icarus/visualize_backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/test/LimitLimit/config.json"
+                "${workspaceFolder}/configs/trend_follower/mci_dmi.json"
+            ]
+        },
+        {
+            "name": "visualize_dashboard",
+            "type": "python",
+            "request": "launch",
+            "program": "icarus/visualize_dashboard.py",
+            "console": "integratedTerminal",
+            "args": [
+                "${workspaceFolder}/configs/trend_follower/mci_supertrend_btc_1h.json"
             ]
         },
         {
@@ -89,7 +99,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/backtest/FixedTargetv2/config_backtest.json"
+                "${workspaceFolder}/configs/trend_follower/trend_change_supertrend_btc_1h.json"
             ]
         },
         {
