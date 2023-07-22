@@ -1,5 +1,5 @@
 {
-    "tag": "trend_change_supertrend_btc_1h",
+    "tag": "trend_change_supertrend_1d",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
@@ -7,7 +7,7 @@
     },
     "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "trend_change_supertrend_btc_1h",
+        "database": "trend_change_supertrend_1d",
         "host": "localhost",
         "port": 27017,
         "clean": true
@@ -36,10 +36,10 @@
         "TrendChangeMCI": {
             "strategy": "TrendChangeMCI",
             "pairs": ["BTCUSDT"],
-            "time_scales": ["1h"],
+            "time_scales": ["1d"],
             "max_live_trade": 1,
             "kwargs":{
-                "target_profit_coeff":1.0276,
+                "target_profit_coeff":1.126,
                 "exit_duration":24,
                 "max_loss_coeff": 0.05,
                 "enter_uptrend_th": 1,
@@ -65,7 +65,7 @@
             }
         }
     },
-    "report_folder_name": "reports_trend_change_supertrend_btc_1h",
+    "report_folder_name": "reports_trend_change_supertrend_1d",
     "report": [],
     "grid_search_reporters": {
         "grid": {
@@ -78,7 +78,7 @@
             {
                 "parameters": {
                     "<pair-indice>": ["BTCUSDT"],
-                    "<timeframe>": ["1h"],
+                    "<timeframe>": ["1d"],
                     "<analyzer>": ["close"]
                 },
                 "reporter": "symbol_price_change",
