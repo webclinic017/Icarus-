@@ -99,7 +99,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/trend_follower/trend_change_supertrend_btc_1h.json"
+                "${workspaceFolder}/configs/trend_follower/mci_multi.json"
             ]
         },
         {
