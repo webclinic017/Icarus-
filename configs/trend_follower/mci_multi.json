@@ -47,24 +47,9 @@
             }
         }
     },
-    "analysis": {
-        "close": {},
-        "market_regime_index": {
-            "market_class_supertrend": {
-                "format": "regime",
-                "length": 7
-            },
-            "market_class_dmi": {
-                "format": "regime"
-            },
-            "market_class_cmo": {
-                "format": "regime"
-            }
-        },
-        "market_class_stochf": {
-            "format": "regime"
-        },
-        "market_class_index": {
+    "analysis": [
+        {
+            "close": {},
             "market_class_supertrend": {
                 "format": "direction",
                 "length": 7
@@ -75,8 +60,13 @@
             "market_class_cmo": {
                 "format": "direction"
             }
+        },
+        {
+            "market_class_index": {
+                "indicators": ["market_class_cmo", "market_class_dmi", "market_class_supertrend"]
+            }
         }
-    },
+    ],
     "report_folder_name": "reports_4h_multi",
     "report": [],
     "grid_search_reporters": {
