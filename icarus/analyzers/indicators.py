@@ -5,6 +5,9 @@ import pandas_ta as pd_ta
 
 class Indicators():
 
+    async def _candlesticks(self, candlesticks, **kwargs):
+        return candlesticks
+
     async def _fractal_aroon(self, candlesticks, **kwargs):
         fractal_line = await self._fractal_line_3(candlesticks)
         aroondown, aroonup = ta.AROON(pd.Series(fractal_line['bearish']), pd.Series(fractal_line['bullish']), **kwargs)
@@ -146,6 +149,9 @@ class Indicators():
 
 
     async def _supertrend(self, candlesticks, **kwargs):
+        return pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'])
+
+    async def _supertrend_band(self, candlesticks, **kwargs):
 
         st = pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'])
         upper_band = st['SUPERT_7_3.0'].where(st['SUPERTd_7_3.0'] == 1, None).tolist()

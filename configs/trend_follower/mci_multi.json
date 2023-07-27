@@ -49,7 +49,6 @@
     },
     "analysis": [
         {
-            "datetime_index": {},
             "close": {},
             "market_class_supertrend": {
                 "format": "direction",

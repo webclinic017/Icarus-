@@ -420,19 +420,19 @@ class MarketClassification():
         # TODO: Drop unused class
         return result
 
-    async def _market_regime_index(self, candlesticks, **kwargs):
+    async def _market_regime_index(self, analysis, **kwargs):
 
         market_regime_dict = {}
-        for key, value in kwargs.items():
-            market_regime_dict[key] = await getattr(self, '_'+key)(candlesticks, **value)
+        for indicator_name in kwargs['indicators']:
+           market_regime_dict[indicator_name] = analysis[indicator_name]
 
         return market_regime_dict
 
-    async def _market_class_index(self, candlesticks, **kwargs):
+    async def _market_class_index(self, analysis, **kwargs):
 
         market_class_table = {}
-        for key, value in kwargs.items():
-            market_class_table[key] = await getattr(self, '_'+key)(candlesticks, **value)
+        for indicator_name in kwargs['indicators']:
+            market_class_table[indicator_name] = analysis[indicator_name]
 
         df = pd.DataFrame(market_class_table)
         return df
