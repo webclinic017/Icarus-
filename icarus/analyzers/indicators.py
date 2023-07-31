@@ -51,7 +51,7 @@ class Indicators():
         df['high'] = df['high'].rolling(window=timeperiod).apply(max)
         df['low'] = df['low'].rolling(window=timeperiod).apply(min)
         df[['high','low']] = df[['high','low']].shift(-timeperiod)
-        df.dropna(inplace=True)
+        #df.dropna(inplace=True)
 
         df['pos_change'] = round(df['high']/df['open'] - 1, digit)
         df['neg_change'] = round(df['low']/df['open'] - 1, digit)

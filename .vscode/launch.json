@@ -59,7 +59,7 @@
             "program": "icarus/visualize_analyzers.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/research/market_direction/config.json"
+                "${workspaceFolder}/configs/ml/config.json"
             ]
         },
         {
@@ -99,7 +99,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/trend_follower/mci_multi.json"
+                "${workspaceFolder}/configs/ml/config.json"
             ]
         },
         {

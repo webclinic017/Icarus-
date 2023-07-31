@@ -48,32 +48,6 @@ class UndefinedMarketRegime(MarketRegime):
 
 class MarketClassification():
 
-    async def _hmm(self, candlesticks, **kwargs):
-        # TODO: It works fıne but what does it tell???
-        close = np.array(candlesticks['close']).reshape(-1,1)
-        daily_return = (1 - candlesticks['close'].div(candlesticks['close'].shift())).fillna(0)
-        volatility_indicator = await self._atr(candlesticks)
-
-
-        data_source = np.array(daily_return).reshape(-1,1)
-
-        hmm_model = GaussianHMM(
-            n_components=3, covariance_type="full", n_iter=1000
-        ).fit(data_source)
-        print("Model Score:", hmm_model.score(data_source))
-        hidden_states = hmm_model.predict(data_source)
-        #print(hmm_model.n_components)
-
-        unique_states = np.unique(hidden_states)
-        class_indexes = {}
-
-        for state in unique_states:
-            state_name = f'state_{state}'
-            class_indexes[state_name] = np.where(hidden_states == state)[0]
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, class_indexes, kwargs.get('validation_threshold', 0))
-
-        return detected_market_regimes
-
     async def _market_class_aroonosc(self, candlesticks, **kwargs):
         analyzer = '_aroonosc'
         output_format = kwargs.get('format','direction')
@@ -372,6 +346,31 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
+
+    async def _market_class_good_entry(self, candlesticks, **kwargs):
+        analyzer = '_percentage_possible_change'
+        output_format = kwargs.get('format','direction')
+
+        if hasattr(self, analyzer):
+            analysis_output = await getattr(self, analyzer)(candlesticks, **kwargs)
+
+        uptrend_th1 = 0.01
+        uptrend_th2 = -0.005
+
+        downtrend_th1 = 0.005
+        downtrend_th2 = -0.01
+
+        classification = np.where((analysis_output['pos_change'] > uptrend_th1) & (analysis_output['neg_change'] > uptrend_th2), Direction.UP, Direction.SIDE)
+        classification = np.where((analysis_output['pos_change'] <= downtrend_th1) & (analysis_output['neg_change'] <= downtrend_th2), Direction.DOWN, classification)
+        nan_value_offset = np.count_nonzero(np.isnan(analysis_output['pos_change']))
+        classification[:nan_value_offset] = None
+
+        if output_format == 'direction':
+            return classification
+
         detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
