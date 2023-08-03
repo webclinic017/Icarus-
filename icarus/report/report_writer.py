@@ -547,6 +547,14 @@ class MarkdownWriter():
         pass
 
 
+    def csv_file(self, indice, report: Report, **kwargs):
+
+        path = self.report_folder + '/' + report.meta.filename + '.csv'
+        report.data.to_csv(path, index=False)
+        print(f'File created: {path}')
+
+
+
 class TradeStatWriter():
     def __init__(self, report_folder) -> None:
         self.report_folder = report_folder

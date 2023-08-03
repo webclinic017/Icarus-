@@ -648,5 +648,20 @@ async def market_regime_duration_down_stat(index, reporter_input):
         )
     return Report(meta=report_meta, data=tabular_stats)
 
-async def market_regime_accuracy():
-    pass
+
+def enum_to_value(enum_element):
+    return int(enum_element.value) if enum_element is not None else None
+
+
+async def dataset_market_class(index, reporter_input):
+
+    filename = evaluate_filename(index, special_char=False)
+    df = reporter_input[0]
+    df = df.applymap(enum_to_value)
+
+    report_meta = ReportMeta(
+        title=filename,
+        filename=filename
+        )
+    
+    return Report(meta=report_meta, data=df)

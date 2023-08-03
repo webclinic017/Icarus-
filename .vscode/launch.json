@@ -42,7 +42,7 @@
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/trend_follower/mci_supertrend_btc_1h.json"
+                "${workspaceFolder}/configs/ml/config.json"
             ]
         },
         {

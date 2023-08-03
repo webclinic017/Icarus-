@@ -36,7 +36,7 @@
         "TrendFollowerMCI": {
             "strategy": "TrendFollowerMCI",
             "pairs": ["BTCUSDT"],
-            "time_scales": ["4h"],
+            "time_scales": ["1h"],
             "max_live_trade": 1,
             "kwargs":{
                 "target_profit_coeff":1.025,
@@ -49,17 +49,64 @@
     },
     "analysis": [
         {
-            "market_class_good_entry": {
-                "format": "regime"
+            "market_class_rsi": {
+                "format": "direction"
+            },
+            "market_class_macd": {
+                "format": "direction"
+            },
+            "market_class_stoch": {
+                "format": "direction"
+            },
+            "market_class_stochf": {
+                "format": "direction"
+            },
+            "market_class_aroonosc": {
+                "format": "direction"
+            },
+            "market_class_willr": {
+                "format": "direction"
+            },
+            "market_class_cci": {
+                "format": "direction"
+            },
+            "market_class_mfi": {
+                "format": "direction"
+            },
+            "market_class_ultosc": {
+                "format": "direction"
+            },
+            "market_class_dmi": {
+                "format": "direction"
             },
             "market_class_supertrend": {
-                "format": "regime",
-                "length": 7
+                "format": "direction"
+            },
+            "market_class_good_entry": {
+                "format": "direction",
+                "timeperiod": 6,
+                "uptrend_top_th": 0.01,
+                "uptrend_bot_th": -0.005,
+                "downtrend_top_th": 0.005,
+                "downtrend_bot_th": -0.01
             }
         },
         {
-            "market_regime_index": {
-                "indicators": ["market_class_good_entry", "market_class_supertrend"]
+            "market_class_index": {
+                "indicators": [
+                    "market_class_rsi", 
+                    "market_class_macd",
+                    "market_class_stoch",
+                    "market_class_stochf",
+                    "market_class_aroonosc",
+                    "market_class_willr",
+                    "market_class_cci",
+                    "market_class_mfi",
+                    "market_class_ultosc",
+                    "market_class_dmi",
+                    "market_class_supertrend",
+                    "market_class_good_entry"
+                ]
             }
         }
     ],
@@ -76,290 +123,14 @@
             {
                 "parameters": {
                     "<pair-indice>": ["BTCUSDT"],
-                    "<timeframe>": ["4h"],
-                    "<analyzer>": ["close"]
+                    "<timeframe>": ["1h"],
+                    "<analyzer>": ["market_class_index"]
                 },
-                "reporter": "symbol_price_change",
+                "reporter": "dataset_market_class",
                 "source": "analyzer",
                 "indice_template": ["<pair-indice>", "<timeframe>", "<analyzer>"],
                 "writers": [
-                    "markdown_table"
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "strategy_statistics",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "strategy": "<strategy>", 
-                                "pair": "<pair>",
-                                "decision_time": { "$gte": "<start_time>"},
-                                "result.exit.time": { "$lte": "<end_time>" }
-                                }
-                            },
-                        {
-                            "$project": {
-                                "strategy":"<strategy>-<pair>",
-                                "status": "$status",
-                                "cause": "$result.cause",
-                                "exit_type": "$result.exit.type",
-                                "profit":"$result.profit",
-                                "fee":{"$sum":[ "$result.exit.fee", { "$multiply": [ "$result.enter.fee", "$result.enter.price" ] }]},
-                                "duration":"$result.live_time",
-                                "is_updated":{"$ne": ["$order_stash", []]},
-                                "risk_data": {
-                                    "enter_price":"$result.enter.price",
-                                    "target_price": "$exit.price",
-                                    "stop_limit_price": "$exit.stop_limit_price"
-                                    },
-                                "price_change":{"$divide":[ { "$subtract": [ "$result.exit.price", "$result.enter.price" ] }, "$result.enter.price"]},
-                                "percentage_profit":{"$divide":[ 
-                                    "$result.profit", 
-                                    {"$multiply": [
-                                            "$result.enter.price",
-                                            { "$sum": [ "$result.enter.quantity", "$result.enter.fee" ] }
-                                        ]}]
-                                    }
-                        }}
-                    ]
-                ],
-                "source": "database",
-                "collection": "hist-trades",
-                "writers": [
-                    "json_file"
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "trade_cause",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "strategy":"<strategy>",
-                                "pair": "<pair>",
-                                "decision_time": { "$gte": "<start_time>"},
-                                "result.exit.time": { "$lte": "<end_time>"}
-                            }
-                        },
-                        {
-                            "$project": {
-                                "strategy":"<strategy>-<pair>",
-                                "cause": "$result.cause"
-                            }
-                        }
-                    ]
-                ],
-                "source": "database",
-                "collection": "hist-trades",
-                "writers": [
-                    "pie_plot"
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "trade_profit_duration_distribution",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "strategy":"<strategy>",
-                                "pair": "<pair>",
-                                "decision_time": { "$gte": "<start_time>"},
-                                "result.exit.time": { "$lte": "<end_time>"}
-                            }
-                        },
-                        {
-                            "$project": {
-                                "strategy":"<strategy>-<pair>",
-                                "profit": "$result.profit",
-                                "duration":"$result.live_time"
-                            }
-                        }
-                    ]
-                ],
-                "source": "database",
-                "collection": "hist-trades",
-                "writers": [
-                    "joint_histogram"
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "strategy_statistics",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "decision_time": { "$gte": "<start_time>"},
-                                "result.exit.time": { "$lte": "<end_time>"}
-                            }
-                        },
-                        {
-                            "$project": {
-                                "strategy":"All",
-                                "status": "$status",
-                                "cause": "$result.cause",
-                                "profit":"$result.profit",
-                                "fee":{"$sum":[ "$result.exit.fee", { "$multiply": [ "$result.enter.fee", "$result.enter.price" ] }]},
-                                "duration":"$result.live_time",
-                                "is_updated":{"$ne": ["$order_stash", []]},
-                                "price_change":{"$divide":[ { "$subtract": [ "$result.exit.price", "$result.enter.price" ] }, "$result.enter.price"]},
-                                "percentage_profit":{"$divide":[ 
-                                    "$result.profit", 
-                                    {"$multiply": [
-                                            "$result.enter.price",
-                                            { "$sum": [ "$result.enter.quantity", "$result.enter.fee" ] }
-                                        ]}]
-                                    }
-                            }
-                        }
-                    ]
-                ],
-                "source": "database",
-                "collection": "hist-trades",
-                "writers": [
-                    
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "balance_statistics",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "type":"quote_asset",
-                                "ts": { "$gte": "<start_time>", "$lte": "<end_time>" }
-                            }
-                        },
-                        { "$project" : {
-                            "ts": "$ts", 
-                            "total": "$data.total"
-                            } 
-                        }
-                    ]
-                ],
-                "source": "database",
-                "collection": "observer",
-                "writers": [
-                    "json_file"
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "strategy_capitals",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "type":"strategy_capitals",
-                                "ts": { "$gte": "<start_time>", "$lte": "<end_time>" }
-                            }
-                        },
-                        { "$project" : {
-                            "ts": "$ts", 
-                            "data": "$data"
-                            }
-                        }
-                    ]
-                ],
-                "source": "database",
-                "collection": "observer",
-                "writers": [
-                    "line_plot"
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "strategy_capital_statistics",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "type":"strategy_capitals",
-                                "ts": { "$gte": "<start_time>", "$lte": "<end_time>" }
-                            }
-                        },
-                        {
-                            "$group": {
-                                "_id": null,
-                                "first_capitals": { "$first": "$$ROOT.data" },
-                                "last_capitals": { "$last": "$$ROOT.data" }
-                              }
-                        }
-                    ]
-                ],
-                "source": "database",
-                "collection": "observer",
-                "writers": [
-                    "markdown_table"
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "r_multiples",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "result.exit.type":"oco", 
-                                "strategy":"<strategy>",
-                                "pair": "<pair>",
-                                "decision_time": { "$gte": "<start_time>"},
-                                "result.exit.time": { "$lte": "<end_time>"}
-                            }
-                        },
-                        { "$project" : {
-                            "strategy":"<strategy>-<pair>",
-                            "cause":"$result.cause",
-                            "duration":"$result.live_time",
-                            "enter_price":"$result.enter.price",
-                            "target_price":"$exit.price",
-                            "stop_limit_price":"$exit.stop_limit_price"
-                            }
-                        }
-                    ]
-                ],
-                "source": "database",
-                "collection": "hist-trades",
-                "writers": [
-                    "joint_histogram"
-                ]
-            },
-            {
-                "parameters": {},
-                "reporter": "trade_perc_profit",
-                "query_template": [
-                    [
-                        {
-                            "$match":{
-                                "strategy":"<strategy>",
-                                "decision_time": { "$gte": "<start_time>"},
-                                "result.exit.time": { "$lte": "<end_time>"}
-                            }
-                        },
-                        {
-                            "$project": {
-                                "strategy":"<strategy>-<pair>",
-                                "decision_time":"$decision_time",
-                                "percentage_profit":{"$divide":[ 
-                                    "$result.profit", 
-                                    {"$multiply": [
-                                            "$result.enter.price",
-                                            { "$sum": [ "$result.enter.quantity", "$result.enter.fee" ] }
-                                        ]}]
-                                    }
-                            }
-                        }
-                    ]
-                ],
-                "source": "database",
-                "collection": "hist-trades",
-                "writers": [
-                    "histogram"
+                    "csv_file"
                 ]
             }
         ]

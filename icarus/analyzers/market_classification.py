@@ -357,14 +357,14 @@ class MarketClassification():
         if hasattr(self, analyzer):
             analysis_output = await getattr(self, analyzer)(candlesticks, **kwargs)
 
-        uptrend_th1 = 0.01
-        uptrend_th2 = -0.005
+        uptrend_top_th = kwargs.get('uptrend_top_th', 0.01) 
+        uptrend_bot_th = kwargs.get('uptrend_bot_th', -0.005)
 
-        downtrend_th1 = 0.005
-        downtrend_th2 = -0.01
+        downtrend_top_th = kwargs.get('downtrend_top_th', 0.005)
+        downtrend_bot_th = kwargs.get('downtrend_bot_th', -0.01)
 
-        classification = np.where((analysis_output['pos_change'] > uptrend_th1) & (analysis_output['neg_change'] > uptrend_th2), Direction.UP, Direction.SIDE)
-        classification = np.where((analysis_output['pos_change'] <= downtrend_th1) & (analysis_output['neg_change'] <= downtrend_th2), Direction.DOWN, classification)
+        classification = np.where((analysis_output['pos_change'] > uptrend_top_th) & (analysis_output['neg_change'] > uptrend_bot_th), Direction.UP, Direction.SIDE)
+        classification = np.where((analysis_output['pos_change'] <= downtrend_top_th) & (analysis_output['neg_change'] <= downtrend_bot_th), Direction.DOWN, classification)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['pos_change']))
         classification[:nan_value_offset] = None
 
