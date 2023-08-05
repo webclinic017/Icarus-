@@ -2,10 +2,26 @@ from dataclasses import dataclass
 import numpy as np
 from itertools import groupby
 from operator import itemgetter
-from hmmlearn.hmm import GaussianHMM
 from enum import Enum
 import pandas as pd
 import pandas_ta as pd_ta
+import joblib
+
+def enum_to_value(enum_element):
+    return int(enum_element.value) if enum_element is not None else None
+
+def value_to_enum(value, EnumClass):
+    # Find the Enum element that corresponds to the given value
+    try:
+        enum_element = EnumClass(value)
+        return enum_element
+    except ValueError:
+        return None
+
+def array_to_enum(array, EnumClass):
+    # Convert each value in the array to the corresponding Enum element
+    enum_array = np.array([value_to_enum(value, EnumClass) for value in array], dtype=EnumClass)
+    return enum_array
 
 class Direction(Enum):
     UP = 0
@@ -350,7 +366,28 @@ class MarketClassification():
         return detected_market_regimes
 
 
-    async def _market_class_good_entry(self, candlesticks, **kwargs):
+    async def _market_class_good_entry_2(self, candlesticks, **kwargs):
+        analyzer = '_percentage_possible_change'
+        output_format = kwargs.get('format','direction')
+
+        if hasattr(self, analyzer):
+            analysis_output = await getattr(self, analyzer)(candlesticks, **kwargs)
+
+        uptrend_top_th = kwargs.get('uptrend_top_th', 0.01) 
+        uptrend_bot_th = kwargs.get('uptrend_bot_th', -0.005)
+
+        classification = np.where((analysis_output['pos_change'] > uptrend_top_th) & (analysis_output['neg_change'] > uptrend_bot_th), Direction.UP, Direction.DOWN)
+        nan_value_offset = np.count_nonzero(np.isnan(analysis_output['pos_change']))
+        classification[:nan_value_offset] = None
+
+        if output_format == 'direction':
+            return classification
+
+        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
+
+    async def _market_class_good_entry_3(self, candlesticks, **kwargs):
         analyzer = '_percentage_possible_change'
         output_format = kwargs.get('format','direction')
 
@@ -432,6 +469,26 @@ class MarketClassification():
         market_class_table = {}
         for indicator_name in kwargs['indicators']:
             market_class_table[indicator_name] = analysis[indicator_name]
-
+        # TODO: Pad with none values
         df = pd.DataFrame(market_class_table)
         return df
+    
+    async def _market_class_logisticregression(self, analysis, **kwargs):
+        output_format = kwargs.get('format','direction')
+
+        df = analysis[kwargs['indicators'][0]]
+        df = df.applymap(enum_to_value)
+        df = df.dropna().astype(int)
+
+        model = joblib.load(kwargs['model_path'])
+        
+        input_data = df.iloc[:, :-1].values
+        predictions = model.predict(input_data)
+        classification = array_to_enum(predictions, Direction)
+
+
+        if output_format == 'direction':
+            return classification
+
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
+        return detected_market_regimes

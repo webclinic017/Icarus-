@@ -42,7 +42,7 @@
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/ml/config.json"
+                "${workspaceFolder}/configs/ml/config_3_class.json"
             ]
         },
         {
@@ -59,7 +59,7 @@
             "program": "icarus/visualize_analyzers.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/ml/config.json"
+                "${workspaceFolder}/configs/ml/config_3_class.json"
             ]
         },
         {
