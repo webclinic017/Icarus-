@@ -49,7 +49,9 @@
     },
     "analysis": [
         {
-            "candlesticks": {},
+            "candlesticks": {}
+        },
+        {
             "market_class_rsi": {
                 "format": "direction"
             },
@@ -115,11 +117,53 @@
                 "model_path": "C:/Users/bilko/PycharmProjects/trade-bot/resources/logistic_regression_model.joblib",
                 "indicators": [
                     "market_class_index"
-                ]
+                ],
+                "format":"regime"
+            },
+            "market_class_rsi": {
+                "format": "regime"
+            },
+            "market_class_macd": {
+                "format": "regime"
+            },
+            "market_class_stoch": {
+                "format": "regime"
+            },
+            "market_class_stochf": {
+                "format": "regime"
+            },
+            "market_class_aroonosc": {
+                "format": "regime"
+            },
+            "market_class_willr": {
+                "format": "regime"
+            },
+            "market_class_cci": {
+                "format": "regime"
+            },
+            "market_class_mfi": {
+                "format": "regime"
+            },
+            "market_class_ultosc": {
+                "format": "regime"
+            },
+            "market_class_dmi": {
+                "format": "regime"
+            },
+            "market_class_supertrend": {
+                "format": "regime"
+            },
+            "market_class_good_entry_3": {
+                "format": "regime",
+                "timeperiod": 6,
+                "uptrend_top_th": 0.01,
+                "uptrend_bot_th": -0.005,
+                "downtrend_top_th": 0.005,
+                "downtrend_bot_th": -0.01
             }
         },
         {
-            "market_class_index": {
+            "market_regime_index": {
                 "indicators": [
                     "market_class_rsi", 
                     "market_class_macd",
@@ -168,7 +212,7 @@
         "4h": 170
     },
     "backtest": {
-        "start_time": "2022-07-10 00:00:00",
+        "start_time": "2023-04-10 00:00:00",
         "end_time": "2023-07-10 00:00:00",
         "online": true,
         "breakpoints": {

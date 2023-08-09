@@ -64,12 +64,12 @@ class UndefinedMarketRegime(MarketRegime):
 
 class MarketClassification():
 
-    async def _market_class_aroonosc(self, candlesticks, **kwargs):
+    async def _market_class_aroonosc(self, analysis, **kwargs):
         analyzer = '_aroonosc'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'], timeperiod=kwargs.get('timeperiod',14))
 
         classification = np.where(np.round(np.nan_to_num(analysis_output),2) <= 0, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
@@ -78,15 +78,15 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
 
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
-    async def _market_class_fractal_aroon(self, candlesticks, **kwargs):
+    async def _market_class_fractal_aroon(self, analysis, **kwargs):
         analyzer = '_fractal_aroon'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'], timeperiod=kwargs.get('timeperiod',14))
 
         classification = np.where(np.round(np.nan_to_num(analysis_output['aroondown']),2) > 80, Direction.DOWN, Direction.SIDE)
         classification = np.where(np.round(np.nan_to_num(analysis_output['aroonup']),2) > 80, Direction.UP, classification)
@@ -96,16 +96,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
 
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_aroon(self, candlesticks, **kwargs):
+    async def _market_class_aroon(self, analysis, **kwargs):
         analyzer = '_aroon'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'], timeperiod=kwargs.get('timeperiod',14))
         
         classification = np.where(np.round(np.nan_to_num(analysis_output['aroondown']),2) > 80, Direction.DOWN, Direction.SIDE)
         classification = np.where(np.round(np.nan_to_num(analysis_output['aroonup']),2) > 80, Direction.UP, classification)
@@ -115,16 +115,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
 
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_macd(self, candlesticks, **kwargs):
+    async def _market_class_macd(self, analysis, **kwargs):
         analyzer = '_macd'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output['macdhist']),2) <= 0, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['macdhist']))
@@ -133,16 +133,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
 
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_rsi(self, candlesticks, **kwargs):
+    async def _market_class_rsi(self, analysis, **kwargs):
         analyzer = '_rsi'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks, timeperiod=kwargs.get('timeperiod',14))
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'], timeperiod=kwargs.get('timeperiod',14))
 
         classification = np.where(np.round(np.nan_to_num(analysis_output),2) <= 50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
@@ -151,16 +151,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_stoch(self, candlesticks, **kwargs):
+    async def _market_class_stoch(self, analysis, **kwargs):
         analyzer = '_stoch'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output['slowk']),2) <= 50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['slowk']))
@@ -169,16 +169,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_stochf(self, candlesticks, **kwargs):
+    async def _market_class_stochf(self, analysis, **kwargs):
         analyzer = '_stochf'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output['fastk']),2) <= 50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['fastk']))
@@ -187,16 +187,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_stochrsi(self, candlesticks, **kwargs):
+    async def _market_class_stochrsi(self, analysis, **kwargs):
         analyzer = '_stochrsi'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output['fastk']),2) <= 50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['fastk']))
@@ -205,16 +205,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_willr(self, candlesticks, **kwargs):
+    async def _market_class_willr(self, analysis, **kwargs):
         analyzer = '_willr'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output),2) <= -50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
@@ -223,16 +223,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_cci(self, candlesticks, **kwargs):
+    async def _market_class_cci(self, analysis, **kwargs):
         analyzer = '_cci'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output),2) <= 0, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
@@ -241,16 +241,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_cmo(self, candlesticks, **kwargs):
+    async def _market_class_cmo(self, analysis, **kwargs):
         analyzer = '_cmo'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output),2) <= 0, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
@@ -259,16 +259,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_mfi(self, candlesticks, **kwargs):
+    async def _market_class_mfi(self, analysis, **kwargs):
         analyzer = '_mfi'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output),2) <= 50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
@@ -277,16 +277,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_ultosc(self, candlesticks, **kwargs):
+    async def _market_class_ultosc(self, analysis, **kwargs):
         analyzer = '_ultosc'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(np.round(np.nan_to_num(analysis_output),2) <= 50, Direction.DOWN, Direction.UP)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
@@ -295,16 +295,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_dmi_3(self, candlesticks, **kwargs):
+    async def _market_class_dmi_3(self, analysis, **kwargs):
         analyzer = '_dmi'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(
             np.logical_and(
@@ -323,16 +323,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_dmi(self, candlesticks, **kwargs):
+    async def _market_class_dmi(self, analysis, **kwargs):
         analyzer = '_dmi'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'])
 
         classification = np.where(
             np.round(np.nan_to_num(analysis_output['plus_di']),2) > np.round(np.nan_to_num(analysis_output['minus_di']),2),
@@ -344,15 +344,15 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_supertrend(self, candlesticks, **kwargs):
+    async def _market_class_supertrend(self, analysis, **kwargs):
 
         output_format = kwargs.get('format','direction')
 
-        analysis_output = pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs)
+        analysis_output = pd_ta.supertrend(analysis['candlesticks']['high'], analysis['candlesticks']['low'], analysis['candlesticks']['close'], **kwargs)
         direction_col = analysis_output.iloc[:,1]
         classification = np.where(direction_col == -1, Direction.DOWN, Direction.UP)
 
@@ -362,16 +362,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
         
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_good_entry_2(self, candlesticks, **kwargs):
+    async def _market_class_good_entry_2(self, analysis, **kwargs):
         analyzer = '_percentage_possible_change'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks, **kwargs)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'], **kwargs)
 
         uptrend_top_th = kwargs.get('uptrend_top_th', 0.01) 
         uptrend_bot_th = kwargs.get('uptrend_bot_th', -0.005)
@@ -383,16 +383,16 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
 
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
-    async def _market_class_good_entry_3(self, candlesticks, **kwargs):
+    async def _market_class_good_entry_3(self, analysis, **kwargs):
         analyzer = '_percentage_possible_change'
         output_format = kwargs.get('format','direction')
 
         if hasattr(self, analyzer):
-            analysis_output = await getattr(self, analyzer)(candlesticks, **kwargs)
+            analysis_output = await getattr(self, analyzer)(analysis['candlesticks'], **kwargs)
 
         uptrend_top_th = kwargs.get('uptrend_top_th', 0.01) 
         uptrend_bot_th = kwargs.get('uptrend_bot_th', -0.005)
@@ -408,7 +408,7 @@ class MarketClassification():
         if output_format == 'direction':
             return classification
 
-        detected_market_regimes = await MarketClassification.detect_regime_instances(candlesticks, classification, kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], classification, kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
 
@@ -486,6 +486,10 @@ class MarketClassification():
         predictions = model.predict(input_data)
         classification = array_to_enum(predictions, Direction)
 
+        # Do padding
+        target_length = len(analysis['candlesticks'])
+        padding_length = target_length - len(classification)
+        classification = np.pad(classification, (padding_length, 0), 'constant', constant_values=None)
 
         if output_format == 'direction':
             return classification

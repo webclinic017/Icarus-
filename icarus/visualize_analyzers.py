@@ -227,7 +227,7 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, config
     analysis_dict = await analyzer.analyze(data_dict)
 
     analyzer_names = []
-    analyzer_config = list(chain(*[list(layer.keys()) for layer in config['analysis']]))
+    analyzer_config = list(set(chain(*[list(layer.keys()) for layer in config['analysis']])))
 
     for key in analyzer_config:
         # NOTE: Following 2 lines are about the feature of generate_report tool
