@@ -99,7 +99,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/ml/config.json"
+                "${workspaceFolder}/configs/ml/logistic_regression_backtest.json"
             ]
         },
         {
