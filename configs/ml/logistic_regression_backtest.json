@@ -121,7 +121,7 @@
             }
         }
     ],
-    "report_folder_name": "GoodEntryML",
+    "report_folder_name": "reports_backtest",
     "report": [],
     "grid_search_reporters": {
         "grid": {
