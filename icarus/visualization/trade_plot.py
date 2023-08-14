@@ -1,5 +1,6 @@
 import finplot as fplt
-from objects import OCO, ECause, Limit, Market
+from objects import OCO, ECause, Limit, Market, Trade
+from typing import List
 
 
 def plot_rectangle_frame(h1,h2,v1,v2):
@@ -17,7 +18,7 @@ def plot_rectangle_frame(h1,h2,v1,v2):
         print('Exception occured: {}'.format(e))
 
 
-def colorize_exit_order(trade):
+def colorize_exit_order(trade: Trade):
 
     if trade.result.exit.price < trade.result.enter.price:
         rect_bot=trade.result.exit.price
@@ -42,7 +43,7 @@ def colorize_exit_order(trade):
     pass
 
 
-def plot_exit_order_frames(trade):
+def plot_exit_order_frames(trade: Trade) -> None:
 
     # TODO: The logic can be improved a bit more
     if not trade.order_stash:
@@ -93,7 +94,7 @@ def plot_exit_order_frames(trade):
             print('Exception occured: {}'.format(e))
 
 
-def write_profits(trade_list):
+def write_profits(trade_list: List[Trade]) -> None:
     for trade in trade_list:
         if trade.result.exit.price < trade.result.enter.price:
             rect_top = trade.result.enter.price
@@ -101,21 +102,26 @@ def write_profits(trade_list):
             rect_top = trade.result.exit.price
 
         profit_perc = trade.result.profit / trade.result.enter.amount
-        fplt.add_text((trade.result.exit.time, rect_top), "%{:.2f}".format(profit_perc), color='#000000', anchor=(1,0))
+        fplt.add_text((trade.result.exit.time, rect_top), "%{:.3f}".format(profit_perc), color='#000000', anchor=(1,0))
 
 
-def write_strategy_names(trade_list):
+def write_strategy_names(trade_list: List[Trade]) -> None:
     for trade in trade_list:
         fplt.add_text((trade.decision_time, trade.enter.price), "{}".format(trade.strategy), color='#000000')
 
 
-def plot_exit_orders(trade_list) -> None:
+def write_trade_ids(trade_list: List[Trade]) -> None:
+    for trade in trade_list:
+        fplt.add_text((trade.decision_time, trade.exit.price), "{}".format(trade._id.rsplit('-')[-1]), color='#000000')
+
+
+def plot_exit_orders(trade_list: List[Trade]) -> None:
     for trade in trade_list:
         colorize_exit_order(trade)
         plot_exit_order_frames(trade)
 
 
-def plot_enter_orders(trade_list) -> None:
+def plot_enter_orders(trade_list: List[Trade]) -> None:
     for trade in trade_list:
         if trade.result.cause == ECause.ENTER_EXP:
             fplt.add_line((trade.decision_time, trade.enter.price),
@@ -129,7 +135,7 @@ def plot_enter_orders(trade_list) -> None:
                 color='#0000FF', width=3, interactive=False)
 
 
-def scatter_buy_points(ax, trade_list) -> None:
+def scatter_buy_points(ax, trade_list: List[Trade]) -> None:
     enter_time_list = [trade.result.enter.time for trade in trade_list]
     enter_price_list = [trade.result.enter.price for trade in trade_list]
     plot_spec = {'color':'#00ff00','style':'^', 'ax':ax, 'legend':'Buy Point'}
@@ -138,7 +144,7 @@ def scatter_buy_points(ax, trade_list) -> None:
     #    fplt.plot(x=x, y=y, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
 
 
-def scatter_sell_points(ax, trade_list) -> None:
+def scatter_sell_points(ax, trade_list: List[Trade]) -> None:
     exit_time_list = [trade.result.exit.time for trade in trade_list]
     exit_price_list = [trade.result.exit.price for trade in trade_list]
     plot_spec = {'color':'#ff0000','style':'v', 'ax':ax, 'legend':'Sell Point'}
@@ -147,7 +153,7 @@ def scatter_sell_points(ax, trade_list) -> None:
     #    fplt.plot(x=x, y=y, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
 
 
-def scatter_decision_points(ax, trade_list) -> None:
+def scatter_decision_points(ax, trade_list: List[Trade]) -> None:
     decision_time_list = [trade.decision_time for trade in trade_list]
     enter_price_list = [trade.result.enter.price for trade in trade_list]
     plot_spec = {'color':'#0000ff','style':'t2', 'ax':ax, 'legend':'Decision Point'}
@@ -156,18 +162,20 @@ def scatter_decision_points(ax, trade_list) -> None:
     #    fplt.plot(x=x, y=y, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
 
 
-def plot_buy_sell_points(ax, trade_list) -> None:
+def plot_buy_sell_points(ax, trade_list: List[Trade]) -> None:
     scatter_decision_points(ax, trade_list)
     scatter_buy_points(ax, trade_list)
     scatter_sell_points(ax, trade_list)
 
 
-def plot_canceled_orders(enter_expired_trades):
+def plot_canceled_orders(enter_expired_trades: List[Trade]) -> None:
+    write_trade_ids(enter_expired_trades)
     plot_enter_orders(enter_expired_trades)
     write_strategy_names(enter_expired_trades)
 
 
-def plot_closed_orders(ax, closed_trades):
+def plot_closed_orders(ax, closed_trades: List[Trade]) -> None:
+    write_trade_ids(closed_trades)
     write_profits(closed_trades)
     write_strategy_names(closed_trades) 
     plot_exit_orders(closed_trades)

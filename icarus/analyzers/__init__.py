@@ -4,9 +4,10 @@ from analyzers.indicators import Indicators
 from analyzers.market_classification import MarketClassification
 from analyzers.patterns import Patterns
 from analyzers.support_resistance import SupportResistance
+from analyzers.machine_learning import MachineLearning
 from typing import Dict
 
-class Analyzer(Indicators, TALibIndicators, Patterns, SupportResistance, MarketClassification):
+class Analyzer(Indicators, TALibIndicators, Patterns, SupportResistance, MarketClassification, MachineLearning):
 
     def __init__(self, config: Dict):
         #self.analysis_config = config.get('analysis')
