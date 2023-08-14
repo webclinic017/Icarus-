@@ -155,7 +155,7 @@ def enable_ax_bot(axes, **kwargs):
     if band := kwargs.get('band', None): fplt.add_band(band[0], band[1], color='#6335', ax=axes['ax_bot'])
 
 
-def market_class_handler(x, y, axes):
+def market_regime_handler(x, y, axes):
     # Visualization on ax_bot as class rows
     color_set = ['#FF8080', '#8080FF', '#80FF80', '#80FFFF', '#FF80FF', '#FFFF80'] # 6 Color is enough to distinguish classes
 
