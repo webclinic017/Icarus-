@@ -125,10 +125,11 @@
                     "market_regime_ultosc",
                     "market_regime_dmi",
                     "market_regime_supertrend",
-                    "market_regime_good_entry_3"
+                    "market_regime_good_entry_3",
+                    "market_regime_logisticregression"
                 ]
             }
-        },
+        }
     ],
     "report_folder_name": "reports_backtest",
     "report": [],

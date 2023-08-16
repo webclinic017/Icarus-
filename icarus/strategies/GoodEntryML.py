@@ -26,7 +26,7 @@ class GoodEntryML(StrategyBase):
 
 
         time_dict = analysis_dict[ao_pair]
-        direction = time_dict[self.min_period]['market_class_logisticregression'][-1]
+        direction = time_dict[self.min_period]['market_direction_logisticregression'][-1]
 
         if direction != Direction.UP:
             return False

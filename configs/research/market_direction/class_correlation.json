@@ -26,59 +26,51 @@
             ]
         }
     },
-    "analysis": {
-        "market_class_index": {
-            "market_class_rsi": {
-                "format": "direction"
-            },
-            "market_class_macd": {
-                "format": "direction"
-            },
-            "market_class_stoch": {
-                "format": "direction"
-            },
-            "market_class_stochf": {
-                "format": "direction"
-            },
-            "market_class_aroonosc": {
-                "format": "direction"
-            },
-            "market_class_willr": {
-                "format": "direction"
-            },
-            "market_class_cci": {
-                "format": "direction"
-            },
-            "market_class_cmo": {
-                "format": "direction"
-            },
-            "market_class_mfi": {
-                "format": "direction"
-            },
-            "market_class_ultosc": {
-                "format": "direction"
-            },
-            "market_class_dmi": {
-                "format": "direction"
-            },
-            "market_class_supertrend": {
-                "format": "direction"
-            },
-            "market_class_dmi_3": {
-                "format": "direction"
-            },
-            "market_class_aroon": {
-                "format": "direction"
-            },
-            "market_class_fractal_aroon": {
-                "format": "direction"
+    "analysis": [
+        {
+            "candlesticks": {}
+        },
+        {
+            "market_direction_rsi": {},
+            "market_direction_macd": {},
+            "market_direction_stoch": {},
+            "market_direction_stochf": {},
+            "market_direction_aroon": {},
+            "market_direction_aroonosc": {},
+            "market_direction_willr": {},
+            "market_direction_cci": {},
+            "market_direction_cmo": {},
+            "market_direction_mfi": {},
+            "market_direction_ultosc": {},
+            "market_direction_dmi": {},
+            "market_direction_dmi3": {},
+            "market_direction_supertrend": {}
+        },
+        {
+            "market_direction_index": {
+                "indicators": [
+                    "market_direction_rsi", 
+                    "market_direction_macd",
+                    "market_direction_stoch",
+                    "market_direction_stochf",
+                    "market_direction_aroonosc",
+                    "market_direction_aroon",
+                    "market_direction_willr",
+                    "market_direction_cci",
+                    "market_direction_cmo",
+                    "market_direction_mfi",
+                    "market_direction_ultosc",
+                    "market_direction_dmi",
+                    "market_direction_dmi3",
+                    "market_direction_supertrend",
+                    "market_direction_good_entry_3"
+                ]
             }
         }
-    },
+    ],
     "report_folder_name": "reports",
     "report": [
     ],
-
     "grid_search_reporters": {
         "grid": {
             "<pair>": [
@@ -88,7 +80,7 @@
                 "1d", "4h", "1h", "15m"
             ],
             "<analyzer>": [
-                "market_class_index"
+                "market_direction_index"
             ]
         },
         "reporters": [

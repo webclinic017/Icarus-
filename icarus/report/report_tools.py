@@ -79,7 +79,7 @@ async def correlation_matrix(indices, analysis):
     return Report(meta=report_meta, data=pct_changedf.corr())
 
 # *ppc: price percentage change
-async def market_class_ppc(index, detected_market_regimes):
+async def market_regime_ppc(index, detected_market_regimes):
     filename = 'ppc_' + evaluate_filename(index, special_char=False)
 
     tabular_dict = {}
@@ -94,7 +94,7 @@ async def market_class_ppc(index, detected_market_regimes):
     return Report(meta=report_meta, data=tabular_dict)
 
 
-async def market_class_pvpc(index, detected_market_regimes):
+async def market_regime_pvpc(index, detected_market_regimes):
     tabular_dict = {}
     for regime_name, regime_instances in detected_market_regimes[0].items():
         perc_val_price_change_list = [instance.perc_val_price_change for instance in regime_instances if instance.perc_val_price_change != None]
@@ -102,7 +102,7 @@ async def market_class_pvpc(index, detected_market_regimes):
     return tabular_dict
 
 
-async def market_class_table_stats(index, detected_market_regimes):
+async def market_regime_table_stats(index, detected_market_regimes):
     filename = evaluate_filename(index, special_char=False)
 
     tabular_dict = {}
@@ -133,7 +133,7 @@ async def market_class_table_stats(index, detected_market_regimes):
     return Report(meta=report_meta, data=tabular_dict)
 
 
-async def perc_pos_change_stats_in_market_class(index, analysis):
+async def perc_pos_change_stats_in_market_regime(index, analysis):
     filename = 'ppc_accuracy_' +evaluate_filename([index[0]], special_char=False)
 
     market_regimes = analysis[0]
@@ -159,7 +159,7 @@ async def perc_pos_change_stats_in_market_class(index, analysis):
     return Report(meta=report_meta, data=result_dict)
 
 
-async def ppc_trigger_stats_in_market_class(index, analysis):
+async def ppc_trigger_stats_in_market_regime(index, analysis):
     filename = 'ppc_trigger_accuracy_' +evaluate_filename([index[0]], special_char=False)
 
     market_regimes = analysis[0]
@@ -589,7 +589,7 @@ async def market_regime_duration_up(index, reporter_input):
     filename += '_up'
     tabular_stats = {}
     for classifier, regimes in reporter_input[0].items():
-        tabular_stats[classifier.replace('market_class_', '')] = [trend.duration_in_candle for trend in regimes['uptrend']]
+        tabular_stats[classifier.replace('market_regime_', '')] = [trend.duration_in_candle for trend in regimes['uptrend']]
 
     report_meta = ReportMeta(
         title=filename,
@@ -602,7 +602,7 @@ async def market_regime_duration_down(index, reporter_input):
     filename += '_down'
     tabular_stats = {}
     for classifier, regimes in reporter_input[0].items():
-        tabular_stats[classifier.replace('market_class_', '')] = [trend.duration_in_candle for trend in regimes['downtrend']]
+        tabular_stats[classifier.replace('market_regime_', '')] = [trend.duration_in_candle for trend in regimes['downtrend']]
 
     report_meta = ReportMeta(
         title=filename,
@@ -617,7 +617,7 @@ async def market_regime_duration_up_stat(index, reporter_input):
     tabular_stats = {}
     for classifier, regimes in reporter_input[0].items():
         downtrend_dist = [trend.duration_in_candle for trend in regimes['uptrend']]
-        tabular_stats[classifier.replace('market_class_', '')] = {
+        tabular_stats[classifier.replace('market_regime_', '')] = {
             'q1': np.percentile(downtrend_dist, 25),
             'median': np.median(downtrend_dist),
             'q3': np.percentile(downtrend_dist, 75)
@@ -636,7 +636,7 @@ async def market_regime_duration_down_stat(index, reporter_input):
     tabular_stats = {}
     for classifier, regimes in reporter_input[0].items():
         downtrend_dist = [trend.duration_in_candle for trend in regimes['downtrend']]
-        tabular_stats[classifier.replace('market_class_', '')] = {
+        tabular_stats[classifier.replace('market_regime_', '')] = {
             'q1': np.percentile(downtrend_dist, 25),
             'median': np.median(downtrend_dist),
             'q3': np.percentile(downtrend_dist, 75)
@@ -653,7 +653,7 @@ def enum_to_value(enum_element):
     return int(enum_element.value) if enum_element is not None else None
 
 
-async def dataset_market_class(index, reporter_input):
+async def dataset_market_regime(index, reporter_input):
 
     filename = evaluate_filename(index, special_char=False)
     df = reporter_input[0]

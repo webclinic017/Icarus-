@@ -26,46 +26,54 @@
             ]
         }
     },
-    "analysis": {
-        "market_regime_index": {
-            "market_class_rsi": {
-                "format": "regime"
-            },
-            "market_class_macd": {
-                "format": "regime"
-            },
-            "market_class_stoch": {
-                "format": "regime"
-            },
-            "market_class_stochf": {
-                "format": "regime"
-            },
-            "market_class_aroonosc": {
-                "format": "regime"
-            },
-            "market_class_willr": {
-                "format": "regime"
-            },
-            "market_class_cci": {
-                "format": "regime"
-            },
-            "market_class_cmo": {
-                "format": "regime"
-            },
-            "market_class_mfi": {
-                "format": "regime"
-            },
-            "market_class_ultosc": {
-                "format": "regime"
-            },
-            "market_class_dmi": {
-                "format": "regime"
-            },
-            "market_class_supertrend": {
-                "format": "regime"
+    "analysis": [
+        {
+            "candlesticks": {}
+        },
+        {
+            "market_direction_rsi": {},
+            "market_direction_macd": {},
+            "market_direction_stoch": {},
+            "market_direction_stochf": {},
+            "market_direction_aroonosc": {},
+            "market_direction_willr": {},
+            "market_direction_cci": {},
+            "market_direction_mfi": {},
+            "market_direction_ultosc": {},
+            "market_direction_dmi": {},
+            "market_direction_supertrend": {}
+        },
+        {
+            "market_regime_rsi": {},
+            "market_regime_macd": {},
+            "market_regime_stoch": {},
+            "market_regime_stochf": {},
+            "market_regime_aroonosc": {},
+            "market_regime_willr": {},
+            "market_regime_cci": {},
+            "market_regime_mfi": {},
+            "market_regime_ultosc": {},
+            "market_regime_dmi": {},
+            "market_regime_supertrend": {}
+        },
+        {
+            "market_regime_index": {
+                "indicators": [
+                    "market_regime_rsi", 
+                    "market_regime_macd",
+                    "market_regime_stoch",
+                    "market_regime_stochf",
+                    "market_regime_aroonosc",
+                    "market_regime_willr",
+                    "market_regime_cci",
+                    "market_regime_mfi",
+                    "market_regime_ultosc",
+                    "market_regime_dmi",
+                    "market_regime_supertrend"
+                ]
             }
         }
-    },
+    ],
     "report_folder_name": "reports_duration",
     "report": [
     ],
