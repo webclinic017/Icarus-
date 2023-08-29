@@ -59,6 +59,23 @@ class Indicators():
 
         return df
 
+
+    async def _open2close_change(self, analysis, **kwargs):
+        pd.options.mode.chained_assignment = None 
+        timeperiod = kwargs.get('timeperiod', 24)
+
+        df = analysis['candlesticks'][['open', 'close']]
+        #df.set_index(np.array(df.index).astype('datetime64[ms]'), inplace=True)
+
+        df['close'] = df['close'].shift(-timeperiod)
+        open2close_change = df['close'] > df['open'] 
+        #df.dropna(inplace=True)
+        open2close_change[df['close'].isna()] = None
+
+        return open2close_change
+
+
+
     async def _parallel_ma(self, candlesticks, **kwargs): 
         parallel_ma = {}
         for kwarg in kwargs:

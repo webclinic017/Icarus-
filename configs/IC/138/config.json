@@ -1,0 +1,105 @@
+{
+    "tag": "IC-138",
+    "log":{
+        "level": "DEBUG",
+        "file": "log/icarus.log",
+        "clear": true
+    },
+    "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
+    "mongodb": {
+        "database": "IC-138",
+        "host": "localhost",
+        "port": 27017,
+        "clean": true
+    },
+    "balances": [
+        {
+            "asset": "USDT",
+            "free": 10000,
+            "locked": 0
+        }
+    ],
+    "broker": {
+        "quote_currency": "USDT",
+        "fee_rate": 0.001
+    },
+    "strategy_allocation":{
+        "type": "DiscreteStrategyAllocator",
+        "kwargs": {
+            "distribution_config": ["TrendFollowerMCI"],
+            "capital_coeff":0.9, 
+            "stop_capital":null,
+            "capital_limit": null
+        }
+    },
+    "strategy": {
+        "TrendFollowerMCI": {
+            "strategy": "TrendFollowerMCI",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "target_profit_coeff":1.025,
+                "exit_duration":24,
+                "max_loss_coeff": 0.05,
+                "enter_uptrend_th": 1,
+                "exit_downtrend_th": 0.5
+            }
+        }
+    },
+    "analysis": [
+        {
+            "candlesticks": {}
+        },
+        {
+            "open2close_change": {"timeperiod":1}
+        },
+        {
+            "market_direction_open2close_change": {"timeperiod":1}
+        },
+        {
+            "market_regime_open2close_change": {"timeperiod":1}
+        }
+    ],
+    "report_folder_name": "reports",
+    "report": [],
+    "grid_search_reporters": {
+        "grid": {
+            "<strategy>": ["TrendFollowerMCI"],
+            "<pair>": ["BTCUSDT"],
+            "<start_time>": [0],
+            "<end_time>": [1688947200]
+        },
+        "reporters": [
+            {
+                "parameters": {
+                    "<pair-indice>": ["BTCUSDT"],
+                    "<timeframe>": ["1h"],
+                    "<analyzer>": ["market_class_index"]
+                },
+                "reporter": "dataset_market_class",
+                "source": "analyzer",
+                "indice_template": ["<pair-indice>", "<timeframe>", "<analyzer>"],
+                "writers": [
+                    "csv_file"
+                ]
+            }
+        ]
+    },
+    "time_scales": {
+        "1h": 170,
+        "4h": 170
+    },
+    "backtest": {
+        "start_time": "2023-04-10 00:00:00",
+        "end_time": "2023-07-10 00:00:00",
+        "online": true,
+        "breakpoints": {
+            "1686916800000":"entry time"
+        }
+    },
+    "visualization": {
+        "observers": {
+        }
+    }
+}
