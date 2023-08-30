@@ -330,7 +330,9 @@ class MarketClassification():
 
         classification = np.where(analysis_output == 1, Direction.UP, Direction.DOWN)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
-        classification[-nan_value_offset:] = None # Pad from future
+
+        if nan_value_offset > 0:
+            classification[-nan_value_offset:] = None # Pad from future
 
         return classification
 

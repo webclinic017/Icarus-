@@ -52,13 +52,68 @@
             "candlesticks": {}
         },
         {
-            "open2close_change": {"timeperiod":1}
+            "market_direction_open2close_change": {"timeperiod":0},
+            "market_direction_rsi": {"timeperiod":12},
+            "market_direction_macd": {"timeperiod":12},
+            "market_direction_stoch": {"timeperiod":12},
+            "market_direction_stochf": {"timeperiod":12},
+            "market_direction_aroonosc": {"timeperiod":12},
+            "market_direction_willr": {"timeperiod":12},
+            "market_direction_cci": {"timeperiod":12},
+            "market_direction_mfi": {"timeperiod":12},
+            "market_direction_ultosc": {"timeperiod":12},
+            "market_direction_dmi": {"timeperiod":12},
+            "market_direction_supertrend": {"timeperiod":12}
         },
         {
-            "market_direction_open2close_change": {"timeperiod":1}
+            "market_direction_index": {
+                "indicators": [
+                    "market_direction_rsi", 
+                    "market_direction_macd",
+                    "market_direction_stoch",
+                    "market_direction_stochf",
+                    "market_direction_aroonosc",
+                    "market_direction_willr",
+                    "market_direction_cci",
+                    "market_direction_mfi",
+                    "market_direction_ultosc",
+                    "market_direction_dmi",
+                    "market_direction_supertrend",
+                    "market_direction_open2close_change"
+                ]
+            }
         },
         {
-            "market_regime_open2close_change": {"timeperiod":1}
+            "market_regime_open2close_change": {},
+            "market_regime_rsi": {},
+            "market_regime_macd": {},
+            "market_regime_stoch": {},
+            "market_regime_stochf": {},
+            "market_regime_aroonosc": {},
+            "market_regime_willr": {},
+            "market_regime_cci": {},
+            "market_regime_mfi": {},
+            "market_regime_ultosc": {},
+            "market_regime_dmi": {},
+            "market_regime_supertrend": {}
+        },
+        {
+            "market_regime_index": {
+                "indicators": [
+                    "market_regime_rsi", 
+                    "market_regime_macd",
+                    "market_regime_stoch",
+                    "market_regime_stochf",
+                    "market_regime_aroonosc",
+                    "market_regime_willr",
+                    "market_regime_cci",
+                    "market_regime_mfi",
+                    "market_regime_ultosc",
+                    "market_regime_dmi",
+                    "market_regime_supertrend",
+                    "market_regime_open2close_change"
+                ]
+            }
         }
     ],
     "report_folder_name": "reports",
@@ -74,10 +129,10 @@
             {
                 "parameters": {
                     "<pair-indice>": ["BTCUSDT"],
-                    "<timeframe>": ["1h"],
-                    "<analyzer>": ["market_class_index"]
+                    "<timeframe>": ["4h"],
+                    "<analyzer>": ["market_direction_index"]
                 },
-                "reporter": "dataset_market_class",
+                "reporter": "dataset_market_direction",
                 "source": "analyzer",
                 "indice_template": ["<pair-indice>", "<timeframe>", "<analyzer>"],
                 "writers": [
@@ -91,7 +146,7 @@
         "4h": 170
     },
     "backtest": {
-        "start_time": "2023-04-10 00:00:00",
+        "start_time": "2023-01-10 00:00:00",
         "end_time": "2023-07-10 00:00:00",
         "online": true,
         "breakpoints": {

@@ -653,7 +653,7 @@ def enum_to_value(enum_element):
     return int(enum_element.value) if enum_element is not None else None
 
 
-async def dataset_market_regime(index, reporter_input):
+async def dataset_market_direction(index, reporter_input):
 
     filename = evaluate_filename(index, special_char=False)
     df = reporter_input[0]
