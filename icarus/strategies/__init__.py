@@ -1,6 +1,6 @@
 from .sample import RSI, Aroon
 
-from . import TrendFollowerMCI, TrendChangeMCI, GoodEntryML
+from . import TrendFollowerMCI, TrendChangeMCI, GoodEntryML, MarketDirectionTrigger
 
 from . import FixedLimitTarget, FixedOCOTarget, FixedLimitTargetAdaptive, FixedOCOTargetAdaptive
 

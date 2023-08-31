@@ -50,7 +50,7 @@ def change_asset(*args, **kwargs):
             if trades['closed']:
                 trade_plot.plot_closed_orders(ax, deepcopy(trades['closed']))
         elif indicator[:3] == 'obs':
-            observer = indicator.rsplit('_', 1)[1]
+            observer = indicator.split('_', 1)[1]
             handler = getattr(observer_plot, observer)
             handler(data_dict[symbol][interval].index, analysis_dict['obs_'+observer], 
                 {'ax':ax, 'axo':axo, 'ax_bot':ax_bot, 'axo_bot':axo_bot})

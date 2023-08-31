@@ -409,7 +409,8 @@ class MarketClassification():
 
         model = joblib.load(kwargs['model_path'])
         
-        input_data = df.iloc[:, :-1].values
+        #input_data = df.iloc[:, :-1].values
+        input_data = df.values
         predictions = model.predict(input_data)
         classification = array_to_enum(predictions, Direction)
 
@@ -474,5 +475,5 @@ class MarketClassification():
         return detected_market_regimes
 
     async def _market_regime_logisticregression(self, analysis, **kwargs):
-        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_good_entry_3'], kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_logisticregression'], kwargs.get('validation_threshold', 0))
         return detected_market_regimes

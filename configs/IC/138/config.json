@@ -146,7 +146,7 @@
         "4h": 170
     },
     "backtest": {
-        "start_time": "2023-01-10 00:00:00",
+        "start_time": "2022-07-10 00:00:00",
         "end_time": "2023-07-10 00:00:00",
         "online": true,
         "breakpoints": {
