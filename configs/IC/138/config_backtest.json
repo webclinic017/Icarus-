@@ -86,6 +86,13 @@
         },
         {
             "market_regime_logisticregression":{}
+        },
+        {
+            "market_regime_index":{
+                "indicators": [
+                    "market_regime_logisticregression"
+                ]
+            }
         }
     ],
     "report_folder_name": "reports",

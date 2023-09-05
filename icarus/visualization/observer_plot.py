@@ -1,12 +1,30 @@
 import finplot as fplt
 
-def quote_asset(dashboard_data, ax):
+def quote_asset2(dashboard_data, ax):
     fplt.plot(dashboard_data['quote_asset']['total'], width=3, ax=ax, legend='Total')
     fplt.plot(dashboard_data['quote_asset']['free'], width=2, ax=ax, legend='Free')
     fplt.plot(dashboard_data['quote_asset']['in_trade'], width=2, ax=ax, legend='In Trade')
     fplt.add_line((dashboard_data['quote_asset']['total'].index[0], dashboard_data['quote_asset']['total'].iloc[0]),
         (dashboard_data['quote_asset']['total'].index[-1], dashboard_data['quote_asset']['total'].iloc[0]), color='#000000', interactive=False)
 
+
+def quote_asset(x, y, axes):
+    axes['ax'].reset()
+    axes['axo'].reset()
+    axes['ax_bot'].reset()
+    axes['axo_bot'].reset()
+    
+    disable_ax_bot(axes)
+    fplt.plot(y['total'], width=3, ax=axes['ax'], legend='Total')
+    fplt.plot(y['free'], width=2, ax=axes['ax'], legend='Free')
+    fplt.plot(y['in_trade'], width=2, ax=axes['ax'], legend='In Trade')
+    fplt.add_line((y['total'].index[0], y['total'].iloc[0]),
+        (y['total'].index[-1], y['total'].iloc[0]), color='#000000', interactive=False)
+
+
+def disable_ax_bot(axes):
+    axes['ax'].set_visible(xaxis=True)
+    axes['ax_bot'].hide()
 
 def quote_asset_leak(dashboard_data, ax):
     fplt.plot(dashboard_data['quote_asset_leak']['binary'], width=3, ax=ax, legend='binary')
