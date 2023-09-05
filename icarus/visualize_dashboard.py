@@ -50,7 +50,7 @@ def change_asset(*args, **kwargs):
             if trades['closed']:
                 trade_plot.plot_closed_orders(ax, deepcopy(trades['closed']))
         elif indicator[:3] == 'obs':
-            observer = indicator.rsplit('_', 1)[1]
+            observer = indicator.split('_', 1)[1]
             handler = getattr(observer_plot, observer)
             handler(data_dict[symbol][interval].index, analysis_dict['obs_'+observer], 
                 {'ax':ax, 'axo':axo, 'ax_bot':ax_bot, 'axo_bot':axo_bot})
@@ -59,8 +59,8 @@ def change_asset(*args, **kwargs):
             plotter_name = indicator
         elif indicator[:3] == 'cdl':
             plotter_name = 'cdl_handler'
-        elif 'market_class' in indicator:
-            plotter_name = 'market_class_handler'
+        elif 'market_regime' in indicator:
+            plotter_name = 'market_regime_handler'
         else:
             ax.set_visible(xaxis=True)
             # restores saved zoom position, if in range
@@ -356,7 +356,7 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, config
         # NOTE: Following 2 lines are about the feature of generate_report tool
         #if 'plot' in config['analysis'][key].keys():
         #    analyzer_names = analyzer_names + [key+'_'+name for name in config['analysis'][key]['plot']]
-        if hasattr(indicator_plot, key) or key[:3] == 'cdl' or 'market_class' in key:
+        if hasattr(indicator_plot, key) or key[:3] == 'cdl' or 'market_regime' in key:
             analyzer_names.append(key)
     analyzer_names.append('trades')
     [analyzer_names.append(obs) for obs in observer_dict.keys()]

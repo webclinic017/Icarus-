@@ -42,7 +42,7 @@
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/ml/config_3_class.json"
+                "${workspaceFolder}/configs/IC/138/config.json"
             ]
         },
         {
@@ -59,7 +59,7 @@
             "program": "icarus/visualize_analyzers.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/ml/logistic_regression_backtest.json"
+                "${workspaceFolder}/configs/IC/138/config.json"
             ]
         },
         {
@@ -69,7 +69,7 @@
             "program": "icarus/visualize_backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/trend_follower/mci_dmi.json"
+                "${workspaceFolder}/configs/IC/138/config_backtest.json"
             ]
         },
         {
@@ -79,7 +79,7 @@
             "program": "icarus/visualize_dashboard.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/ml/logistic_regression_backtest.json"
+                "${workspaceFolder}/configs/IC/138/config_backtest.json"
             ]
         },
         {
@@ -99,7 +99,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/ml/logistic_regression_backtest.json"
+                "${workspaceFolder}/configs/IC/138/config_backtest.json"
             ]
         },
         {

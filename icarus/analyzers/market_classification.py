@@ -317,7 +317,22 @@ class MarketClassification():
         classification = np.where((analysis_output['pos_change'] > uptrend_top_th) & (analysis_output['neg_change'] > uptrend_bot_th), Direction.UP, Direction.SIDE)
         classification = np.where((analysis_output['pos_change'] <= downtrend_top_th) & (analysis_output['neg_change'] <= downtrend_bot_th), Direction.DOWN, classification)
         nan_value_offset = np.count_nonzero(np.isnan(analysis_output['pos_change']))
-        classification[:nan_value_offset] = None
+        classification[:nan_value_offset] = None # NOTE: Should be pad from the future
+        # FIX ME
+        return classification
+
+
+    async def _market_direction_open2close_change(self, analysis, **kwargs):
+        analyzer = '_open2close_change'
+
+        if hasattr(self, analyzer):
+            analysis_output = await getattr(self, analyzer)(analysis, **kwargs)
+
+        classification = np.where(analysis_output == 1, Direction.UP, Direction.DOWN)
+        nan_value_offset = np.count_nonzero(np.isnan(analysis_output))
+
+        if nan_value_offset > 0:
+            classification[-nan_value_offset:] = None # Pad from future
 
         return classification
 
@@ -394,7 +409,8 @@ class MarketClassification():
 
         model = joblib.load(kwargs['model_path'])
         
-        input_data = df.iloc[:, :-1].values
+        #input_data = df.iloc[:, :-1].values
+        input_data = df.values
         predictions = model.predict(input_data)
         classification = array_to_enum(predictions, Direction)
 
@@ -454,6 +470,10 @@ class MarketClassification():
         detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_good_entry_3'], kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
+    async def _market_regime_open2close_change(self, analysis, **kwargs):
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_open2close_change'], kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
     async def _market_regime_logisticregression(self, analysis, **kwargs):
-        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_good_entry_3'], kwargs.get('validation_threshold', 0))
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_logisticregression'], kwargs.get('validation_threshold', 0))
         return detected_market_regimes

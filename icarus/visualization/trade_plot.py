@@ -102,7 +102,7 @@ def write_profits(trade_list: List[Trade]) -> None:
             rect_top = trade.result.exit.price
 
         profit_perc = trade.result.profit / trade.result.enter.amount
-        fplt.add_text((trade.result.exit.time, rect_top), "%{:.3f}".format(profit_perc), color='#000000', anchor=(1,0))
+        fplt.add_text((trade.result.exit.time, rect_top), "%{:.3f}".format(profit_perc*100), color='#000000', anchor=(1,0))
 
 
 def write_strategy_names(trade_list: List[Trade]) -> None:
