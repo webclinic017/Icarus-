@@ -1,5 +1,5 @@
 {
-    "tag": "IC-138_backtest",
+    "tag": "IC-143_backtest",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
@@ -7,7 +7,7 @@
     },
     "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "IC-138_backtest",
+        "database": "IC-143_backtest",
         "host": "localhost",
         "port": 27017,
         "clean": true
@@ -15,7 +15,7 @@
     "balances": [
         {
             "asset": "USDT",
-            "free": 10000,
+            "free": 30000,
             "locked": 0
         }
     ],
@@ -26,14 +26,41 @@
     "strategy_allocation":{
         "type": "DiscreteStrategyAllocator",
         "kwargs": {
-            "distribution_config": ["MarketDirectionTrigger"],
+            "distribution_config": ["market_direction_rsi", "market_direction_stoch", "market_direction_supertrend", "market_direction_logisticregression"],
             "capital_coeff":0.9, 
             "stop_capital":null,
             "capital_limit": 1000
         }
     },
     "strategy": {
-        "MarketDirectionTrigger": {
+        "market_direction_rsi": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_rsi"
+            }
+        },
+        "market_direction_stoch": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_stoch"
+            }
+        },
+        "market_direction_supertrend": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_supertrend"
+            }
+        },
+        "market_direction_logisticregression": {
             "strategy": "MarketDirectionTrigger",
             "pairs": ["BTCUSDT"],
             "time_scales": ["4h"],
@@ -85,23 +112,13 @@
                     "market_direction_index"
                 ]
             }
-        },
-        {
-            "market_regime_logisticregression":{}
-        },
-        {
-            "market_regime_index":{
-                "indicators": [
-                    "market_regime_logisticregression"
-                ]
-            }
         }
     ],
     "report_folder_name": "reports",
     "report": [],
     "grid_search_reporters": {
         "grid": {
-            "<strategy>": ["MarketDirectionTrigger"],
+            "<strategy>": ["market_direction_rsi", "market_direction_stoch", "market_direction_supertrend", "market_direction_logisticregression"],
             "<pair>": ["BTCUSDT"],
             "<start_time>": [0],
             "<end_time>": [1788947200]
@@ -403,8 +420,8 @@
         "4h": 170
     },
     "backtest": {
-        "start_time": "2022-07-10 00:00:00",
-        "end_time": "2023-07-10 00:00:00",
+        "start_time": "2021-07-10 00:00:00",
+        "end_time": "2022-07-10 00:00:00",
         "online": true,
         "breakpoints": {
             "1686916800000":"entry time"
