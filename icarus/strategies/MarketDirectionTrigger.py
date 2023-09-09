@@ -1,16 +1,13 @@
-from objects import ECause, Result, Trade, OCO, ECommand, TradeResult, Market
+from objects import Trade, ECommand, TradeResult, Market
 from strategies.StrategyBase import StrategyBase
-import json
-from utils import time_scale_to_minute
-import position_sizing
 from typing import Dict
-import collections
 from analyzers.market_classification import Direction
 
 class MarketDirectionTrigger(StrategyBase):
 
     def __init__(self, _tag, _config, _symbol_info):
         super().__init__(_tag, _config, _symbol_info)
+        self.analyzer = self.config['kwargs'].get('analyzer')
         return
 
 
@@ -22,8 +19,8 @@ class MarketDirectionTrigger(StrategyBase):
 
 
         analysis = analysis_dict[ao_pair][self.min_period]
-        current_direction = analysis['market_direction_logisticregression'][-1]
-        prev_direction = analysis['market_direction_logisticregression'][-2]
+        current_direction = analysis[self.analyzer][-1]
+        prev_direction = analysis[self.analyzer][-2]
 
         enter_conditions = [
             current_direction == Direction.UP,
@@ -54,7 +51,7 @@ class MarketDirectionTrigger(StrategyBase):
     async def on_waiting_exit(self, trade: Trade, ikarus_time: int, analysis_dict: Dict, strategy_capital):
 
         analysis = analysis_dict[trade.pair][self.min_period]
-        current_direction = analysis['market_direction_logisticregression'][-1]
+        current_direction = analysis[self.analyzer][-1]
 
         exit_conditions = [
             current_direction == Direction.DOWN
