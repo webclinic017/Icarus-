@@ -398,8 +398,21 @@ class MarketClassification():
             market_class_table[indicator_name] = analysis[indicator_name]
 
         df = pd.DataFrame(market_class_table)
-        return df
-    
+
+        window_size = kwargs.get('window',0)
+
+        if window_size <= 0:
+            return df
+                
+        final_df = df
+        for i in range(1, window_size + 1):
+            lag_df = df.iloc[:,:-1].shift(i)
+            lag_df.columns = [col + '_lag_' + str(i)  for col in lag_df.columns]
+ 
+            final_df = pd.concat([lag_df, final_df], axis=1)
+        final_df.dropna(inplace=True)
+
+        return final_df
 
     async def _market_direction_logisticregression(self, analysis, **kwargs):
 
