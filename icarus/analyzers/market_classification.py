@@ -406,33 +406,13 @@ class MarketClassification():
                 
         final_df = df
         for i in range(1, window_size + 1):
-            lag_df = df.iloc[:,:-1].shift(i)
+            lag_df = df.iloc[:,:].shift(i) # lag_df = df.iloc[:,:-1].shift(i)
             lag_df.columns = [col + '_lag_' + str(i)  for col in lag_df.columns]
  
             final_df = pd.concat([lag_df, final_df], axis=1)
         final_df.dropna(inplace=True)
 
         return final_df
-
-    async def _market_direction_logisticregression(self, analysis, **kwargs):
-
-        df = analysis[kwargs['indicators'][0]]
-        df = df.applymap(enum_to_value)
-        df = df.dropna().astype(int)
-
-        model = joblib.load(kwargs['model_path'])
-        
-        #input_data = df.iloc[:, :-1].values
-        input_data = df.values
-        predictions = model.predict(input_data)
-        classification = array_to_enum(predictions, Direction)
-
-        # Do padding
-        target_length = len(analysis['candlesticks'])
-        padding_length = target_length - len(classification)
-        classification = np.pad(classification, (padding_length, 0), 'constant', constant_values=None)
-
-        return classification
     
     
     async def _market_regime_rsi(self, analysis, **kwargs):
