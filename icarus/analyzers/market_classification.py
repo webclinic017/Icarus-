@@ -400,13 +400,18 @@ class MarketClassification():
         df = pd.DataFrame(market_class_table)
 
         window_size = kwargs.get('window',0)
-
         if window_size <= 0:
             return df
                 
+        exclude_last_column = kwargs.get('exclude_last_column', True)
+        if exclude_last_column:
+            df_to_shift = df.iloc[:,:-1]
+        else:
+            df_to_shift = df.iloc[:,:]
+
         final_df = df
         for i in range(1, window_size + 1):
-            lag_df = df.iloc[:,:].shift(i) # lag_df = df.iloc[:,:-1].shift(i)
+            lag_df = df_to_shift.shift(i) # lag_df = df.iloc[:,:-1].shift(i)
             lag_df.columns = [col + '_lag_' + str(i)  for col in lag_df.columns]
  
             final_df = pd.concat([lag_df, final_df], axis=1)
@@ -469,4 +474,8 @@ class MarketClassification():
 
     async def _market_regime_logisticregression(self, analysis, **kwargs):
         detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_logisticregression'], kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
+    async def _market_regime_lstm(self, analysis, **kwargs):
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_lstm'], kwargs.get('validation_threshold', 0))
         return detected_market_regimes

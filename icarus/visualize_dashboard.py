@@ -267,6 +267,10 @@ async def get_observer_data(mongocli, config):
         if not hasattr(observer_plot, obs_type):
             continue
         df_observers = pd.DataFrame(list(await mongocli.do_find('observer',{'type':obs_type})))
+        
+        if df_observers.empty:
+            continue
+        
         df_obs_data = pd.DataFrame(df_observers['data'].to_list())
         df_obs_data.set_index(df_observers['ts']*1000, inplace=True)
         df_obs_data = df_obs_data[obs_list]

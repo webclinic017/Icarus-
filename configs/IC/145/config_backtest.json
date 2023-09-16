@@ -15,7 +15,7 @@
     "balances": [
         {
             "asset": "USDT",
-            "free": 10000,
+            "free": 120000,
             "locked": 0
         }
     ],
@@ -27,6 +27,17 @@
         "type": "DiscreteStrategyAllocator",
         "kwargs": {
             "distribution_config": [
+                "market_direction_rsi", 
+                "market_direction_macd",
+                "market_direction_stoch",
+                "market_direction_stochf",
+                "market_direction_aroonosc",
+                "market_direction_willr",
+                "market_direction_cci",
+                "market_direction_mfi",
+                "market_direction_ultosc",
+                "market_direction_dmi",
+                "market_direction_supertrend",
                 "market_direction_lstm"
             ],
             "capital_coeff":0.9, 
@@ -35,6 +46,105 @@
         }
     },
     "strategy": {
+        "market_direction_rsi": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_rsi"
+            }
+        },
+        "market_direction_macd": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_macd"
+            }
+        },
+        "market_direction_stoch": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_stoch"
+            }
+        },
+        "market_direction_stochf": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_stochf"
+            }
+        },
+        "market_direction_aroonosc": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_aroonosc"
+            }
+        },
+        "market_direction_willr": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_willr"
+            }
+        },
+        "market_direction_cci": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_cci"
+            }
+        },
+        "market_direction_mfi": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_mfi"
+            }
+        },
+        "market_direction_ultosc": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_ultosc"
+            }
+        },
+        "market_direction_dmi": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_dmi"
+            }
+        },
+        "market_direction_supertrend": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_supertrend"
+            }
+        },
         "market_direction_lstm": {
             "strategy": "MarketDirectionTrigger",
             "pairs": ["BTCUSDT"],
@@ -78,7 +188,8 @@
                     "market_direction_dmi",
                     "market_direction_supertrend"
                 ],
-                "window": 6
+                "window": 6,
+                "exclude_last_column": false
             }
         },
         {
@@ -89,21 +200,6 @@
                     "market_direction_index"
                 ]
             }
-        },
-        {
-            "market_direction_open2close_change": {"timeperiod":0}
-        },
-        {
-            "market_regime_lstm": {},
-            "market_regime_open2close_change": {}
-        },
-        {
-            "market_regime_index": {
-                "indicators": [
-                    "market_regime_lstm",
-                    "market_regime_open2close_change"
-                ]
-            }
         }
     ],
     "report_folder_name": "reports",
@@ -111,7 +207,18 @@
     "grid_search_reporters": {
         "grid": {
             "<strategy>": [
-                "market_direction_logisticregression"
+                "market_direction_rsi", 
+                "market_direction_macd",
+                "market_direction_stoch",
+                "market_direction_stochf",
+                "market_direction_aroonosc",
+                "market_direction_willr",
+                "market_direction_cci",
+                "market_direction_mfi",
+                "market_direction_ultosc",
+                "market_direction_dmi",
+                "market_direction_supertrend",
+                "market_direction_lstm"
             ],
             "<pair>": ["BTCUSDT"],
             "<start_time>": [0],

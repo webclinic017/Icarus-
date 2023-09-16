@@ -36,7 +36,7 @@ class MachineLearning():
 
         input_data = input_data.reshape(input_data.shape[0], num_of_step, num_of_features)
 
-        predictions = model.predict(input_data)
+        predictions = model.predict(input_data, verbose=None)
         predictions_binary = (predictions > 0.5).astype(int)
 
         classification = array_to_enum(predictions_binary, Direction)
