@@ -263,7 +263,7 @@ async def get_observer_data(mongocli, config):
     dashboard_data_pack = {}
     
     # Get observer objects
-    for obs_type, obs_list in config['visualization']['observers'].items():
+    for obs_type, obs_list in config.get('visualization', {}).get('observers', {}).items():
         if not hasattr(observer_plot, obs_type):
             continue
         df_observers = pd.DataFrame(list(await mongocli.do_find('observer',{'type':obs_type})))
