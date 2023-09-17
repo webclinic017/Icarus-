@@ -398,28 +398,26 @@ class MarketClassification():
             market_class_table[indicator_name] = analysis[indicator_name]
 
         df = pd.DataFrame(market_class_table)
-        return df
-    
 
-    async def _market_direction_logisticregression(self, analysis, **kwargs):
+        window_size = kwargs.get('window',0)
+        if window_size <= 0:
+            return df
+                
+        exclude_last_column = kwargs.get('exclude_last_column', True)
+        if exclude_last_column:
+            df_to_shift = df.iloc[:,:-1]
+        else:
+            df_to_shift = df.iloc[:,:]
 
-        df = analysis[kwargs['indicators'][0]]
-        df = df.applymap(enum_to_value)
-        df = df.dropna().astype(int)
+        final_df = df
+        for i in range(1, window_size + 1):
+            lag_df = df_to_shift.shift(i) # lag_df = df.iloc[:,:-1].shift(i)
+            lag_df.columns = [col + '_lag_' + str(i)  for col in lag_df.columns]
+ 
+            final_df = pd.concat([lag_df, final_df], axis=1)
+        final_df.dropna(inplace=True)
 
-        model = joblib.load(kwargs['model_path'])
-        
-        #input_data = df.iloc[:, :-1].values
-        input_data = df.values
-        predictions = model.predict(input_data)
-        classification = array_to_enum(predictions, Direction)
-
-        # Do padding
-        target_length = len(analysis['candlesticks'])
-        padding_length = target_length - len(classification)
-        classification = np.pad(classification, (padding_length, 0), 'constant', constant_values=None)
-
-        return classification
+        return final_df
     
     
     async def _market_regime_rsi(self, analysis, **kwargs):
@@ -476,4 +474,8 @@ class MarketClassification():
 
     async def _market_regime_logisticregression(self, analysis, **kwargs):
         detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_logisticregression'], kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
+    async def _market_regime_lstm(self, analysis, **kwargs):
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_lstm'], kwargs.get('validation_threshold', 0))
         return detected_market_regimes

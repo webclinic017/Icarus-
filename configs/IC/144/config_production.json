@@ -1,0 +1,74 @@
+{
+    "tag": "bot",
+    "log":{
+        "level": "DEBUG",
+        "file": "log/icarus.log",
+        "clear": false
+    },
+    "credential_file": "test_credentials.json",
+    "mongodb":{
+        "database": "production",
+        "host": "localhost",
+        "port": 27017,
+        "clean": false
+    },
+    "notification":{
+        "telegram": {
+            "hto": true,
+            "lto": true,
+            "app": true,
+            "error": true,
+            "daily": true,
+            "stat": true,
+            "market": false
+        },
+        "mail": false
+    },
+    "broker": {
+        "quote_currency": "USDT"
+    },
+    "strategy_allocation":{
+        "type": "DiscreteStrategyAllocator",
+        "kwargs": {
+            "distribution_config": ["MarketDirectionTrigger"],
+            "capital_coeff":0.9, 
+            "stop_capital":null,
+            "capital_limit": 100
+        }
+    },
+    "strategy": {
+        "MarketDirectionTrigger": {
+            "strategy": "MarketDirectionTrigger",
+            "pairs": ["BTCUSDT"],
+            "time_scales": ["4h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "analyzer": "market_direction_supertrend"
+            }
+        }
+    },
+    "analysis": [
+        {
+            "candlesticks": {},
+            "close": {}
+        },
+        {
+            "market_direction_supertrend": {"timeperiod":12}
+        }
+    ],
+    "time_scales": {
+        "4h": 170
+    },
+    "report_folder_name": "reports",
+    "report": [],
+    "grid_search_reporters":{},
+    "visualization":{
+        "observers":{
+            "quote_asset":["free", "total", "in_trade"]
+        },
+        "indicators": {
+            "close":{}
+        },
+        "patterns":[]
+    }
+}
