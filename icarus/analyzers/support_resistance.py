@@ -123,7 +123,7 @@ class SupportResistance():
         return max(np.round(cluster_price_range_perc/len(centroids), 6), 0.000001)
 
 
-    async def eval_sup_res_clusters(algorithm, candles, meta_chunks, chart_price_range):
+    async def eval_sup_res_clusters(algorithm, sr_config, candles, meta_chunks, candlesticks):
         sr_levels = []
 
         for meta_chunk in meta_chunks:
@@ -133,6 +133,19 @@ class SupportResistance():
             # If the attribute min_samples exist, we have to overwrite it
             if hasattr(algorithm, 'min_samples'):
                 algorithm.set_params(min_samples=min_cluster_members) 
+
+            candlesticks_chunk = candlesticks[meta_chunk[0] : meta_chunk[1]]
+            chart_price_range = candlesticks_chunk['high'].max() - candlesticks_chunk['low'].min()
+
+            if hasattr(algorithm, 'bandwidth'):
+                bandwidth = float(chart_price_range * sr_config.bandwidth_coeff)
+                algorithm.set_params(bandwidth=bandwidth)
+            elif hasattr(algorithm, 'eps'):
+                eps = float(chart_price_range * sr_config.eps_coeff)
+                algorithm.set_params(eps=eps)
+            elif hasattr(algorithm, 'threshold'):
+                eps = float(chart_price_range * sr_config.eps_coeff)
+                algorithm.set_params(threshold=eps)
 
             cluster_predictions = algorithm.fit_predict(chunk)
             cls_tokens = np.unique(cluster_predictions)
@@ -195,7 +208,7 @@ class SupportResistance():
         birch = Birch(branching_factor=15, n_clusters = None, threshold=eps)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(birch, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(birch, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
@@ -211,7 +224,7 @@ class SupportResistance():
         # TODO: Add birch configs to sr_config
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(birch, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(birch, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
@@ -226,7 +239,7 @@ class SupportResistance():
         optics = OPTICS(eps=eps, cluster_method=sr_config.cluster_method)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(optics, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(optics, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
@@ -241,7 +254,7 @@ class SupportResistance():
         optics = OPTICS(eps=eps, cluster_method=sr_config.cluster_method)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(optics, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(optics, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
     async def _support_dbscan(self, analysis, **kwargs):
@@ -255,7 +268,7 @@ class SupportResistance():
         dbscan = DBSCAN(eps=eps)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(dbscan, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(dbscan, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
@@ -270,7 +283,7 @@ class SupportResistance():
         dbscan = DBSCAN(eps=eps) # NOTE: min_sample is set inside of the eval_sup_res_clusters method
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(dbscan, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(dbscan, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
@@ -289,7 +302,7 @@ class SupportResistance():
         #       - Min number of members can be added as post filter (seems like does not working well)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(meanshift, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(meanshift, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
@@ -304,7 +317,7 @@ class SupportResistance():
         meanshift = MeanShift(bandwidth=bandwidth) # TODO use bandwidth
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(meanshift, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(meanshift, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
     async def _support_kmeans(self, analysis, **kwargs):
@@ -321,7 +334,7 @@ class SupportResistance():
         )
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(kmeans, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(kmeans, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
@@ -339,7 +352,7 @@ class SupportResistance():
         )
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(kmeans, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(kmeans, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
