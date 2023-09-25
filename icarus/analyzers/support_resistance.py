@@ -27,7 +27,7 @@ class SRConfig():
     n_cluster: int = None
 
     def __post_init__(self):
-        self.source = '_' + self.kwargs.get('source','')
+        self.source = self.kwargs.get('source','')
         self.eps = self.kwargs.get('eps',0.005)
 
     def parse_chunks_params(self, diff_in_minute, time_scales_config):
@@ -189,7 +189,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bullish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         birch = Birch(branching_factor=15, n_clusters = None, threshold=eps)
@@ -204,7 +204,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bearish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         birch = Birch(branching_factor=15, n_clusters = None, threshold=eps)
@@ -220,7 +220,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)  
 
-        bullish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         optics = OPTICS(eps=eps, cluster_method=sr_config.cluster_method)
@@ -235,7 +235,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bearish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff) 
         optics = OPTICS(eps=eps, cluster_method=sr_config.cluster_method)
@@ -264,7 +264,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)    
 
-        bearish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         dbscan = DBSCAN(eps=eps) # NOTE: min_sample is set inside of the eval_sup_res_clusters method
@@ -279,7 +279,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)   
 
-        bullish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         bandwidth = float(chart_price_range * sr_config.bandwidth_coeff)
         meanshift = MeanShift(bandwidth=bandwidth) 
@@ -298,7 +298,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)   
 
-        bearish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         bandwidth = float(chart_price_range * sr_config.bandwidth_coeff)
         meanshift = MeanShift(bandwidth=bandwidth) # TODO use bandwidth
@@ -312,7 +312,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bullish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         kmeans = KMeans(
             n_clusters=sr_config.n_cluster, init='random',
@@ -330,7 +330,7 @@ class SupportResistance():
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bearish_frac = np.nan_to_num(analysis['_'+sr_config.source]).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         kmeans = KMeans(
             n_clusters=sr_config.n_cluster, init='random',
