@@ -10,7 +10,7 @@ import itertools
 class SRConfig():
     kwargs: dict                        # Mandatory
     source: str = ''
-    min_members: int = 3
+    min_members: int = None
     frame_length: int = None
     step_length: int = None
 
@@ -29,6 +29,8 @@ class SRConfig():
     def __post_init__(self):
         self.source = self.kwargs.get('source','')
         self.eps = self.kwargs.get('eps',0.005)
+        self.min_members = self.kwargs.get('min_members', None)
+        self.eps_coeff = self.kwargs.get('eps_coeff', 0.005)
 
     def parse_chunks_params(self, diff_in_minute, time_scales_config):
         if "step_length" in self.kwargs.keys() or "step_to_frame_ratio" in self.kwargs.keys():
@@ -128,7 +130,11 @@ class SupportResistance():
 
         for meta_chunk in meta_chunks:
             chunk = candles[meta_chunk[0] : meta_chunk[1]]
-            min_cluster_members = SupportResistance.eval_min_cluster_members(chunk.size)
+
+            if sr_config.min_members == None:
+                min_cluster_members = SupportResistance.eval_min_cluster_members(chunk.size)
+            else:
+                min_cluster_members = sr_config.min_members
 
             # If the attribute min_samples exist, we have to overwrite it
             if hasattr(algorithm, 'min_samples'):

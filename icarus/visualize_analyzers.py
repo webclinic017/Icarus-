@@ -172,7 +172,8 @@ def create_ctrl_panel(win, pairs, time_scales, indicators):
     layout.addWidget(panel.autoclear, 0, 8)
 
     panel.sr_score_threshold = QSpinBox(panel)
-    panel.sr_score_threshold.setValue(10)
+    panel.sr_score_threshold.setValue(0)
+    panel.sr_score_threshold.setMaximum(1000)
     layout.addWidget(panel.sr_score_threshold, 0, 10)
     panel.sr_score_threshold.valueChanged.connect(sr_score_threshold_changed)
 
