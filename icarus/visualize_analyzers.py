@@ -1,7 +1,7 @@
 
 import finplot as fplt
 import json
-from PyQt5.QtWidgets import QComboBox, QCheckBox, QWidget
+from PyQt5.QtWidgets import QComboBox, QCheckBox, QWidget, QSpinBox
 from pyqtgraph import QtGui
 import pyqtgraph as pg
 import sys
@@ -171,7 +171,18 @@ def create_ctrl_panel(win, pairs, time_scales, indicators):
     panel.autoclear.setCheckState(2)
     layout.addWidget(panel.autoclear, 0, 8)
 
+    panel.sr_score_threshold = QSpinBox(panel)
+    panel.sr_score_threshold.setValue(0)
+    panel.sr_score_threshold.setMaximum(1000)
+    layout.addWidget(panel.sr_score_threshold, 0, 10)
+    panel.sr_score_threshold.valueChanged.connect(sr_score_threshold_changed)
+
     return panel
+
+
+def sr_score_threshold_changed():
+    global ctrl_panel
+    indicator_plot.SR_SCORE_TH = ctrl_panel.sr_score_threshold.value()
 
 
 def analysis_dashboard(pair_pool, time_scale_pool, indicator_pool, title='Buy/Sell Plot'):

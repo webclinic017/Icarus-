@@ -6,60 +6,40 @@ from analyzers.market_classification import Direction
 from itertools import groupby
 from operator import itemgetter
 
+SR_SCORE_TH = 0
 
 BLUE='#0000FF'
+PALE_BLUE='#CCCCFF'
 GREEN='#00FF00'
+PALE_GREEN='#CCFFCC'
 RED='#FF0000'
+PALE_RED='#FFCCCC'
 CYAN='#00FFFF'
+PALE_CYAN='#CCFFFF'
 MAGENTA='#FF00FF'
+PALE_MAGENTA='#FFCCFF'
+YELLOW='#FFFB00'
+PALE_YELLOW='#FFFBCC'
 
 color_map_support = [
-    ('#0000FF', '#CCCCFF'),
-    ('#00FF00', '#CCFFCC')
+    (BLUE, PALE_BLUE),
+    (GREEN, PALE_GREEN)
 ]
 
 color_map_resistance = [
-    ('#FF0000', '#FFCCCC'),
-    ('#FFFB00', '#FFFBCC')
+    (RED, PALE_RED),
+    (YELLOW, PALE_YELLOW)
 ]
 
 color_map_cluster = [
-    ('#FF00FF', '#FFCCFF'),
-    ('#00FFFF', '#CCFFFF')
+    (MAGENTA, PALE_MAGENTA),
+    (CYAN, PALE_CYAN)
 ]
-
-#####################################  Fundamental Handler Fuctions ######################################
-
-def fibonacci_handler(x, y, axes):
-
-    hover_label = fplt.add_legend('aaa', ax=axes['ax'])
-    hover_label.setText(f"Fibonacci Levels", color='#0000FF', bold=True)
-    #hover_label.setText(f'<textarea name="Text1" cols="40" rows="5"></textarea>', color='#0000FF', bold=True)
-
-    # Visualize Support Lines
-    for fibo_cluster in y:
-        if fibo_cluster.vertical_distribution_score == 0:
-            overall_score = 0
-        else:
-            overall_score = round(fibo_cluster.horizontal_distribution_score/fibo_cluster.vertical_distribution_score,2)
-
-        text_bot = "HorDist:{}, VerDist:{}, Score:{}".format(
-            fibo_cluster.horizontal_distribution_score, 
-            fibo_cluster.vertical_distribution_score, 
-            overall_score)
-
-        text_top = "Fibonacci Level: {}, #Members:{}".format(fibo_cluster.level, len(fibo_cluster.centroids))
-
-        fplt.add_text((x[0], fibo_cluster.price_level), text_bot, color='#000000',anchor=(0,0), ax=axes['ax'])
-        fplt.add_text((x[0], fibo_cluster.price_level), text_top, color='#000000',anchor=(0,1), ax=axes['ax'])
-        fplt.add_line((x[0], fibo_cluster.price_level), (x[-1], fibo_cluster.price_level), style='.', color='#0000FF', width=2, interactive=False)
-        if len(fibo_cluster.centroids):
-            fplt.add_rect((x[fibo_cluster.validation_index], max(fibo_cluster.centroids)), (x[-1], min(fibo_cluster.centroids)), ax=axes['ax'], color='#CCCCFF')
 
 
 def support_resistance_handler(x, y, axes, **kwargs):
     sr_type = kwargs.get('type','')
-    sr_cmap = kwargs.get('cmap',[('#0000FF', '#CCCCFF')])
+    sr_cmap = kwargs.get('cmap')
 
     hover_label = fplt.add_legend('aaa', ax=axes['ax'])
     hover_label.setText(sr_type, color=sr_cmap[0][0], bold=True)
@@ -70,6 +50,9 @@ def support_resistance_handler(x, y, axes, **kwargs):
     start_idx = None
 
     for sr_cluster in y:
+
+        if sr_cluster.distribution_score < SR_SCORE_TH:
+            continue
 
         if start_idx == None:
             start_idx = sr_cluster.chunk_start_index
@@ -254,13 +237,31 @@ def support_dbscan(x, y, axes): disable_ax_bot(axes); support_resistance_handler
 def resistance_dbscan(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Resistance', 'cmap':color_map_resistance})
 def support_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Support', 'cmap':color_map_support})
 def resistance_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Resistance', 'cmap':color_map_resistance})
-def fibonacci(x, y, axes): disable_ax_bot(axes); fibonacci_handler(x, y, axes)
 
-def sr_birch(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
-def sr_optics(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
-def sr_meanshift(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
-def sr_dbscan(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
-def sr_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
+def sr_birch(x, y, axes):
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    
+def sr_optics(x, y, axes):
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    
+def sr_meanshift(x, y, axes):
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+
+def sr_dbscan(x, y, axes): 
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    
+def sr_kmeans(x, y, axes):
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
 
 def bullish_fractal_5(x, y, axes): 
     disable_ax_bot(axes)

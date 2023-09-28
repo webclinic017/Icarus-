@@ -10,7 +10,7 @@ import itertools
 class SRConfig():
     kwargs: dict                        # Mandatory
     source: str = ''
-    min_members: int = 3
+    min_members: int = None
     frame_length: int = None
     step_length: int = None
 
@@ -27,8 +27,10 @@ class SRConfig():
     n_cluster: int = None
 
     def __post_init__(self):
-        self.source = '_' + self.kwargs.get('source','')
+        self.source = self.kwargs.get('source','')
         self.eps = self.kwargs.get('eps',0.005)
+        self.min_members = self.kwargs.get('min_members', None)
+        self.eps_coeff = self.kwargs.get('eps_coeff', 0.005)
 
     def parse_chunks_params(self, diff_in_minute, time_scales_config):
         if "step_length" in self.kwargs.keys() or "step_to_frame_ratio" in self.kwargs.keys():
@@ -123,16 +125,33 @@ class SupportResistance():
         return max(np.round(cluster_price_range_perc/len(centroids), 6), 0.000001)
 
 
-    async def eval_sup_res_clusters(algorithm, candles, meta_chunks, chart_price_range):
+    async def eval_sup_res_clusters(algorithm, sr_config, candles, meta_chunks, candlesticks):
         sr_levels = []
 
         for meta_chunk in meta_chunks:
             chunk = candles[meta_chunk[0] : meta_chunk[1]]
-            min_cluster_members = SupportResistance.eval_min_cluster_members(chunk.size)
+
+            if sr_config.min_members == None:
+                min_cluster_members = SupportResistance.eval_min_cluster_members(chunk.size)
+            else:
+                min_cluster_members = sr_config.min_members
 
             # If the attribute min_samples exist, we have to overwrite it
             if hasattr(algorithm, 'min_samples'):
                 algorithm.set_params(min_samples=min_cluster_members) 
+
+            candlesticks_chunk = candlesticks[meta_chunk[0] : meta_chunk[1]]
+            chart_price_range = candlesticks_chunk['high'].max() - candlesticks_chunk['low'].min()
+
+            if hasattr(algorithm, 'bandwidth'):
+                bandwidth = float(chart_price_range * sr_config.bandwidth_coeff)
+                algorithm.set_params(bandwidth=bandwidth)
+            elif hasattr(algorithm, 'eps'):
+                eps = float(chart_price_range * sr_config.eps_coeff)
+                algorithm.set_params(eps=eps)
+            elif hasattr(algorithm, 'threshold'):
+                eps = float(chart_price_range * sr_config.eps_coeff)
+                algorithm.set_params(threshold=eps)
 
             cluster_predictions = algorithm.fit_predict(chunk)
             cls_tokens = np.unique(cluster_predictions)
@@ -184,142 +203,102 @@ class SupportResistance():
         return meta_chunks
 
 
-    async def _fibonacci(self, candlesticks, **kwargs):
-        
-        chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
-        fibonacci = FibonacciClustering(candlesticks['high'].max(), candlesticks['low'].min(), kwargs.get('radius',0.005))
-
-        source = '_' + kwargs.get('source','close')
-        chunk = np.nan_to_num(await getattr(self, source)(candlesticks)).reshape(-1,1)
-
-        # NOTE: Both bearish and bullish patterns can be combined since the fibonacci is not only support or resistance:
-        # chunk = np.concatenate([bearish_frac, bullish_frac])
-        # or
-        # pd.concat([candlesticks['high'], candlesticks['low']], axis=0).to_numpy()
-
-        cluster_predictions = fibonacci.fit_predict(chunk)
-        fibo_clusters = []
-
-        # NOTE: The term validation index is used as a point where the level/cluster is verified and ready to be used.
-        # By using this definition, it corresponds to the max index of min or max price level value, since the 
-        # levels are designed after this index
-        validation_index = max(
-            np.where(candlesticks['high'] == candlesticks['high'].max())[0][0],
-            np.where(candlesticks['low'] == candlesticks['low'].min())[0][0]
-        )
-        for token in range(-1, len(fibonacci.coeffs)):
-            # NOTE: Ignore outliers
-            if token == -1:
-                continue
-
-            indices = np.where(cluster_predictions == token)[0]
-            centroids = chunk[indices].reshape(1,-1)[0].tolist()
-
-            if not any(centroids):
-                continue
-
-            srcluster = FibonacciSRCluster(
-                level=FibonacciClustering.coeffs[token],
-                price_level=fibonacci.price_levels[token],
-                band=fibonacci.radius,
-                centroids=centroids,
-                validation_index=validation_index,
-                horizontal_distribution_score=await SupportResistance.eval_sup_res_cluster_horizontal_score(indices, len(cluster_predictions)),
-                vertical_distribution_score=await SupportResistance.eval_sup_res_cluster_vertical_score(centroids, chart_price_range)
-            )
-            fibo_clusters.append(srcluster)
-        return fibo_clusters
-
-
-    async def _support_birch(self, candlesticks, **kwargs):
+    async def _support_birch(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bullish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         birch = Birch(branching_factor=15, n_clusters = None, threshold=eps)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(birch, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(birch, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
-    async def _resistance_birch(self, candlesticks, **kwargs):
+    async def _resistance_birch(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bearish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         birch = Birch(branching_factor=15, n_clusters = None, threshold=eps)
         # TODO: Add birch configs to sr_config
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(birch, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(birch, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
-    async def _support_optics(self, candlesticks, **kwargs):
+    async def _support_optics(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)  
 
-        bullish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         optics = OPTICS(eps=eps, cluster_method=sr_config.cluster_method)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(optics, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(optics, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
-    async def _resistance_optics(self, candlesticks, **kwargs):
+    async def _resistance_optics(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bearish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff) 
         optics = OPTICS(eps=eps, cluster_method=sr_config.cluster_method)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(optics, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(optics, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
-    async def _support_dbscan(self, candlesticks, **kwargs):
+    async def _support_dbscan(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bullish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         dbscan = DBSCAN(eps=eps)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(dbscan, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(dbscan, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
-    async def _resistance_dbscan(self, candlesticks, **kwargs):
+    async def _resistance_dbscan(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)    
 
-        bearish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         eps = float(chart_price_range * sr_config.eps_coeff)
         dbscan = DBSCAN(eps=eps) # NOTE: min_sample is set inside of the eval_sup_res_clusters method
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(dbscan, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(dbscan, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
-    async def _support_meanshift(self, candlesticks, **kwargs):
+    async def _support_meanshift(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)   
 
-        bullish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         bandwidth = float(chart_price_range * sr_config.bandwidth_coeff)
         meanshift = MeanShift(bandwidth=bandwidth) 
@@ -329,28 +308,30 @@ class SupportResistance():
         #       - Min number of members can be added as post filter (seems like does not working well)
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(meanshift, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(meanshift, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
-    async def _resistance_meanshift(self, candlesticks, **kwargs):
+    async def _resistance_meanshift(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)   
 
-        bearish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         bandwidth = float(chart_price_range * sr_config.bandwidth_coeff)
         meanshift = MeanShift(bandwidth=bandwidth) # TODO use bandwidth
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(meanshift, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(meanshift, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
-    async def _support_kmeans(self, candlesticks, **kwargs):
+    async def _support_kmeans(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bullish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         kmeans = KMeans(
             n_clusters=sr_config.n_cluster, init='random',
@@ -359,15 +340,16 @@ class SupportResistance():
         )
 
         meta_chunks = await SupportResistance.create_meta_chunks(bullish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(kmeans, bullish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(kmeans, sr_config, bullish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
-    async def _resistance_kmeans(self, candlesticks, **kwargs):
+    async def _resistance_kmeans(self, analysis, **kwargs):
+        candlesticks = analysis['candlesticks']
         sr_config = SRConfig(kwargs)
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
-        bearish_frac = np.nan_to_num(await getattr(self, sr_config.source)(candlesticks)).reshape(-1,1)
+        bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
         chart_price_range = candlesticks['high'].max() - candlesticks['low'].min()
         kmeans = KMeans(
             n_clusters=sr_config.n_cluster, init='random',
@@ -376,36 +358,36 @@ class SupportResistance():
         )
 
         meta_chunks = await SupportResistance.create_meta_chunks(bearish_frac, sr_config.frame_length, sr_config.step_length)
-        sr_clusters = await SupportResistance.eval_sup_res_clusters(kmeans, bearish_frac, meta_chunks, chart_price_range)
+        sr_clusters = await SupportResistance.eval_sup_res_clusters(kmeans, sr_config, bearish_frac, meta_chunks, candlesticks)
         return sr_clusters
 
 
     # _sr_<algorithm>
-    async def _sr_dbscan(self, candlesticks, **kwargs):
-        cors = [self._support_dbscan(candlesticks, **kwargs),
-            self._resistance_dbscan(candlesticks, **kwargs)]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+    async def _sr_dbscan(self, analysis, **kwargs):
+        cors = [self._support_dbscan(analysis, **kwargs.get('support',{})),
+            self._resistance_dbscan(analysis, **kwargs.get('resistance',{}))]
+        return list(await asyncio.gather(*cors))
 
 
-    async def _sr_kmeans(self, candlesticks, **kwargs):
-        cors = [self._support_kmeans(candlesticks, **kwargs),
-            self._resistance_kmeans(candlesticks, **kwargs)]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+    async def _sr_kmeans(self, analysis, **kwargs):
+        cors = [self._support_kmeans(analysis, **kwargs.get('support',{})),
+            self._resistance_kmeans(analysis, **kwargs.get('resistance',{}))]
+        return list(await asyncio.gather(*cors))
 
 
-    async def _sr_birch(self, candlesticks, **kwargs):
-        cors = [self._support_birch(candlesticks, **kwargs),
-            self._resistance_birch(candlesticks, **kwargs)]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+    async def _sr_birch(self, analysis, **kwargs):
+        cors = [self._support_birch(analysis, **kwargs.get('support',{})),
+            self._resistance_birch(analysis, **kwargs.get('resistance',{}))]
+        return list(await asyncio.gather(*cors))
 
 
-    async def _sr_optics(self, candlesticks, **kwargs):
-        cors = [self._support_optics(candlesticks, **kwargs),
-            self._resistance_optics(candlesticks, **kwargs)]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+    async def _sr_optics(self, analysis, **kwargs):
+        cors = [self._support_optics(analysis, **kwargs.get('support',{})),
+            self._resistance_optics(analysis, **kwargs.get('resistance',{}))]
+        return list(await asyncio.gather(*cors))
 
 
-    async def _sr_meanshift(self, candlesticks, **kwargs):
-        cors = [self._support_meanshift(candlesticks, **kwargs),
-            self._resistance_meanshift(candlesticks, **kwargs)]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+    async def _sr_meanshift(self, analysis, **kwargs):
+        cors = [self._support_meanshift(analysis, **kwargs.get('support',{})),
+            self._resistance_meanshift(analysis, **kwargs.get('resistance',{}))]
+        return list(await asyncio.gather(*cors))
