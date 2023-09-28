@@ -9,30 +9,37 @@ from operator import itemgetter
 SR_SCORE_TH = 0
 
 BLUE='#0000FF'
+PALE_BLUE='#CCCCFF'
 GREEN='#00FF00'
+PALE_GREEN='#CCFFCC'
 RED='#FF0000'
+PALE_RED='#FFCCCC'
 CYAN='#00FFFF'
+PALE_CYAN='#CCFFFF'
 MAGENTA='#FF00FF'
+PALE_MAGENTA='#FFCCFF'
+YELLOW='#FFFB00'
+PALE_YELLOW='#FFFBCC'
 
 color_map_support = [
-    ('#0000FF', '#CCCCFF'),
-    ('#00FF00', '#CCFFCC')
+    (BLUE, PALE_BLUE),
+    (GREEN, PALE_GREEN)
 ]
 
 color_map_resistance = [
-    ('#FF0000', '#FFCCCC'),
-    ('#FFFB00', '#FFFBCC')
+    (RED, PALE_RED),
+    (YELLOW, PALE_YELLOW)
 ]
 
 color_map_cluster = [
-    ('#FF00FF', '#FFCCFF'),
-    ('#00FFFF', '#CCFFFF')
+    (MAGENTA, PALE_MAGENTA),
+    (CYAN, PALE_CYAN)
 ]
 
 
 def support_resistance_handler(x, y, axes, **kwargs):
     sr_type = kwargs.get('type','')
-    sr_cmap = kwargs.get('cmap',[('#0000FF', '#CCCCFF')])
+    sr_cmap = kwargs.get('cmap')
 
     hover_label = fplt.add_legend('aaa', ax=axes['ax'])
     hover_label.setText(sr_type, color=sr_cmap[0][0], bold=True)
@@ -231,11 +238,30 @@ def resistance_dbscan(x, y, axes): disable_ax_bot(axes); support_resistance_hand
 def support_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Support', 'cmap':color_map_support})
 def resistance_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Resistance', 'cmap':color_map_resistance})
 
-def sr_birch(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
-def sr_optics(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
-def sr_meanshift(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
-def sr_dbscan(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
-def sr_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Horizontal Clusters', 'cmap':color_map_cluster})
+def sr_birch(x, y, axes):
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    
+def sr_optics(x, y, axes):
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    
+def sr_meanshift(x, y, axes):
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+
+def sr_dbscan(x, y, axes): 
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    
+def sr_kmeans(x, y, axes):
+    disable_ax_bot(axes)
+    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
 
 def bullish_fractal_5(x, y, axes): 
     disable_ax_bot(axes)

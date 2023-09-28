@@ -366,28 +366,28 @@ class SupportResistance():
     async def _sr_dbscan(self, analysis, **kwargs):
         cors = [self._support_dbscan(analysis, **kwargs.get('support',{})),
             self._resistance_dbscan(analysis, **kwargs.get('resistance',{}))]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+        return list(await asyncio.gather(*cors))
 
 
     async def _sr_kmeans(self, analysis, **kwargs):
         cors = [self._support_kmeans(analysis, **kwargs.get('support',{})),
             self._resistance_kmeans(analysis, **kwargs.get('resistance',{}))]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+        return list(await asyncio.gather(*cors))
 
 
     async def _sr_birch(self, analysis, **kwargs):
         cors = [self._support_birch(analysis, **kwargs.get('support',{})),
             self._resistance_birch(analysis, **kwargs.get('resistance',{}))]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+        return list(await asyncio.gather(*cors))
 
 
     async def _sr_optics(self, analysis, **kwargs):
         cors = [self._support_optics(analysis, **kwargs.get('support',{})),
             self._resistance_optics(analysis, **kwargs.get('resistance',{}))]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+        return list(await asyncio.gather(*cors))
 
 
     async def _sr_meanshift(self, analysis, **kwargs):
         cors = [self._support_meanshift(analysis, **kwargs.get('support',{})),
             self._resistance_meanshift(analysis, **kwargs.get('resistance',{}))]
-        return list(itertools.chain.from_iterable(await asyncio.gather(*cors)))
+        return list(await asyncio.gather(*cors))
