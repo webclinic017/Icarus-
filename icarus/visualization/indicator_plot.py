@@ -2,9 +2,9 @@ import finplot as fplt
 from statistics import mean
 import pandas as pd
 import numpy as np
-from analyzers.market_classification import Direction
-from itertools import groupby
-from operator import itemgetter
+from analyzers.support_resistance import SRCluster
+from typing import List
+
 
 SR_SCORE_TH = 0
 
@@ -37,7 +37,7 @@ color_map_cluster = [
 ]
 
 
-def support_resistance_handler(x, y, axes, **kwargs):
+def support_resistance_handler(x, y: List[SRCluster], axes, **kwargs):
     sr_type = kwargs.get('type','')
     sr_cmap = kwargs.get('cmap')
 
@@ -70,13 +70,13 @@ def support_resistance_handler(x, y, axes, **kwargs):
 
         text_top_left = "#MinMember: {}, #NumOfRetest:{}".format(sr_cluster.min_cluster_members,sr_cluster.number_of_retest)
         text_top_right = "#Frame:{}".format(sr_cluster.chunk_end_index-sr_cluster.chunk_start_index)
-        fplt.add_text((x[sr_cluster.chunk_end_index], mean(sr_cluster.centroids)), text_top_right, color='#000000',anchor=(1,1), ax=axes['ax'])
-        fplt.add_text((x[sr_cluster.chunk_start_index], mean(sr_cluster.centroids)), text_bot, color='#000000',anchor=(0,0), ax=axes['ax'])
-        fplt.add_text((x[sr_cluster.chunk_start_index], mean(sr_cluster.centroids)), text_top_left, color='#000000',anchor=(0,1), ax=axes['ax'])
-        fplt.add_line((x[sr_cluster.chunk_start_index], mean(sr_cluster.centroids)), 
-            (x[sr_cluster.chunk_end_index], mean(sr_cluster.centroids)), style='.', color=sr_cmap[colormap_idx][0], width=2, interactive=False)
-        fplt.add_rect((x[sr_cluster.validation_index], max(sr_cluster.centroids)), 
-            (x[sr_cluster.chunk_end_index], min(sr_cluster.centroids)), ax=axes['ax'], color=sr_cmap[colormap_idx][1])
+        fplt.add_text((x[sr_cluster.chunk_end_index], sr_cluster.price_mean), text_top_right, color='#000000',anchor=(1,1), ax=axes['ax'])
+        fplt.add_text((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), text_bot, color='#000000',anchor=(0,0), ax=axes['ax'])
+        fplt.add_text((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), text_top_left, color='#000000',anchor=(0,1), ax=axes['ax'])
+        fplt.add_line((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), 
+            (x[sr_cluster.chunk_end_index], sr_cluster.price_mean), style='.', color=sr_cmap[colormap_idx][0], width=2, interactive=False)
+        fplt.add_rect((x[sr_cluster.validation_index], sr_cluster.price_max), 
+            (x[sr_cluster.chunk_end_index], sr_cluster.price_min), ax=axes['ax'], color=sr_cmap[colormap_idx][1])
 
 
 def line_handler(x, y, axis):
@@ -240,28 +240,28 @@ def resistance_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_hand
 
 def sr_birch(x, y, axes):
     disable_ax_bot(axes)
-    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
-    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    support_resistance_handler(x, y['support'], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y['resistance'], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
     
 def sr_optics(x, y, axes):
     disable_ax_bot(axes)
-    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
-    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
-    
+    support_resistance_handler(x, y['support'], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y['resistance'], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+
 def sr_meanshift(x, y, axes):
     disable_ax_bot(axes)
-    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
-    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    support_resistance_handler(x, y['support'], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y['resistance'], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
 
 def sr_dbscan(x, y, axes): 
     disable_ax_bot(axes)
-    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
-    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
-    
+    support_resistance_handler(x, y['support'], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y['resistance'], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+ 
 def sr_kmeans(x, y, axes):
     disable_ax_bot(axes)
-    support_resistance_handler(x, y[0], axes, **{'type':'Support', 'cmap':color_map_support})
-    support_resistance_handler(x, y[1], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    support_resistance_handler(x, y['support'], axes, **{'type':'Support', 'cmap':color_map_support})
+    support_resistance_handler(x, y['resistance'], axes, **{'type':'Resistance', 'cmap':color_map_resistance})
 
 def bullish_fractal_5(x, y, axes): 
     disable_ax_bot(axes)
