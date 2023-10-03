@@ -2,6 +2,7 @@ from objects import Trade, ECommand, TradeResult, Market
 from strategies.StrategyBase import StrategyBase
 from typing import Dict
 from analyzers.market_classification import Direction
+import numpy as np
 
 class SupportResistanceVanilla(StrategyBase):
 
@@ -24,17 +25,24 @@ class SupportResistanceVanilla(StrategyBase):
         sup_res = supports + resistances
         sup_res.sort()
 
-        pos_in_supports = [support.relative_position(analysis['close'][-1])  for support in supports]
-        pos_in_resistances = [resistance.relative_position(analysis['close'][-1])  for resistance in resistances]
+        support_relative_pos = np.array([round(100 * (sr.price_mean - analysis['close'][-1]) / analysis['close'][-1], 2) for sr in supports])
+        #sr_relative_positions = [round(100 * (sr.price_mean - analysis['close'][-1]) / analysis['close'][-1], 2) for sr in sup_res]
 
-        # TODO: Develop entry evaluating logic based on sup res
-        if not all([]):
+
+        entry_conditions = [
+            any(support_relative_pos < 0 )             # No support at below
+        ]
+
+        if not all(entry_conditions):
             return False
         
-        enter_price = analysis['close'][-1]
+        # Note support levels are already ordered. Lowest one is on the 0, and the highest one is on -1
+        closest_below_sup_idx = len(support_relative_pos[support_relative_pos < 0]) - 1
+
+        enter_price = supports[closest_below_sup_idx].price_mean
         enter_ref_amount=pairwise_alloc_share
 
-        enter_order = Market(amount=enter_ref_amount, price=enter_price)
+        enter_order = Limit(amount=enter_ref_amount, price=enter_price)
 
         # Set decision_time to timestamp which is the open time of the current kline (newly started not closed kline)
         trade = Trade(int(ikarus_time), self.name, ao_pair, command=ECommand.EXEC_ENTER)
