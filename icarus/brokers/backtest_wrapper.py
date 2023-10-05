@@ -431,7 +431,7 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
             if type(trade_list[i].enter) == Limit:
 
                 # Check if the open enter trade is filled else if the trade is expired
-                if float(last_kline['low']) < trade_list[i].enter.price:                    
+                if float(last_kline['low'].iloc[0]) < trade_list[i].enter.price:                    
                     trade_list[i].set_result_enter(last_closed_candle_open_time, fee_rate=BacktestWrapper.fee_rate)
                     if not balance_manager.buy(df_balance, quote_currency, base_cur, trade_list[i]):
                         logger.error(f"Function failed: balance_manager.buy().")
@@ -465,7 +465,7 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
             if type(trade_list[i].exit) == Limit:
 
                 # Check if the open sell trade is filled or stoploss is taken
-                if float(last_kline['high']) > trade_list[i].exit.price:
+                if float(last_kline['high'].iloc[0]) > trade_list[i].exit.price:
 
                     trade_list[i].set_result_exit(last_closed_candle_open_time, 
                         fee_rate=BacktestWrapper.fee_rate, 

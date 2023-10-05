@@ -77,8 +77,11 @@ class StrategyBase(metaclass=abc.ABCMeta):
         strategy_capital: It is used for position sizing
         """        
         is_success = False
-        if trade.status == EState.ENTER_EXP:
-            is_success = await self.on_cancel(trade)
+        if trade.status == EState.OPEN_ENTER:
+            is_success = await self.on_open_enter(trade, ikarus_time, analysis_dict, strategy_capital)
+
+        elif trade.status == EState.ENTER_EXP:
+            is_success = await self.on_enter_expire(trade)
 
         elif trade.status == EState.EXIT_EXP:
             is_success = await self.on_exit_expire(trade, ikarus_time, analysis_dict, strategy_capital)
