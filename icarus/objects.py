@@ -73,11 +73,6 @@ class EState(str, Enum):
     CLOSED = 'closed'
 
 
-class EObserverType(str, Enum):
-    BALANCE = 'balance'
-    QUOTE_ASSET = 'quote_asset'
-
-
 @dataclass
 class ReportMeta:
     title: str = ''
@@ -91,8 +86,8 @@ class Report:
 
 
 @dataclass
-class Observer:
-    type: EObserverType
+class Observation:
+    type: str
     ts: int
     data: None
 

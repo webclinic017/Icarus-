@@ -62,13 +62,12 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, mongo_
         dashboard_data_pack[item[0]]['closed'] = closed
 
     # Get observer objects
-    for obs_type, obs_list in config['visualization']['observers'].items():
-        observer_query = {"ts": { "$gte": start_timestamp_s, "$lte": end_timestamp_s }, 'type':obs_type}
+    for obs_config in config.get('observers', []):
+        observer_query = {"ts": { "$gte": start_timestamp_s, "$lte": end_timestamp_s }, 'type':obs_config['type']}
         df_observers = pd.DataFrame(list(await mongo_client.do_find('observer',observer_query)))
         df_obs_data = pd.DataFrame(df_observers['data'].to_list())
         df_obs_data.set_index(df_observers['ts'])
-        df_obs_data = df_obs_data[obs_list]
-        dashboard_data_pack[obs_type] = df_obs_data
+        dashboard_data_pack[obs_config['type']] = df_obs_data
 
     fplot.buy_sell_dashboard(dashboard_data_pack=dashboard_data_pack, 
                              title="Visualizing Time Frame: {} - {}".format(str(start_time),str(end_time)))

@@ -1,5 +1,5 @@
 {
-    "tag": "IC-136_backtest",
+    "tag": "IC-150_backtest",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
@@ -7,7 +7,7 @@
     },
     "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "IC-136_backtest",
+        "database": "IC-150_backtest",
         "host": "localhost",
         "port": 27017,
         "clean": true
@@ -22,6 +22,17 @@
     "broker": {
         "quote_currency": "USDT",
         "fee_rate": 0.001
+    },
+    "time_scales": {
+        "1h": 360
+    },
+    "backtest": {
+        "start_time": "2023-01-24 00:00:00",
+        "end_time": "2023-02-10 00:00:00",
+        "online": true,
+        "breakpoints": {
+            "1686916800000":"entry time"
+        }
     },
     "strategy_allocation":{
         "type": "DiscreteStrategyAllocator",
@@ -58,23 +69,59 @@
             "sr_meanshift": {"support":{"source":"bullish_fractal_3", "bandwidth_coeff":0.005}, "resistance":{"source":"bearish_fractal_3", "bandwidth_coeff":0.005}}
         }
     ],
+    "observers": [
+        {
+            "type": "quote_asset",
+            "observer": "quote_asset",
+            "inputs": ["ikarus_time_sec", "config", "df_balance", "live_trade_list", "new_trade_list"],
+            "filters": {
+                "time": {
+                    "arg": "icarus_time",
+                    "filter": "1h"
+                }
+            }
+        },
+        {
+            "type": "balance",
+            "observer": "balance",
+            "inputs": ["ikarus_time_sec", "df_balance"],
+            "filters": {}
+        },
+        {
+            "type": "strategy_capitals",
+            "observer": "strategy_capitals",
+            "inputs": ["ikarus_time_sec", "strategy_res_allocator"],
+            "filters": {}
+        },
+        {
+            "type": "support",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "live_trade_list", "analysis_dict"],
+            "filters": {
+                "time": {
+                    "arg": "icarus_time",
+                    "filter": "1h"
+                },
+                "trade": {
+                    "arg": "live_trades",
+                    "filter": {
+                        "trade.strategy": "SupportResistanceVanilla",
+                        "trade.command": "EXEC_ENTER"
+                    }
+                }
+            },
+            "kwargs": {
+                "analyzer": "support_dbscan",
+                "timeframe": "1h"
+            }
+        }
+    ],
     "report_folder_name": "reports",
     "report": [],
     "grid_search_reporters": {
         "grid": {
             "<strategy>": [
-                "market_direction_rsi", 
-                "market_direction_macd",
-                "market_direction_stoch",
-                "market_direction_stochf",
-                "market_direction_aroonosc",
-                "market_direction_willr",
-                "market_direction_cci",
-                "market_direction_mfi",
-                "market_direction_ultosc",
-                "market_direction_dmi",
-                "market_direction_supertrend",
-                "market_direction_lstm"
+                "SupportResistanceVanilla"
             ],
             "<pair>": ["BTCUSDT"],
             "<start_time>": [0],
@@ -84,7 +131,7 @@
             {
                 "parameters": {
                     "<pair-indice>": ["BTCUSDT"],
-                    "<timeframe>": ["4h"],
+                    "<timeframe>": ["1h"],
                     "<analyzer>": ["close"]
                 },
                 "reporter": "symbol_price_change",
@@ -371,49 +418,5 @@
                 ]
             }
         ]
-    },
-    "time_scales": {
-        "1h": 360
-    },
-    "backtest": {
-        "start_time": "2023-01-12 00:00:00",
-        "end_time": "2023-02-10 00:00:00",
-        "online": true,
-        "breakpoints": {
-            "1686916800000":"entry time"
-        }
-    },
-    "observers": {
-        "quote_asset": {
-            "type": "quote_asset",
-            "inputs": ["icarus_time", "df_balance"],
-            "filters": {
-                "time": {
-                    "arg": "icarus_time",
-                    "filter": "1h"
-                }
-            }
-        },
-        "support": {
-            "type": "analysis",
-            "inputs": ["icarus_time", "'live_trades", "analysis"],
-            "filters": {
-                "time": {
-                    "arg": "icarus_time",
-                    "filter": "1h"
-                },
-                "trade": {
-                    "arg": "live_trades",
-                    "filter": {
-                        "trade.strategy": "SupportResistanceVanilla",
-                        "trade.command": "EXEC_ENTER"
-                    }
-                }
-            },
-            "kwargs": {
-                "analyzer": "support_dbscan",
-                "timeframe": "1h"
-            }
-        }
     }
 }

@@ -79,7 +79,7 @@
             "program": "icarus/visualize_dashboard.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/6/config.json"
+                "${workspaceFolder}/configs/IC/150/config_backtest.json"
             ]
         },
         {
@@ -99,7 +99,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/136/config_backtest.json"
+                "${workspaceFolder}/configs/IC/150/config_backtest.json"
             ]
         },
         {
