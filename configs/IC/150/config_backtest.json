@@ -52,7 +52,8 @@
             "time_scales": ["1h"],
             "max_live_trade": 1,
             "kwargs":{
-                "analyzer": "sr_meanshift"
+                "support": "support_meanshift",
+                "resistance": "resistance_meanshift"
             }
         }
     },
@@ -66,7 +67,8 @@
             "bearish_fractal_3": {}
         },
         {
-            "sr_meanshift": {"support":{"source":"bullish_fractal_3", "bandwidth_coeff":0.005}, "resistance":{"source":"bearish_fractal_3", "bandwidth_coeff":0.005}}
+            "support_meanshift": {"source":"bullish_fractal_3", "bandwidth_coeff":0.005},
+            "resistance_meanshift": {"source":"bearish_fractal_3", "bandwidth_coeff":0.005}
         }
     ],
     "observers": [
@@ -74,45 +76,38 @@
             "type": "quote_asset",
             "observer": "quote_asset",
             "inputs": ["ikarus_time_sec", "config", "df_balance", "live_trade_list", "new_trade_list"],
-            "filters": {
-                "time": {
-                    "arg": "icarus_time",
-                    "filter": "1h"
-                }
-            }
+            "filters": []
         },
         {
             "type": "balance",
             "observer": "balance",
             "inputs": ["ikarus_time_sec", "df_balance"],
-            "filters": {}
+            "filters": []
         },
         {
             "type": "strategy_capitals",
             "observer": "strategy_capitals",
             "inputs": ["ikarus_time_sec", "strategy_res_allocator"],
-            "filters": {}
+            "filters": []
         },
         {
-            "type": "support",
+            "type": "support_meanshift",
             "observer": "analyzer",
-            "inputs": ["ikarus_time_sec", "live_trade_list", "analysis_dict"],
-            "filters": {
-                "time": {
-                    "arg": "icarus_time",
-                    "filter": "1h"
-                },
-                "trade": {
-                    "arg": "live_trades",
-                    "filter": {
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "new_trade_list",
+                    "arg": {
                         "trade.strategy": "SupportResistanceVanilla",
-                        "trade.command": "EXEC_ENTER"
+                        "trade.status.value": "open_enter"
                     }
                 }
-            },
+            ],
             "kwargs": {
-                "analyzer": "support_dbscan",
-                "timeframe": "1h"
+                "symbol": "BTCUSDT",
+                "timeframe": "1h",
+                "analyzer": "support_meanshift"
             }
         }
     ],
@@ -150,8 +145,7 @@
                             "$match":{
                                 "strategy": "<strategy>", 
                                 "pair": "<pair>",
-                                "decision_time": { "$gte": "<start_time>"},
-                                "result.exit.time": { "$lte": "<end_time>" }
+                                "decision_time": { "$gte": "<start_time>"}
                                 }
                             },
                         {

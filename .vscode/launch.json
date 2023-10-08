@@ -42,7 +42,7 @@
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/138/config.json"
+                "${workspaceFolder}/configs/IC/150/config_backtest.json"
             ]
         },
         {

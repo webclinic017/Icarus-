@@ -2,7 +2,23 @@ from objects import Observation, Trade
 from typing import Dict, List
 from utils import eval_total_capital_in_lto
 import pandas as pd
+import logging
+from dataclasses import asdict, is_dataclass
 
+logger = logging.getLogger('app')
+
+def _serialize_analysis(analysis):
+    if type(analysis) == list:
+
+        if len(analysis) == 0:
+            return analysis
+        
+        if is_dataclass(analysis[0]):
+            return [asdict(obj) for obj in analysis]
+    
+    elif type(analysis) == dict:
+        pass
+    return analysis
 
 def quote_asset(obs_config: Dict, ikarus_time_sec: int, config: Dict, df_balance: pd.DataFrame, live_trade_list: List[Trade], new_trade_list: List[Trade]) -> Observation:
     observation_obj = {}
@@ -12,9 +28,11 @@ def quote_asset(obs_config: Dict, ikarus_time_sec: int, config: Dict, df_balance
     return Observation(obs_config['type'], ikarus_time_sec, observation_obj)
 
 
-def analyzer(obs_config: Dict, ikarus_time_sec: int, live_trade_list: List[Trade], analysis: List[Trade]) -> Observation:
-    observation_obj = {}
-    return Observation(obs_config['type'], ikarus_time_sec, observation_obj)
+def analyzer(obs_config: Dict, ikarus_time_sec: int, analysis: List[Trade]) -> Observation:
+    kwargs = obs_config['kwargs']
+    data = analysis[kwargs['symbol']][kwargs['timeframe']][kwargs['analyzer']]
+    x = _serialize_analysis(data)
+    return Observation(obs_config['type'], ikarus_time_sec, _serialize_analysis(data))
 
 
 def balance(obs_config: Dict, ikarus_time_sec: int, df_balance: pd.DataFrame) -> Observation:

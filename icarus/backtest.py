@@ -13,6 +13,7 @@ from itertools import chain
 import itertools
 import resource_allocator
 import observers
+from observers import filters
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -109,6 +110,25 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
             logger.warning('Observer does not exit: {}'.format(obs_function_name))
             continue
 
+        # Check filters
+        filter_passed = True
+        if 'filters' in obs_config:
+            for filter in obs_config['filters']:
+                filter_function = filter['type'] + '_filter'
+                if not hasattr(filters, filter_function):
+                    logger.error('Observer filter does not exit: {}'.format(filter_function))
+                    continue
+
+                filter_passed = getattr(filters, filter_function)(locals()[filter['object']], filter['arg'])
+                if not filter_passed:
+                    logger.debug('Observer filter not passed: "{}" for observer "{}"'.format(filter_function, obs_config['type']))
+                    break
+    
+        if not filter_passed:
+            logger.debug('Skipping observer: "{}"'.format(obs_config['type']))
+            continue
+
+        # Evaluate Observation
         observer = getattr(observers, obs_function_name)
         args = [obs_config]
         for input in obs_config['inputs']:
@@ -127,10 +147,9 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
 
         observation = observer(*args)
         observations.append(observation.to_dict()) 
-       
-    await mongocli.do_insert_many("observer", observations)
-
-    pass
+    
+    if len(observations) != 0:
+        await mongocli.do_insert_many("observer", observations)
 
 
 async def main():
