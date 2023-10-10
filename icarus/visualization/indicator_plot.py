@@ -21,6 +21,16 @@ PALE_MAGENTA='#FFCCFF'
 YELLOW='#FFFB00'
 PALE_YELLOW='#FFFBCC'
 
+color_map_support_basic = [
+    (BLUE, PALE_BLUE),
+    (BLUE, PALE_BLUE)
+]
+
+color_map_resistance_basic = [
+    (MAGENTA, PALE_MAGENTA),
+    (MAGENTA, PALE_MAGENTA)
+]
+
 color_map_support = [
     (BLUE, PALE_BLUE),
     (GREEN, PALE_GREEN)
@@ -38,7 +48,8 @@ color_map_cluster = [
 
 
 def support_resistance_handler(x, y: List[SRCluster], axes, **kwargs):
-    sr_type = kwargs.get('type','')
+    sr_details = kwargs.get('details', True)
+    sr_type = kwargs.get('type', '')
     sr_cmap = kwargs.get('cmap')
 
     hover_label = fplt.add_legend('aaa', ax=axes['ax'])
@@ -63,21 +74,22 @@ def support_resistance_handler(x, y: List[SRCluster], axes, **kwargs):
             colormap_idx += 1
             colormap_idx = colormap_idx % len(color_map_support)
 
-        text_bot = "HorDist:{}, VerDist:{}, Dist:{}".format(
-            sr_cluster.horizontal_distribution_score, 
-            sr_cluster.vertical_distribution_score, 
-            sr_cluster.distribution_score)
+        if sr_details:
+            text_bot = "HorDist:{}, VerDist:{}, Dist:{}".format(
+                sr_cluster.horizontal_distribution_score, 
+                sr_cluster.vertical_distribution_score, 
+                sr_cluster.distribution_score)
 
-        text_top_left = "#MinMember: {}, #NumOfRetest:{}".format(sr_cluster.min_cluster_members,sr_cluster.number_of_retest)
-        text_top_right = "#Frame:{}".format(sr_cluster.chunk_end_index-sr_cluster.chunk_start_index)
-        fplt.add_text((x[sr_cluster.chunk_end_index], sr_cluster.price_mean), text_top_right, color='#000000',anchor=(1,1), ax=axes['ax'])
-        fplt.add_text((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), text_bot, color='#000000',anchor=(0,0), ax=axes['ax'])
-        fplt.add_text((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), text_top_left, color='#000000',anchor=(0,1), ax=axes['ax'])
+            text_top_left = "#MinMember: {}, #NumOfRetest:{}".format(sr_cluster.min_cluster_members,sr_cluster.number_of_retest)
+            text_top_right = "#Frame:{}".format(sr_cluster.chunk_end_index-sr_cluster.chunk_start_index)
+            fplt.add_text((x[sr_cluster.chunk_end_index], sr_cluster.price_mean), text_top_right, color='#000000',anchor=(1,1), ax=axes['ax'])
+            fplt.add_text((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), text_bot, color='#000000',anchor=(0,0), ax=axes['ax'])
+            fplt.add_text((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), text_top_left, color='#000000',anchor=(0,1), ax=axes['ax'])
+            fplt.add_rect((x[sr_cluster.validation_index], sr_cluster.price_max), 
+                (x[sr_cluster.chunk_end_index], sr_cluster.price_min), ax=axes['ax'], color=sr_cmap[colormap_idx][1])
+
         fplt.add_line((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), 
             (x[sr_cluster.chunk_end_index], sr_cluster.price_mean), style='.', color=sr_cmap[colormap_idx][0], width=2, interactive=False)
-        fplt.add_rect((x[sr_cluster.validation_index], sr_cluster.price_max), 
-            (x[sr_cluster.chunk_end_index], sr_cluster.price_min), ax=axes['ax'], color=sr_cmap[colormap_idx][1])
-
 
 def line_handler(x, y, axis):
     # TODO: Improve the plot configuration, such as legend texts and the colors

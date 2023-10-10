@@ -156,7 +156,7 @@ class SupportResistance():
                 srcluster = SRCluster(
                     sr_config.type,
                     centroids,
-                    meta_chunk[0] + indices[min_cluster_members-1],
+                    int(meta_chunk[0] + indices[min_cluster_members-1]),
                     min_cluster_members,
                     await SupportResistance.eval_sup_res_cluster_horizontal_score(indices, len(cluster_predictions)),
                     await SupportResistance.eval_sup_res_cluster_vertical_score(centroids, chart_price_range),

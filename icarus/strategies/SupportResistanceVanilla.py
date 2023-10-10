@@ -9,7 +9,8 @@ class SupportResistanceVanilla(StrategyBase):
 
     def __init__(self, _tag, _config, _symbol_info):
         super().__init__(_tag, _config, _symbol_info)
-        self.analyzer = self.config['kwargs'].get('analyzer')
+        self.support_analyzer = self.config['kwargs'].get('support')
+        self.resistance_analyzer = self.config['kwargs'].get('resistance')
         return
 
 
@@ -21,7 +22,7 @@ class SupportResistanceVanilla(StrategyBase):
 
 
         analysis = analysis_dict[ao_pair][self.min_period]
-        supports = analysis[self.analyzer]['support']
+        supports = analysis[self.support_analyzer]
         #resistances = analysis[self.analyzer]['resistance']
         #sup_res = supports + resistances
         #sup_res.sort()
@@ -68,7 +69,7 @@ class SupportResistanceVanilla(StrategyBase):
 
         analysis = analysis_dict[trade.pair][self.min_period]
         #supports = analysis[self.analyzer]['support']
-        resistances = analysis[self.analyzer]['resistance']
+        resistances = analysis[self.resistance_analyzer]
         resistances.reverse()
         #sup_res = supports + resistances
         #sup_res.sort()
