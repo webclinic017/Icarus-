@@ -107,7 +107,8 @@
             "kwargs": {
                 "symbol": "BTCUSDT",
                 "timeframe": "1h",
-                "analyzer": "support_meanshift"
+                "analyzer": "support_meanshift",
+                "dtype": "SRCluster"
             }
         }
     ],

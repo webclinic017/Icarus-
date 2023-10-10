@@ -17,10 +17,12 @@ from functools import partial
 
 from utils import get_pair_min_period_mapping
 import mongo_utils
-from objects import ECause, EState
+from objects import ECause, Observation
 from copy import deepcopy
 from visualization import trade_plot, observer_plot
+import visualization
 import pandas as pd
+from analyzers.support_resistance import SRCluster
 
 def change_asset(*args, **kwargs):
     '''Resets and recalculates everything, and plots for the first time.'''
@@ -266,9 +268,16 @@ async def get_observer_data(mongocli, config):
     for obs_config in config.get('observers', []):
         if not hasattr(observer_plot, obs_config['type']):
             continue
-        df_observers = pd.DataFrame(list(await mongocli.do_find('observer',{'type':obs_config['type']})))
+
+        observers = list(await mongocli.do_find('observer',{'type':obs_config['type']}))
+        df_observers = pd.DataFrame(observers)
         
         if df_observers.empty:
+            continue
+
+        observer_dtype = observers[0].get('dtype','')
+        if observer_dtype != '':
+            dashboard_data_pack['obs_'+obs_config['type']] = observers
             continue
         
         df_obs_data = pd.DataFrame(df_observers['data'].to_list())

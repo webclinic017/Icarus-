@@ -4,6 +4,7 @@ from utils import eval_total_capital_in_lto
 import pandas as pd
 import logging
 from dataclasses import asdict, is_dataclass
+from analyzers.support_resistance import SRCluster
 
 logger = logging.getLogger('app')
 
@@ -32,7 +33,7 @@ def analyzer(obs_config: Dict, ikarus_time_sec: int, analysis: List[Trade]) -> O
     kwargs = obs_config['kwargs']
     data = analysis[kwargs['symbol']][kwargs['timeframe']][kwargs['analyzer']]
     x = _serialize_analysis(data)
-    return Observation(obs_config['type'], ikarus_time_sec, _serialize_analysis(data))
+    return Observation(obs_config['type'], ikarus_time_sec, _serialize_analysis(data), dtype=kwargs['dtype'])
 
 
 def balance(obs_config: Dict, ikarus_time_sec: int, df_balance: pd.DataFrame) -> Observation:

@@ -90,6 +90,7 @@ class Observation:
     type: str
     ts: int
     data: None
+    dtype: str = ''
 
     def to_dict(self):
         return asdict(self)

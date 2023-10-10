@@ -1,4 +1,8 @@
 import finplot as fplt
+from analyzers.support_resistance import SRCluster
+from typing import List
+from utils import minute_to_time_scale
+from visualization import indicator_plot
 
 def quote_asset2(dashboard_data, ax):
     fplt.plot(dashboard_data['quote_asset']['total'], width=3, ax=ax, legend='Total')
@@ -47,3 +51,23 @@ def text(x, y, axes):
     for index, row in y.iterrows():
         fplt.add_text((index, 0.5), str(row[0]), color='#000000',anchor=(0,0), ax=axes['ax_bot'])
     pass
+
+def support_meanshift(x, y, axes):
+    all_cluster = []
+    for observation in y:
+        raw_clusters = [SRCluster(**cluster_dict) for cluster_dict in observation['data']]
+        candle_time_diff_sec = int((x[1]-x[0])/1000)
+        observation_time = observation['ts']
+
+        # NOTE: Assuming the same timeframe !
+        end_candlestick_idx = (observation_time - x[1]/1000)/candle_time_diff_sec
+        idx_offset = int(end_candlestick_idx - raw_clusters[0].chunk_end_index)
+
+        for srcluster in raw_clusters:
+            srcluster.chunk_end_index += idx_offset
+            srcluster.validation_index = srcluster.chunk_end_index
+            srcluster.chunk_start_index += srcluster.chunk_end_index - 5
+        
+        all_cluster += raw_clusters
+    indicator_plot.disable_ax_bot(axes)
+    indicator_plot.support_resistance_handler(x, all_cluster, axes, **{'type':'Support', 'cmap':indicator_plot.color_map_support_basic, 'details':False})
