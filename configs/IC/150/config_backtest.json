@@ -97,10 +97,10 @@
             "filters": [
                 {
                     "type": "trade",
-                    "object": "new_trade_list",
+                    "object": "new_trade_list_obs",
                     "arg": {
                         "trade.strategy": "SupportResistanceVanilla",
-                        "trade.status.value": "open_enter"
+                        "trade.command.value": "execute_enter"
                     }
                 }
             ],
@@ -108,6 +108,27 @@
                 "symbol": "BTCUSDT",
                 "timeframe": "1h",
                 "analyzer": "support_meanshift",
+                "dtype": "SRCluster"
+            }
+        },
+        {
+            "type": "resistance_meanshift",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "live_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": "SupportResistanceVanilla",
+                        "trade.command.value": "execute_exit"
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "BTCUSDT",
+                "timeframe": "1h",
+                "analyzer": "resistance_meanshift",
                 "dtype": "SRCluster"
             }
         }
