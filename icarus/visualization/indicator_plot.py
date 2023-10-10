@@ -27,8 +27,8 @@ color_map_support_basic = [
 ]
 
 color_map_resistance_basic = [
-    (RED, PALE_RED),
-    (RED, PALE_RED)
+    (MAGENTA, PALE_MAGENTA),
+    (MAGENTA, PALE_MAGENTA)
 ]
 
 color_map_support = [

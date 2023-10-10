@@ -277,6 +277,7 @@ async def get_observer_data(mongocli, config):
 
         observer_dtype = observers[0].get('dtype','')
         if observer_dtype != '':
+            # TODO: Process the data packs acording to their dtype
             dashboard_data_pack['obs_'+obs_config['type']] = observers
             continue
         

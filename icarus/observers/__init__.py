@@ -32,7 +32,6 @@ def quote_asset(obs_config: Dict, ikarus_time_sec: int, config: Dict, df_balance
 def analyzer(obs_config: Dict, ikarus_time_sec: int, analysis: List[Trade]) -> Observation:
     kwargs = obs_config['kwargs']
     data = analysis[kwargs['symbol']][kwargs['timeframe']][kwargs['analyzer']]
-    x = _serialize_analysis(data)
     return Observation(obs_config['type'], ikarus_time_sec, _serialize_analysis(data), dtype=kwargs['dtype'])
 
 

@@ -91,6 +91,12 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
     strategy_decisions = list(await asyncio.gather(*strategy_tasks))
     new_trade_list = list(chain(*strategy_decisions)) # TODO: NEXT: Strategy output is only nto but it edits the ltos as well, so return ltos too
 
+
+    # Object just for observation
+    # TODO: Find a more generic solution to observe trades
+    new_trade_list_obs = copy.deepcopy(new_trade_list)
+    live_trade_list_obs = copy.deepcopy(live_trade_list)
+
     if len(new_trade_list) or len(live_trade_list):
         # NOTE: If there is any error during execution, then it the trade can be removed/fixed and the error can be handled inside the execute_decisison
         bwrapper.execute_decision(new_trade_list, df_balance, live_trade_list)

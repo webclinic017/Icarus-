@@ -3,6 +3,7 @@ from analyzers.support_resistance import SRCluster
 from typing import List
 from utils import minute_to_time_scale
 from visualization import indicator_plot
+from functools import wraps
 
 def quote_asset2(dashboard_data, ax):
     fplt.plot(dashboard_data['quote_asset']['total'], width=3, ax=ax, legend='Total')
@@ -52,7 +53,7 @@ def text(x, y, axes):
         fplt.add_text((index, 0.5), str(row[0]), color='#000000',anchor=(0,0), ax=axes['ax_bot'])
     pass
 
-def support_meanshift(x, y, axes):
+def adapt_cluster_indexes(x, y) -> List[SRCluster]:
     all_cluster = []
     for observation in y:
         raw_clusters = [SRCluster(**cluster_dict) for cluster_dict in observation['data']]
@@ -69,5 +70,40 @@ def support_meanshift(x, y, axes):
             srcluster.chunk_start_index += srcluster.chunk_end_index - 5
         
         all_cluster += raw_clusters
-    indicator_plot.disable_ax_bot(axes)
-    indicator_plot.support_resistance_handler(x, all_cluster, axes, **{'type':'Support', 'cmap':indicator_plot.color_map_support_basic, 'details':False})
+    return all_cluster
+
+
+def adapt_clusters_decorator(type, color_map):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(x, y, axes):
+            clusters = adapt_cluster_indexes(x, y)
+            indicator_plot.disable_ax_bot(axes)
+            indicator_plot.support_resistance_handler(x, clusters, axes, **{'type': type, 'cmap': color_map, 'details': False})
+            return func(x, y, axes)
+        return wrapper
+    return decorator
+
+@adapt_clusters_decorator('Support', indicator_plot.color_map_support_basic)
+def support_meanshift(x, y, axes): return
+
+@adapt_clusters_decorator('Resistance', indicator_plot.color_map_resistance_basic)
+def resistance_meanshift(x, y, axes): return
+
+@adapt_clusters_decorator('Support', indicator_plot.color_map_support_basic)
+def support_dbscan(x, y, axes): return
+
+@adapt_clusters_decorator('Resistance', indicator_plot.color_map_resistance_basic)
+def resistance_dbscan(x, y, axes): return
+
+@adapt_clusters_decorator('Support', indicator_plot.color_map_support_basic)
+def support_birch(x, y, axes): return
+
+@adapt_clusters_decorator('Resistance', indicator_plot.color_map_resistance_basic)
+def resistance_birch(x, y, axes): return
+
+@adapt_clusters_decorator('Support', indicator_plot.color_map_support_basic)
+def support_optics(x, y, axes): return
+
+@adapt_clusters_decorator('Resistance', indicator_plot.color_map_resistance_basic)
+def resistance_optics(x, y, axes): return
