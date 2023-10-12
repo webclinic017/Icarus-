@@ -502,7 +502,7 @@ class MarkdownWriter():
             
         df = pd.DataFrame(strategy_stat)
         df.set_index('strategy',inplace=True)
-        for (columnName, columnData) in df.iteritems():
+        for (columnName, columnData) in df.items():
             df_sub_stat = pd.DataFrame(columnData.to_list(), index=df.index)
             self.md_file.new_header(3, columnName)
             self.md_file.write('\n' + df_sub_stat.to_markdown() + '\n\n')

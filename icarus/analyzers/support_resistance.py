@@ -3,12 +3,12 @@ import math
 from sklearn.cluster import KMeans, DBSCAN, MeanShift, OPTICS, Birch
 import numpy as np
 from utils import minute_to_time_scale
-import asyncio
-import itertools
+from statistics import mean
 
 @dataclass
 class SRConfig():
     kwargs: dict                        # Mandatory
+    type: str
     source: str = ''
     min_members: int = None
     frame_length: int = None
@@ -44,6 +44,7 @@ class SRConfig():
 
 @dataclass
 class SRCluster():
+    type: str
     centroids: list = field(default_factory=list)
     validation_index: int = 0
     # NOTE: relative_validation_index parameter can also be added by thinking that it may give a clue about a normal
@@ -63,42 +64,26 @@ class SRCluster():
 
     def __post_init__(self):
         self.distribution_score = round(self.horizontal_distribution_score/self.vertical_distribution_score,2) 
-        self.number_of_members =len(self.centroids)
+        self.number_of_members = len(self.centroids)
         self.number_of_retest = self.number_of_members-self.min_cluster_members
         self.distribution_efficiency = round(self.distribution_score * self.number_of_members,2)
+        self.price_mean = mean(self.centroids)
+        self.price_min = min(self.centroids)
+        self.price_max = max(self.centroids)
 
-@dataclass
-class FibonacciSRCluster(SRCluster):
-    level: float = .0 
-    price_level: float = .0
-    band: float = .0
-
-
-class FibonacciClustering():
-    coeffs = np.array([0, 0.236, 0.382, 0.5, 0.618, 1])
-    def __init__(self, max_price, min_price, radius) -> None:
-        price_diff = max_price - min_price
-        self.price_levels = min_price + (price_diff * FibonacciClustering.coeffs)
-        self.radius = radius
-        pass
-
-    def reinit(self, max_price, min_price) -> None:
-        price_diff = max_price - min_price
-        self.levels = min_price + (price_diff * FibonacciClustering.coeffs)
-
-    def fit_predict(self, chunk):
-
-        tokenized_chunks = []
-        for idx, price_level in enumerate(self.price_levels):
-            cluster_upper_limit = price_level * (1+self.radius)
-            cluster_lower_limit = price_level * (1-self.radius)
-            filter = np.logical_and(cluster_lower_limit < chunk, chunk < cluster_upper_limit)
-            token = filter.astype(int)
-            token *= (idx+1)
-            tokenized_chunks.append(token)
-
-        return np.array(tokenized_chunks).sum(axis=0) - 1
-
+    def __lt__(self, other):
+        return self.price_mean < other.price_mean
+    
+    def relative_position(self, compare_price: float) -> int:
+        if compare_price > self.price_max:
+            # Cluster is below the price
+            return -1
+        elif compare_price < self.price_min:
+            # Cluster is above the price
+            return 1
+        else:
+            # Price is on the cluster
+            return 0
 
 class SupportResistance():
 
@@ -125,7 +110,7 @@ class SupportResistance():
         return max(np.round(cluster_price_range_perc/len(centroids), 6), 0.000001)
 
 
-    async def eval_sup_res_clusters(algorithm, sr_config, candles, meta_chunks, candlesticks):
+    async def eval_sup_res_clusters(algorithm, sr_config: SRConfig, candles, meta_chunks, candlesticks):
         sr_levels = []
 
         for meta_chunk in meta_chunks:
@@ -169,8 +154,9 @@ class SupportResistance():
                     continue
 
                 srcluster = SRCluster(
+                    sr_config.type,
                     centroids,
-                    meta_chunk[0] + indices[min_cluster_members-1],
+                    int(meta_chunk[0] + indices[min_cluster_members-1]),
                     min_cluster_members,
                     await SupportResistance.eval_sup_res_cluster_horizontal_score(indices, len(cluster_predictions)),
                     await SupportResistance.eval_sup_res_cluster_vertical_score(centroids, chart_price_range),
@@ -178,7 +164,8 @@ class SupportResistance():
                     meta_chunk[1]
                 )
                 sr_levels.append(srcluster)
-
+        
+        sr_levels.sort()
         return sr_levels
 
     async def create_meta_chunks(data_points, frame_length, step_length):
@@ -205,7 +192,7 @@ class SupportResistance():
 
     async def _support_birch(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'support')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
         bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -220,7 +207,7 @@ class SupportResistance():
 
     async def _resistance_birch(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'resistance')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
         bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -236,7 +223,7 @@ class SupportResistance():
 
     async def _support_optics(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'support')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)  
 
         bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -251,7 +238,7 @@ class SupportResistance():
 
     async def _resistance_optics(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'resistance')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
         bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -265,7 +252,7 @@ class SupportResistance():
 
     async def _support_dbscan(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'support')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
         bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -280,7 +267,7 @@ class SupportResistance():
 
     async def _resistance_dbscan(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'resistance')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)    
 
         bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -295,7 +282,7 @@ class SupportResistance():
 
     async def _support_meanshift(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'support')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)   
 
         bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -314,7 +301,7 @@ class SupportResistance():
 
     async def _resistance_meanshift(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'resistance')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)   
 
         bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -328,7 +315,7 @@ class SupportResistance():
 
     async def _support_kmeans(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'support')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
         bullish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -346,7 +333,7 @@ class SupportResistance():
 
     async def _resistance_kmeans(self, analysis, **kwargs):
         candlesticks = analysis['candlesticks']
-        sr_config = SRConfig(kwargs)
+        sr_config = SRConfig(kwargs, 'resistance')
         sr_config.parse_chunks_params(int((candlesticks.index[1]-candlesticks.index[0])/60000), self.time_scales_config)
 
         bearish_frac = np.nan_to_num(analysis[sr_config.source]).reshape(-1,1)
@@ -364,30 +351,35 @@ class SupportResistance():
 
     # _sr_<algorithm>
     async def _sr_dbscan(self, analysis, **kwargs):
-        cors = [self._support_dbscan(analysis, **kwargs.get('support',{})),
-            self._resistance_dbscan(analysis, **kwargs.get('resistance',{}))]
-        return list(await asyncio.gather(*cors))
+        return {
+            'support': await self._support_dbscan(analysis, **kwargs.get('support',{})),
+            'resistance': await self._resistance_dbscan(analysis, **kwargs.get('resistance',{}))
+        }
 
 
     async def _sr_kmeans(self, analysis, **kwargs):
-        cors = [self._support_kmeans(analysis, **kwargs.get('support',{})),
-            self._resistance_kmeans(analysis, **kwargs.get('resistance',{}))]
-        return list(await asyncio.gather(*cors))
+        return {
+            'support': await self._support_kmeans(analysis, **kwargs.get('support',{})),
+            'resistance': await self._resistance_kmeans(analysis, **kwargs.get('resistance',{}))
+        }
 
 
     async def _sr_birch(self, analysis, **kwargs):
-        cors = [self._support_birch(analysis, **kwargs.get('support',{})),
-            self._resistance_birch(analysis, **kwargs.get('resistance',{}))]
-        return list(await asyncio.gather(*cors))
+        return {
+            'support': await self._support_birch(analysis, **kwargs.get('support',{})),
+            'resistance': await self._resistance_birch(analysis, **kwargs.get('resistance',{}))
+        }
 
 
     async def _sr_optics(self, analysis, **kwargs):
-        cors = [self._support_optics(analysis, **kwargs.get('support',{})),
-            self._resistance_optics(analysis, **kwargs.get('resistance',{}))]
-        return list(await asyncio.gather(*cors))
+        return {
+            'support': await self._support_optics(analysis, **kwargs.get('support',{})),
+            'resistance': await self._resistance_optics(analysis, **kwargs.get('resistance',{}))
+        }
 
 
     async def _sr_meanshift(self, analysis, **kwargs):
-        cors = [self._support_meanshift(analysis, **kwargs.get('support',{})),
-            self._resistance_meanshift(analysis, **kwargs.get('resistance',{}))]
-        return list(await asyncio.gather(*cors))
+        return {
+            'support': await self._support_meanshift(analysis, **kwargs.get('support',{})),
+            'resistance': await self._resistance_meanshift(analysis, **kwargs.get('resistance',{}))
+        }

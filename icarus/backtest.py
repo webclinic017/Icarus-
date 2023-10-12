@@ -12,8 +12,8 @@ import sys
 from itertools import chain
 import itertools
 import resource_allocator
-import collections
-from analyzers.market_classification import Direction
+import observers
+from observers import filters
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -39,7 +39,7 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
     logger.info(f'Ikarus Time in sec: [{ikarus_time_sec}]') # UTC
 
     # TODO: give index paramter to retrieve a single object instead of a list
-    info = await mongocli.get_n_docs('observer', {'type':EObserverType.BALANCE}) # Default is the last doc
+    info = await mongocli.get_n_docs('observer', {'type':'balance'}) # Default is the last doc
 
     
     # Each strategy has a min_period. Thus I can iterate over it to see the matches between the current time and their period
@@ -91,6 +91,12 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
     strategy_decisions = list(await asyncio.gather(*strategy_tasks))
     new_trade_list = list(chain(*strategy_decisions)) # TODO: NEXT: Strategy output is only nto but it edits the ltos as well, so return ltos too
 
+
+    # Object just for observation
+    # TODO: Find a more generic solution to observe trades
+    new_trade_list_obs = copy.deepcopy(new_trade_list)
+    live_trade_list_obs = copy.deepcopy(live_trade_list)
+
     if len(new_trade_list) or len(live_trade_list):
         # NOTE: If there is any error during execution, then it the trade can be removed/fixed and the error can be handled inside the execute_decisison
         bwrapper.execute_decision(new_trade_list, df_balance, live_trade_list)
@@ -103,28 +109,53 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
 
     await mongo_utils.update_live_trades(mongocli, live_trade_list)
 
-    obs_strategy_capitals = Observer('strategy_capitals', ts=ikarus_time_sec, data=strategy_res_allocator.strategy_capitals).to_dict()
+    observations = []
+    for obs_config in config['observers']:
+        obs_function_name = obs_config['observer']
+        if not hasattr(observers, obs_function_name):
+            logger.warning('Observer does not exit: {}'.format(obs_function_name))
+            continue
 
-    observer_item = list(df_balance.reset_index(level=0).T.to_dict().values())
-    obs_balance = Observer(EObserverType.BALANCE, ts=ikarus_time_sec, data=observer_item).to_dict()
+        # Check filters
+        filter_passed = True
+        if 'filters' in obs_config:
+            for filter in obs_config['filters']:
+                filter_function = filter['type'] + '_filter'
+                if not hasattr(filters, filter_function):
+                    logger.error('Observer filter does not exit: {}'.format(filter_function))
+                    continue
 
-    observation_obj = {}
-    observation_obj['free'] = df_balance.loc[config['broker']['quote_currency'],'free']
-    observation_obj['in_trade'] = eval_total_capital_in_lto(live_trade_list+new_trade_list)
-    observation_obj['total'] = observation_obj['free'] + observation_obj['in_trade']
-    obs_quote_asset = Observer(EObserverType.QUOTE_ASSET, ts=ikarus_time_sec, data=observation_obj).to_dict()
+                filter_passed = getattr(filters, filter_function)(locals()[filter['object']], filter['arg'])
+                if not filter_passed:
+                    logger.debug('Observer filter not passed: "{}" for observer "{}"'.format(filter_function, obs_config['type']))
+                    break
+    
+        if not filter_passed:
+            logger.debug('Skipping observer: "{}"'.format(obs_config['type']))
+            continue
 
-    # TODO: NEXT: Observer configuration needs to be implemented just like analyzers
-    observer_list = [
-        obs_quote_asset,
-        #obs_quote_asset_leak,
-        obs_balance,
-        obs_strategy_capitals,
-    ]
-    #observer_objs = list(await asyncio.gather(*observer_list))
-    await mongocli.do_insert_many("observer", observer_list)
+        # Evaluate Observation
+        observer = getattr(observers, obs_function_name)
+        args = [obs_config]
+        for input in obs_config['inputs']:
+            if input in locals():
+                args.append(locals()[input])
+            elif input in globals():
+                args.append(globals()[input])
+            else:
+                logger.error('Observer input is not found: {}'.format(input))
+                args = []
+                break
 
-    pass
+        if args ==  []:
+            logger.warning('Skipping observer calculation because of missing args: {}'.format(obs_function_name))
+            continue
+
+        observation = observer(*args)
+        observations.append(observation.to_dict()) 
+    
+    if len(observations) != 0:
+        await mongocli.do_insert_many("observer", observations)
 
 
 async def main():
@@ -154,7 +185,7 @@ async def main():
     BacktestWrapper.df_tickers = await bwrapper.get_all_tickers()
 
     # Initiate the cash in the [observer]
-    initial_observer = Observer(EObserverType.BALANCE, None, config['balances']).to_dict()
+    initial_observer = Observation('balance', None, config['balances']).to_dict()
     await mongocli.do_insert_one("observer", initial_observer)
 
     # Initate a ResourceAllocator for strategies

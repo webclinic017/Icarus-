@@ -17,10 +17,12 @@ from functools import partial
 
 from utils import get_pair_min_period_mapping
 import mongo_utils
-from objects import ECause, EState
+from objects import ECause, Observation
 from copy import deepcopy
 from visualization import trade_plot, observer_plot
+import visualization
 import pandas as pd
+from analyzers.support_resistance import SRCluster
 
 def change_asset(*args, **kwargs):
     '''Resets and recalculates everything, and plots for the first time.'''
@@ -263,18 +265,26 @@ async def get_observer_data(mongocli, config):
     dashboard_data_pack = {}
     
     # Get observer objects
-    for obs_type, obs_list in config.get('visualization', {}).get('observers', {}).items():
-        if not hasattr(observer_plot, obs_type):
+    for obs_config in config.get('observers', []):
+        if not hasattr(observer_plot, obs_config['type']):
             continue
-        df_observers = pd.DataFrame(list(await mongocli.do_find('observer',{'type':obs_type})))
+
+        observers = list(await mongocli.do_find('observer',{'type':obs_config['type']}))
+        df_observers = pd.DataFrame(observers)
         
         if df_observers.empty:
+            continue
+
+        observer_dtype = observers[0].get('dtype','')
+        if observer_dtype != '':
+            # TODO: Process the data packs acording to their dtype
+            dashboard_data_pack['obs_'+obs_config['type']] = observers
             continue
         
         df_obs_data = pd.DataFrame(df_observers['data'].to_list())
         df_obs_data.set_index(df_observers['ts']*1000, inplace=True)
-        df_obs_data = df_obs_data[obs_list]
-        dashboard_data_pack['obs_'+obs_type] = df_obs_data
+        #df_obs_data = df_obs_data[obs_list]
+        dashboard_data_pack['obs_'+obs_config['type']] = df_obs_data
 
     return dashboard_data_pack
 

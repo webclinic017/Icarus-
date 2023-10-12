@@ -42,7 +42,7 @@
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/138/config.json"
+                "${workspaceFolder}/configs/IC/150/config_backtest.json"
             ]
         },
         {
@@ -59,7 +59,7 @@
             "program": "icarus/visualize_analyzers.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/138/config.json"
+                "${workspaceFolder}/configs/IC/6/config.json"
             ]
         },
         {
@@ -79,7 +79,7 @@
             "program": "icarus/visualize_dashboard.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/138/config_backtest.json"
+                "${workspaceFolder}/configs/IC/150/config_backtest.json"
             ]
         },
         {
@@ -99,7 +99,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/138/config_backtest.json"
+                "${workspaceFolder}/configs/IC/150/config_backtest.json"
             ]
         },
         {

@@ -112,7 +112,7 @@ def write_strategy_names(trade_list: List[Trade]) -> None:
 
 def write_trade_ids(trade_list: List[Trade]) -> None:
     for trade in trade_list:
-        fplt.add_text((trade.decision_time, trade.exit.price), "{}".format(trade._id.rsplit('-')[-1]), color='#000000')
+        fplt.add_text((trade.decision_time, trade.enter.price), "{}".format(trade._id.rsplit('-')[-1]), color='#000000', anchor=(0,1))
 
 
 def plot_exit_orders(trade_list: List[Trade]) -> None:
