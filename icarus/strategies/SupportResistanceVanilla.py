@@ -116,8 +116,35 @@ class SupportResistanceVanilla(StrategyBase):
 
     async def on_exit_expire(self, trade: Trade, ikarus_time: int, analysis_dict: Dict, strategy_capital):
         trade.stash_exit()
-        await self.on_waiting_exit(trade, ikarus_time, analysis_dict, strategy_capital)
+
+        analysis = analysis_dict[trade.pair][self.min_period]
+        resistances = analysis[self.resistance_analyzer]
+        resistances.reverse()
+
+        resistance_relative_pos = np.array([round(100 * (sr.price_mean - analysis['close'][-1]) / analysis['close'][-1], 2) for sr in resistances])
+
+        # There is resistance above
+        if not any(resistance_relative_pos > 0):
+            return True
+
+        # Do not look for profitable exit anymore
+        exit_price = resistances[0].price_mean
+   
+        exit_limit_order = Limit(
+            exit_price,
+            quantity=trade.result.enter.quantity,
+            expire=StrategyBase._eval_future_candle_time(ikarus_time, 24, time_scale_to_minute(self.min_period))
+        )
+        trade.set_exit(exit_limit_order)
+
         trade.command = ECommand.UPDATE
+
+        # Apply the filters
+        # TODO: Add min notional fix (No need to add the check because we are not gonna do anything with that)
+        if not StrategyBase.apply_exchange_filters(trade.exit, self.symbol_info[trade.pair]):
+            # TODO: This is a critical case where the exit order failed to pass filters. Decide what to do
+            return False
+
         return True
 
     async def on_closed(self, lto):

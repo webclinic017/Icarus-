@@ -23,6 +23,16 @@
         "quote_currency": "USDT",
         "fee_rate": 0.001
     },
+    "time_scales": {
+        "1h": 360
+    },
+    "backtest": {
+        "start_time": "2023-05-01 00:00:00",
+        "end_time": "2023-06-01 00:00:00",
+        "online": true,
+        "breakpoints": {
+        }
+    },
     "strategy_allocation":{
         "type": "DiscreteStrategyAllocator",
         "kwargs": {
@@ -41,21 +51,108 @@
             "time_scales": ["1h"],
             "max_live_trade": 1,
             "kwargs":{
-                "analyzer": "sr_meanshift"
+                "support": "support_meanshift",
+                "resistance": "resistance_meanshift"
             }
         }
     },
     "analysis": [
         {
             "candlesticks": {},
-            "close": {}
+            "close": {},
+            "aroon": {"timeperiod":12},
+            "bband": {"timeperiod":12}
         },
         {
             "bullish_fractal_3": {},
             "bearish_fractal_3": {}
         },
         {
-            "sr_meanshift": {"support":{"source":"bullish_fractal_3", "bandwidth_coeff":0.005}, "resistance":{"source":"bearish_fractal_3", "bandwidth_coeff":0.005}}
+            "support_meanshift": {"source":"bullish_fractal_3", "bandwidth_coeff":0.005},
+            "resistance_meanshift": {"source":"bearish_fractal_3", "bandwidth_coeff":0.005}
+        }
+    ],
+    "observers": [
+        {
+            "type": "quote_asset",
+            "observer": "quote_asset",
+            "inputs": ["ikarus_time_sec", "config", "df_balance", "live_trade_list", "new_trade_list"],
+            "filters": []
+        },
+        {
+            "type": "balance",
+            "observer": "balance",
+            "inputs": ["ikarus_time_sec", "df_balance"],
+            "filters": []
+        },
+        {
+            "type": "strategy_capitals",
+            "observer": "strategy_capitals",
+            "inputs": ["ikarus_time_sec", "strategy_res_allocator"],
+            "filters": []
+        },
+        {
+            "type": "support_meanshift",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "new_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": "SupportResistanceVanilla",
+                        "trade.command.value": "execute_enter"
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "BTCUSDT",
+                "timeframe": "1h",
+                "analyzer": "support_meanshift",
+                "dtype": "SRCluster"
+            }
+        },
+        {
+            "type": "resistance_meanshift",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "live_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": "SupportResistanceVanilla",
+                        "trade.command.value": "execute_exit"
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "BTCUSDT",
+                "timeframe": "1h",
+                "analyzer": "resistance_meanshift",
+                "dtype": "SRCluster"
+            }
+        },
+        {
+            "type": "resistance_meanshift",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "live_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": "SupportResistanceVanilla",
+                        "trade.command.value": "update"
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "BTCUSDT",
+                "timeframe": "1h",
+                "analyzer": "resistance_meanshift",
+                "dtype": "SRCluster"
+            }
         }
     ],
     "report_folder_name": "reports",
@@ -63,18 +160,7 @@
     "grid_search_reporters": {
         "grid": {
             "<strategy>": [
-                "market_direction_rsi", 
-                "market_direction_macd",
-                "market_direction_stoch",
-                "market_direction_stochf",
-                "market_direction_aroonosc",
-                "market_direction_willr",
-                "market_direction_cci",
-                "market_direction_mfi",
-                "market_direction_ultosc",
-                "market_direction_dmi",
-                "market_direction_supertrend",
-                "market_direction_lstm"
+                "SupportResistanceVanilla"
             ],
             "<pair>": ["BTCUSDT"],
             "<start_time>": [0],
@@ -84,7 +170,7 @@
             {
                 "parameters": {
                     "<pair-indice>": ["BTCUSDT"],
-                    "<timeframe>": ["4h"],
+                    "<timeframe>": ["1h"],
                     "<analyzer>": ["close"]
                 },
                 "reporter": "symbol_price_change",
@@ -103,8 +189,7 @@
                             "$match":{
                                 "strategy": "<strategy>", 
                                 "pair": "<pair>",
-                                "decision_time": { "$gte": "<start_time>"},
-                                "result.exit.time": { "$lte": "<end_time>" }
+                                "decision_time": { "$gte": "<start_time>"}
                                 }
                             },
                         {
@@ -371,25 +456,5 @@
                 ]
             }
         ]
-    },
-    "time_scales": {
-        "1h": 360
-    },
-    "backtest": {
-        "start_time": "2023-01-12 00:00:00",
-        "end_time": "2023-02-10 00:00:00",
-        "online": true,
-        "breakpoints": {
-            "1686916800000":"entry time"
-        }
-    },
-    "visualization": {
-        "observers": {
-            "quote_asset": [
-                "free",
-                "total",
-                "in_trade"
-            ]
-        }
     }
 }
