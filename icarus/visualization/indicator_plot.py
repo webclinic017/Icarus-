@@ -277,19 +277,27 @@ def sr_kmeans(x, y, axes):
 
 def bullish_fractal_5(x, y, axes): 
     disable_ax_bot(axes)
-    fplt.plot(x=x, y=y, kind='scatter', color='#0000ff', width=2, ax=axes['ax'], zoomscale=False, style='d')
+    fplt.plot(x=x, y=y, kind='scatter', color=BLUE, width=2, ax=axes['ax'], zoomscale=False, style='d')
 
 def bearish_fractal_5(x, y, axes): 
     disable_ax_bot(axes)
-    fplt.plot(x=x, y=y, kind='scatter', color='#ff00ff', width=2, ax=axes['ax'], zoomscale=False, style='d')
+    fplt.plot(x=x, y=y, kind='scatter', color=MAGENTA, width=2, ax=axes['ax'], zoomscale=False, style='d')
 
 def bullish_fractal_3(x, y, axes): 
     disable_ax_bot(axes)
-    fplt.plot(x=x, y=y, kind='scatter', color='#0000ff', width=2, ax=axes['ax'], zoomscale=False, style='d')
+    fplt.plot(x=x, y=y, kind='scatter', color=BLUE, width=2, ax=axes['ax'], zoomscale=False, style='d')
 
 def bearish_fractal_3(x, y, axes): 
     disable_ax_bot(axes)
-    fplt.plot(x=x, y=y, kind='scatter', color='#ff00ff', width=2, ax=axes['ax'], zoomscale=False, style='d')
+    fplt.plot(x=x, y=y, kind='scatter', color=MAGENTA, width=2, ax=axes['ax'], zoomscale=False, style='d')
+
+def bullish_aroon_break(x, y, axes): 
+    disable_ax_bot(axes)
+    fplt.plot(x=x, y=y, kind='scatter', color=BLUE, width=2, ax=axes['ax'], zoomscale=False, style='d')
+
+def bearish_aroon_break(x, y, axes): 
+    disable_ax_bot(axes)
+    fplt.plot(x=x, y=y, kind='scatter', color=MAGENTA, width=2, ax=axes['ax'], zoomscale=False, style='d')
 
 def parallel_ma(x, y, axes): disable_ax_bot(axes); line_handler(x, y, axes['ax'])
 
