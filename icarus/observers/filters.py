@@ -11,7 +11,7 @@ def trade_filter(new_trades: List[Trade], attributes: Dict[str, str]) -> bool:
         all_atr_matched = True
         for atr_path, atr_value in attributes.items():
             x = str(eval(atr_path))
-            if str(eval(atr_path)) != atr_value:
+            if str(eval(atr_path)) not in atr_value:
                 all_atr_matched = False
                 break
 
