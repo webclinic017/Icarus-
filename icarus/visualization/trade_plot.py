@@ -1,7 +1,7 @@
 import finplot as fplt
 from objects import OCO, ECause, Limit, Market, Trade
 from typing import List
-
+import sys
 
 def plot_rectangle_frame(h1,h2,v1,v2):
 
@@ -136,22 +136,26 @@ def plot_enter_orders(trade_list: List[Trade]) -> None:
 
 
 def scatter_buy_points(ax, trade_list: List[Trade]) -> None:
-    enter_time_list = [trade.result.enter.time for trade in trade_list]
-    enter_price_list = [trade.result.enter.price for trade in trade_list]
-    plot_spec = {'color':'#00ff00','style':'^', 'ax':ax, 'legend':'Buy Point'}
-    fplt.plot(x=enter_time_list, y=enter_price_list, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
-    #for x,y in zip(decision_time_list,enter_price_list):
-    #    fplt.plot(x=x, y=y, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
-
+    try:
+        enter_time_list = [trade.result.enter.time for trade in trade_list]
+        enter_price_list = [trade.result.enter.price for trade in trade_list]
+        plot_spec = {'color':'#00ff00','style':'^', 'ax':ax, 'legend':'Buy Point'}
+        fplt.plot(x=enter_time_list, y=enter_price_list, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
+        #for x,y in zip(decision_time_list,enter_price_list):
+        #    fplt.plot(x=x, y=y, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
+    except:
+        print(sys.exc_info()[0])
 
 def scatter_sell_points(ax, trade_list: List[Trade]) -> None:
-    exit_time_list = [trade.result.exit.time for trade in trade_list]
-    exit_price_list = [trade.result.exit.price for trade in trade_list]
-    plot_spec = {'color':'#ff0000','style':'v', 'ax':ax, 'legend':'Sell Point'}
-    fplt.plot(x=exit_time_list, y=exit_price_list, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
-    #for x,y in zip(decision_time_list,enter_price_list):
-    #    fplt.plot(x=x, y=y, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
-
+    try:
+        exit_time_list = [trade.result.exit.time for trade in trade_list]
+        exit_price_list = [trade.result.exit.price for trade in trade_list]
+        plot_spec = {'color':'#ff0000','style':'v', 'ax':ax, 'legend':'Sell Point'}
+        fplt.plot(x=exit_time_list, y=exit_price_list, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
+        #for x,y in zip(decision_time_list,enter_price_list):
+        #    fplt.plot(x=x, y=y, kind='scatter', color=plot_spec['color'], width=2, ax=plot_spec['ax'], zoomscale=False, style=plot_spec['style'])
+    except:
+        print(sys.exc_info()[0])
 
 def scatter_decision_points(ax, trade_list: List[Trade]) -> None:
     decision_time_list = [trade.decision_time for trade in trade_list]

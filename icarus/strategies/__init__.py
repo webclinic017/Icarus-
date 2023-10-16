@@ -2,7 +2,7 @@ from .sample import RSI, Aroon
 
 from . import TrendFollowerMCI, TrendChangeMCI, GoodEntryML, MarketDirectionTrigger
 
-from . import SupportResistanceVanilla
+from . import SupportResistanceVanilla, SupportResistanceMarketFiltered
 
 from . import FixedLimitTarget, FixedOCOTarget, FixedLimitTargetAdaptive, FixedOCOTargetAdaptive
 

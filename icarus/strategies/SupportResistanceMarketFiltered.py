@@ -1,16 +1,17 @@
-from objects import Trade, ECommand, TradeResult, Limit, ECause
+from objects import Trade, ECommand, TradeResult, Limit, ECause, Market
 from strategies.StrategyBase import StrategyBase
 from analyzers.market_classification import Direction
 from utils import time_scale_to_minute
 import numpy as np
 from typing import Dict
 
-class SupportResistanceVanilla(StrategyBase):
+class SupportResistanceMarketFiltered(StrategyBase):
 
     def __init__(self, _tag, _config, _symbol_info):
         super().__init__(_tag, _config, _symbol_info)
         self.support_analyzer = self.config['kwargs'].get('support')
         self.resistance_analyzer = self.config['kwargs'].get('resistance')
+        self.diretion_analyzer = self.config['kwargs'].get('direction')
         self.exit_duration = self.config['kwargs'].get('exit_duration', 24)
         return
 
@@ -24,14 +25,13 @@ class SupportResistanceVanilla(StrategyBase):
 
         analysis = analysis_dict[ao_pair][self.min_period]
         supports = analysis[self.support_analyzer]
-        #resistances = analysis[self.analyzer]['resistance']
-        #sup_res = supports + resistances
-        #sup_res.sort()
+        direction = analysis[self.diretion_analyzer][-1]
 
         support_relative_pos = np.array([round(100 * (sr.price_mean - analysis['close'][-1]) / analysis['close'][-1], 2) for sr in supports])
 
         entry_conditions = [
-            any(support_relative_pos < 0 )             # No support at below
+            any(support_relative_pos < 0 ),             # No support at below
+            direction == Direction.UP
         ]
 
         if not all(entry_conditions):
@@ -69,31 +69,38 @@ class SupportResistanceVanilla(StrategyBase):
     async def on_waiting_exit(self, trade: Trade, ikarus_time: int, analysis_dict: Dict, strategy_capital):
 
         analysis = analysis_dict[trade.pair][self.min_period]
-        #supports = analysis[self.analyzer]['support']
-        resistances = analysis[self.resistance_analyzer]
-        resistances.reverse()
-        #sup_res = supports + resistances
-        #sup_res.sort()
+        direction = analysis[self.diretion_analyzer][-1]
+        resistances = analysis[self.resistance_analyzer].copy()     # [ 1, 2, 4, 7]
+        #resistances.reverse()                                       # [ 7, 4, 2, 1]
 
         resistance_relative_pos = np.array([round(100 * (sr.price_mean - analysis['close'][-1]) / analysis['close'][-1], 2) for sr in resistances])
 
-        # There is resistance above
-        if not any(resistance_relative_pos > 0):
+        market_exit_conditions = [
+            not any(resistance_relative_pos > 0),       # Also covers the case where there is no resistance at all
+            direction == Direction.DOWN
+        ]
+
+        # Exit immediately if there is no resistance above and direction is down
+        if all(market_exit_conditions):
+            close_price = analysis_dict[trade.pair][self.min_period]['close'][-1]
+            trade.set_exit( Market(quantity=trade.result.enter.quantity, price=close_price) )
+            trade.command = ECommand.EXEC_EXIT
             return True
 
-        closest_above_res_idx = len(resistance_relative_pos[resistance_relative_pos > 0]) - 1
-        
-        # Find profitable resistance level by iterating closest above resistance to remotest
-        exit_price = None
-        for i in reversed(range(closest_above_res_idx+1)):
-            if resistances[i].price_mean > trade.result.enter.price:
-                exit_price = resistances[i].price_mean
-                break
-        
-        # There is resistance above
-        if exit_price == None:
-            return True
-   
+        closest_above_res_idx = np.argmax(resistance_relative_pos > 0)
+        # NOTE: Ignore the entry price
+        if direction == Direction.DOWN:
+            # Exit from the closest above resistance
+            exit_price = resistances[closest_above_res_idx].price_mean
+
+        elif direction == Direction.UP:
+            # Exit from the remotest above resistance
+            exit_price = resistances[-1].price_mean
+
+        else: #direction == Direction.SIDE:
+            # Exit from the closest above resistance
+            exit_price = resistances[closest_above_res_idx].price_mean
+
         exit_limit_order = Limit(
             exit_price,
             quantity=trade.result.enter.quantity,
@@ -117,36 +124,9 @@ class SupportResistanceVanilla(StrategyBase):
 
     async def on_exit_expire(self, trade: Trade, ikarus_time: int, analysis_dict: Dict, strategy_capital):
         trade.stash_exit()
-
-        analysis = analysis_dict[trade.pair][self.min_period]
-        resistances = analysis[self.resistance_analyzer].copy()
-        resistances.reverse()
-
-        resistance_relative_pos = np.array([round(100 * (sr.price_mean - analysis['close'][-1]) / analysis['close'][-1], 2) for sr in resistances])
-
-        # There is resistance above
-        if not any(resistance_relative_pos > 0):
-            return True
-
-        # Do not look for profitable exit anymore
-        exit_price = resistances[0].price_mean
-   
-        exit_limit_order = Limit(
-            exit_price,
-            quantity=trade.result.enter.quantity,
-            expire=StrategyBase._eval_future_candle_time(ikarus_time, self.exit_duration, time_scale_to_minute(self.min_period))
-        )
-        trade.set_exit(exit_limit_order)
-
+        is_success = await self.on_waiting_exit(trade, ikarus_time, analysis_dict, strategy_capital)
         trade.command = ECommand.UPDATE
-
-        # Apply the filters
-        # TODO: Add min notional fix (No need to add the check because we are not gonna do anything with that)
-        if not StrategyBase.apply_exchange_filters(trade.exit, self.symbol_info[trade.pair]):
-            # TODO: This is a critical case where the exit order failed to pass filters. Decide what to do
-            return False
-
-        return True
+        return is_success
 
     async def on_closed(self, lto):
         return lto
