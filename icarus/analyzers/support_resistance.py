@@ -4,6 +4,54 @@ from sklearn.cluster import KMeans, DBSCAN, MeanShift, OPTICS, Birch
 import numpy as np
 from utils import minute_to_time_scale
 from statistics import mean
+from analyzers.market_classification import Direction
+from enum import Enum
+from typing import List, Dict
+from itertools import groupby
+from operator import itemgetter
+
+
+class SREventType(Enum):
+    BREAK = 0
+    BOUNCE = 1
+    IN_ZONE = 2
+    PASS_HORIZONTAL = 3
+    PASS_VERTICAL = 4
+
+
+@dataclass
+class SREvent():
+    type: SREventType
+    start_index: int
+    end_index: int
+    price_min: float
+    price_mean: float
+    price_max: float
+    before: Direction
+    after: Direction
+
+
+def sr_eval_price_position(low: float, high: float, price_min: float, price_max: float) -> int:
+    if low > price_max:
+        return 1
+    elif high < price_min:
+        return -1
+    else:
+        return 0
+
+
+def sr_evaluate_event_type(meaningful_move_th: int, length: int, before_pos: int, after_pos: int) -> SREventType:
+    if after_pos == None:
+        return SREventType.IN_ZONE
+
+    is_directions_same = after_pos == before_pos
+
+    if length <= meaningful_move_th:
+        if is_directions_same: return SREventType.BOUNCE
+        else: return SREventType.BREAK
+    else:
+        return SREventType.PASS_HORIZONTAL
+    
 
 @dataclass
 class SRConfig():
@@ -44,6 +92,7 @@ class SRConfig():
 
 @dataclass
 class SRCluster():
+    
     type: str
     centroids: list = field(default_factory=list)
     validation_index: int = 0
@@ -61,6 +110,7 @@ class SRCluster():
     number_of_retest: int = None                        # Higher the better
     number_of_members: int = None                       # Higher the better
     distribution_efficiency: int = None                 # Higher the better
+    events: List[SREvent] = field(default_factory=lambda: [])
 
     def __post_init__(self):
         self.distribution_score = round(self.horizontal_distribution_score/self.vertical_distribution_score,2) 
@@ -383,3 +433,46 @@ class SupportResistance():
             'support': await self._support_meanshift(analysis, **kwargs.get('support',{})),
             'resistance': await self._resistance_meanshift(analysis, **kwargs.get('resistance',{}))
         }
+
+
+    async def _sr_events(self, analysis: Dict, **kwargs):
+        sr_analyzers = kwargs.get('analyzers')
+        sequence_th = kwargs.get('sequence_th')
+
+        for sr in sr_analyzers:
+            for cluster in analysis[sr]:
+                price_min = cluster.price_min
+                price_max = cluster.price_max
+                #sr_price_interactions = [
+                #    (candle['low'] <= price_max and candle['high'] >= price_min) 
+                #    for _, candle in analysis['candlesticks'].iterrows()]
+                sr_price_interactions = np.array([sr_eval_price_position(candle['low'], candle['high'], price_min, price_max) for _, candle in analysis['candlesticks'].iterrows()])
+                intersect = np.where(sr_price_interactions == 0)[0]
+                chunk_length = len(analysis['candlesticks'].index)
+
+                for k, g in groupby(enumerate(intersect), lambda ix: ix[0] - ix[1]):
+                    seq_idx = list(map(itemgetter(1), g))
+
+                    before_position = sr_price_interactions[seq_idx[0]-1]
+
+                    if seq_idx[-1] + 1 >= chunk_length:
+                        after_position = None
+                    else:
+                        after_position = sr_price_interactions[seq_idx[-1]+1]
+                    
+                    sr_event = SREvent(
+                        type=sr_evaluate_event_type(sequence_th, len(seq_idx), before_position, after_position),
+                        start_index=seq_idx[0],
+                        end_index=seq_idx[-1],
+                        price_min=cluster.price_min,
+                        price_mean=cluster.price_mean,
+                        price_max=cluster.price_max,
+                        before=before_position,
+                        after=after_position
+                    )
+                    cluster.events.append(sr_event)
+
+        return 
+    
+
+
