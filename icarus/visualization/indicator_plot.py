@@ -2,7 +2,7 @@ import finplot as fplt
 from statistics import mean
 import pandas as pd
 import numpy as np
-from analyzers.support_resistance import SRCluster
+from analyzers.support_resistance import SRCluster, SREvent, SREventType
 from typing import List
 
 
@@ -46,6 +46,22 @@ color_map_cluster = [
     (CYAN, PALE_CYAN)
 ]
 
+sr_event_colors = {
+    SREventType.BOUNCE: BLUE,
+    SREventType.BREAK: MAGENTA,
+    SREventType.IN_ZONE: CYAN,
+    SREventType.PASS_HORIZONTAL: YELLOW,
+    SREventType.PASS_VERTICAL: PALE_RED
+}
+
+sr_event_marker = {
+    SREventType.BOUNCE: 'o',
+    SREventType.BREAK: 'x',
+    SREventType.IN_ZONE: 'star',
+    SREventType.PASS_HORIZONTAL: 's',
+    SREventType.PASS_VERTICAL: 's'
+}
+
 
 def support_resistance_handler(x, y: List[SRCluster], axes, **kwargs):
     sr_details = kwargs.get('details', True)
@@ -87,9 +103,24 @@ def support_resistance_handler(x, y: List[SRCluster], axes, **kwargs):
             fplt.add_text((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), text_top_left, color='#000000',anchor=(0,1), ax=axes['ax'])
             fplt.add_rect((x[sr_cluster.validation_index], sr_cluster.price_max), 
                 (x[sr_cluster.chunk_end_index], sr_cluster.price_min), ax=axes['ax'], color=sr_cmap[colormap_idx][1])
+            plot_sr_events(x, sr_cluster, axes)
 
         fplt.add_line((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), 
             (x[sr_cluster.chunk_end_index], sr_cluster.price_mean), style='.', color=sr_cmap[colormap_idx][0], width=2, interactive=False)
+
+
+def plot_sr_events(x, sr_cluster: SRCluster, axes: List):
+    sr_events = sr_cluster.events
+    #x_events = [ x[sr_cluster.chunk_start_index + sr_event.start_index] for sr_event in sr_events]
+    #y = [int(sr_cluster.price_mean)] * len(x_events)
+
+    for sr_event in sr_events:
+        fplt.plot(
+            x=x[sr_cluster.chunk_start_index + sr_event.start_index], 
+            y=sr_cluster.price_mean, kind='scatter', 
+            color=sr_event_colors[sr_event.type], width=5, ax=axes['ax'], zoomscale=False, 
+            style=sr_event_marker[sr_event.type])
+
 
 def line_handler(x, y, axis):
     # TODO: Improve the plot configuration, such as legend texts and the colors
