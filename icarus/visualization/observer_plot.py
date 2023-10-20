@@ -1,5 +1,5 @@
 import finplot as fplt
-from analyzers.support_resistance import SRCluster
+from analyzers.support_resistance import SRCluster, serialize_srcluster
 from typing import List
 from utils import minute_to_time_scale
 from visualization import indicator_plot
@@ -56,7 +56,7 @@ def text(x, y, axes):
 def adapt_cluster_indexes(x, y) -> List[SRCluster]:
     all_cluster = []
     for observation in y:
-        raw_clusters = [SRCluster(**cluster_dict) for cluster_dict in observation['data']]
+        raw_clusters = [serialize_srcluster(cluster_dict) for cluster_dict in observation['data']]
         candle_time_diff_sec = int((x[1]-x[0])/1000)
         observation_time = observation['ts']
 
@@ -66,7 +66,10 @@ def adapt_cluster_indexes(x, y) -> List[SRCluster]:
 
         for srcluster in raw_clusters:
             srcluster.chunk_end_index += idx_offset
+            # NOTE:To visualize events, uncomment the sections below
+            #srcluster.validation_index += idx_offset #= srcluster.chunk_end_index
             srcluster.validation_index = srcluster.chunk_end_index
+            #srcluster.chunk_start_index += idx_offset #srcluster.chunk_end_index - 5
             srcluster.chunk_start_index += srcluster.chunk_end_index - 5
         
         all_cluster += raw_clusters
@@ -79,7 +82,7 @@ def adapt_clusters_decorator(type, color_map):
         def wrapper(x, y, axes):
             clusters = adapt_cluster_indexes(x, y)
             indicator_plot.disable_ax_bot(axes)
-            indicator_plot.support_resistance_handler(x, clusters, axes, **{'type': type, 'cmap': color_map, 'details': False})
+            indicator_plot.support_resistance_handler(x, clusters, axes, **{'type': type, 'cmap': color_map, 'details': True})
             return func(x, y, axes)
         return wrapper
     return decorator

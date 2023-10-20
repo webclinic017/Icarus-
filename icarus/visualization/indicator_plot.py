@@ -116,7 +116,8 @@ def plot_sr_events(x, sr_cluster: SRCluster, axes: List):
 
     for sr_event in sr_events:
         fplt.plot(
-            x=x[sr_cluster.chunk_start_index + sr_event.start_index], 
+            x=x[sr_cluster.chunk_start_index + sr_event.start_index],
+            #x=x[sr_event.start_index], 
             y=sr_cluster.price_mean, kind='scatter', 
             color=sr_event_colors[sr_event.type], width=5, ax=axes['ax'], zoomscale=False, 
             style=sr_event_marker[sr_event.type])

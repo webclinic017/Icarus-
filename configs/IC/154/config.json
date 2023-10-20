@@ -37,7 +37,7 @@
         "type": "DiscreteStrategyAllocator",
         "kwargs": {
             "distribution_config": [
-                "SupportResistanceMarketFiltered"
+                "SupportResistanceVanilla"
             ],
             "capital_coeff":0.9, 
             "stop_capital":null,
@@ -45,33 +45,32 @@
         }
     },
     "strategy": {
-        "SupportResistanceMarketFiltered": {
-            "strategy": "SupportResistanceMarketFiltered",
+        "SupportResistanceVanilla": {
+            "strategy": "SupportResistanceVanilla",
             "pairs": ["BTCUSDT"],
             "time_scales": ["1h"],
             "max_live_trade": 1,
             "kwargs":{
                 "support": "support_meanshift",
-                "resistance": "resistance_meanshift",
-                "direction": "market_direction_supertrend"
-
+                "resistance": "resistance_meanshift"
             }
         }
     },
     "analysis": [
         {
             "candlesticks": {},
-            "close": {}
+            "close": {},
+            "aroon": {"timeperiod":6}
         },
         {
             "bullish_fractal_3": {},
             "bearish_fractal_3": {},
-            "market_direction_supertrend": {"timeperiod":12}
+            "bullish_aroon_break": {},
+            "bearish_aroon_break": {}
         },
         {
-            "market_regime_supertrend": {},
-            "support_meanshift": {"source":"bullish_fractal_3"},
-            "resistance_meanshift": {"source":"bearish_fractal_3"}
+            "support_meanshift": {"source":"bullish_aroon_break", "step_to_frame_ratio":0.5},
+            "resistance_meanshift": {"source":"bearish_aroon_break", "step_to_frame_ratio":0.5}
         },
         {
             "sr_events": {"sequence_th": 5, "analyzers": ["support_meanshift", "resistance_meanshift"]}

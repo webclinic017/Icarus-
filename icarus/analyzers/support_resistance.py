@@ -4,19 +4,18 @@ from sklearn.cluster import KMeans, DBSCAN, MeanShift, OPTICS, Birch
 import numpy as np
 from utils import minute_to_time_scale
 from statistics import mean
-from analyzers.market_classification import Direction
 from enum import Enum
 from typing import List, Dict
 from itertools import groupby
 from operator import itemgetter
 
 
-class SREventType(Enum):
-    BREAK = 0
-    BOUNCE = 1
-    IN_ZONE = 2
-    PASS_HORIZONTAL = 3
-    PASS_VERTICAL = 4
+class SREventType(str, Enum):
+    BREAK = 'break'
+    BOUNCE = 'bounce'
+    IN_ZONE = 'in_zone'
+    PASS_HORIZONTAL = 'pass_horizontal'
+    PASS_VERTICAL = 'pass_vertical'
 
 
 @dataclass
@@ -27,8 +26,8 @@ class SREvent():
     price_min: float
     price_mean: float
     price_max: float
-    before: Direction
-    after: Direction
+    before: int
+    after: int
 
 
 def sr_eval_price_position(low: float, high: float, price_min: float, price_max: float) -> int:
@@ -40,8 +39,8 @@ def sr_eval_price_position(low: float, high: float, price_min: float, price_max:
         return 0
 
 
-def sr_evaluate_event_type(meaningful_move_th: int, length: int, before_pos: int, after_pos: int) -> SREventType:
-    if after_pos == None:
+def sr_evaluate_event_type(meaningful_move_th: int,  length: int, before_pos: int, after_pos: int, is_last_candle: bool) -> SREventType:
+    if is_last_candle:
         return SREventType.IN_ZONE
 
     is_directions_same = after_pos == before_pos
@@ -134,6 +133,18 @@ class SRCluster():
         else:
             # Price is on the cluster
             return 0
+
+
+def serialize_srevents(raw_srevents: List) -> SREvent:
+    return [SREvent(**raw_srevent) for raw_srevent in raw_srevents]
+
+
+def serialize_srcluster(raw_srcluster: Dict) -> SRCluster:
+    srcluster = SRCluster(**raw_srcluster)
+    if len(srcluster.events):
+        srcluster.events = serialize_srevents(srcluster.events)
+    return srcluster
+
 
 class SupportResistance():
 
@@ -440,35 +451,50 @@ class SupportResistance():
         sequence_th = kwargs.get('sequence_th')
 
         for sr in sr_analyzers:
+            bounce_events = set()
             for cluster in analysis[sr]:
                 price_min = cluster.price_min
                 price_max = cluster.price_max
                 #sr_price_interactions = [
                 #    (candle['low'] <= price_max and candle['high'] >= price_min) 
                 #    for _, candle in analysis['candlesticks'].iterrows()]
-                sr_price_interactions = np.array([sr_eval_price_position(candle['low'], candle['high'], price_min, price_max) for _, candle in analysis['candlesticks'].iterrows()])
+
+                chunk_candlesticks = analysis['candlesticks'].iloc[cluster.chunk_start_index : cluster.chunk_end_index]
+                sr_price_interactions = np.array([sr_eval_price_position(candle['low'], candle['high'], price_min, price_max) for _, candle in chunk_candlesticks.iterrows()])
                 intersect = np.where(sr_price_interactions == 0)[0]
-                chunk_length = len(analysis['candlesticks'].index)
+                chunk_length = len(chunk_candlesticks.index)
 
                 for k, g in groupby(enumerate(intersect), lambda ix: ix[0] - ix[1]):
                     seq_idx = list(map(itemgetter(1), g))
 
                     before_position = sr_price_interactions[seq_idx[0]-1]
 
+                    is_last_candle = False
                     if seq_idx[-1] + 1 >= chunk_length:
-                        after_position = None
+                        after_position = seq_idx[-1]
+                        is_last_candle = True
                     else:
                         after_position = sr_price_interactions[seq_idx[-1]+1]
                     
+                    sr_event_type = sr_evaluate_event_type(sequence_th, len(seq_idx), before_position, after_position, is_last_candle)
+                    
+                    # Correct repeating BOUNCE events at the same candle
+                    if sr_event_type == SREventType.BOUNCE:
+                        new_bounce_entry = (seq_idx[0], seq_idx[-1], before_position)
+                        if new_bounce_entry in bounce_events:
+                            sr_event_type = SREventType.PASS_VERTICAL
+                        else:
+                            bounce_events.add(new_bounce_entry)
+
                     sr_event = SREvent(
-                        type=sr_evaluate_event_type(sequence_th, len(seq_idx), before_position, after_position),
-                        start_index=seq_idx[0],
-                        end_index=seq_idx[-1],
+                        type=sr_event_type,
+                        start_index=int(seq_idx[0]),
+                        end_index=int(seq_idx[-1]),
                         price_min=cluster.price_min,
                         price_mean=cluster.price_mean,
                         price_max=cluster.price_max,
-                        before=before_position,
-                        after=after_position
+                        before=int(before_position),
+                        after=int(after_position)
                     )
                     cluster.events.append(sr_event)
 
