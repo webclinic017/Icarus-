@@ -480,7 +480,7 @@ class SupportResistance():
                     
                     # Correct repeating BOUNCE events at the same candle
                     if sr_event_type == SREventType.BOUNCE:
-                        new_bounce_entry = (seq_idx[0], seq_idx[-1], before_position)
+                        new_bounce_entry = (chunk_candlesticks.index[seq_idx[0]], len(seq_idx), before_position)
                         if new_bounce_entry in bounce_events:
                             sr_event_type = SREventType.PASS_VERTICAL
                         else:
