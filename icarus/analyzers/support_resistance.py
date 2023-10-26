@@ -46,7 +46,7 @@ def sr_evaluate_event_type(meaningful_move_th: int,  length: int, before_pos: in
     is_directions_same = after_pos == before_pos
 
     if length <= meaningful_move_th:
-        if is_directions_same: return SREventType.BOUNCE
+        if is_directions_same: return SREventType.PASS_VERTICAL
         else: return SREventType.BREAK
     else:
         return SREventType.PASS_HORIZONTAL
@@ -451,13 +451,12 @@ class SupportResistance():
         sequence_th = kwargs.get('sequence_th')
 
         for sr in sr_analyzers:
-            bounce_events = set()
+            bounce_events = {} # Dict[ (): List[SREvent] ]
+
+            # NOTE: SRCluster order is from lowest to highest price_mean for each cluster in analysis[sr]
             for cluster in analysis[sr]:
                 price_min = cluster.price_min
                 price_max = cluster.price_max
-                #sr_price_interactions = [
-                #    (candle['low'] <= price_max and candle['high'] >= price_min) 
-                #    for _, candle in analysis['candlesticks'].iterrows()]
 
                 chunk_candlesticks = analysis['candlesticks'].iloc[cluster.chunk_start_index : cluster.chunk_end_index]
                 sr_price_interactions = np.array([sr_eval_price_position(candle['low'], candle['high'], price_min, price_max) for _, candle in chunk_candlesticks.iterrows()])
@@ -478,13 +477,6 @@ class SupportResistance():
                     
                     sr_event_type = sr_evaluate_event_type(sequence_th, len(seq_idx), before_position, after_position, is_last_candle)
                     
-                    # Correct repeating BOUNCE events at the same candle
-                    if sr_event_type == SREventType.BOUNCE:
-                        new_bounce_entry = (chunk_candlesticks.index[seq_idx[0]], len(seq_idx), before_position)
-                        if new_bounce_entry in bounce_events:
-                            sr_event_type = SREventType.PASS_VERTICAL
-                        else:
-                            bounce_events.add(new_bounce_entry)
 
                     sr_event = SREvent(
                         type=sr_event_type,
@@ -496,7 +488,24 @@ class SupportResistance():
                         before=int(before_position),
                         after=int(after_position)
                     )
+
+                    # Save references for each SREventType.PASS_VERTICAL events to evaluate BOUNCE events from the big picture
+                    if sr_event_type == SREventType.PASS_VERTICAL:
+                        new_bounce_entry = (chunk_candlesticks.index[seq_idx[0]], len(seq_idx), before_position)
+                        if new_bounce_entry not in bounce_events:
+                            bounce_events[new_bounce_entry] = []
+                        bounce_events[new_bounce_entry].append(sr_event)
+
                     cluster.events.append(sr_event)
+            
+            for key in bounce_events.keys():
+                # NOTE: Check before_position to evaluate which tip point to label as SREventType.BOUNCE
+                if key[2] == -1:
+                    # Make the bottom most one (-1) SREventType.BOUNCE
+                    bounce_events[key][-1].type = SREventType.BOUNCE
+                elif key[2] == 1:
+                    # Make the top most one (0) SREventType.BOUNCE
+                    bounce_events[key][0].type = SREventType.BOUNCE
 
         return 
     
