@@ -4,6 +4,53 @@ from sklearn.cluster import KMeans, DBSCAN, MeanShift, OPTICS, Birch
 import numpy as np
 from utils import minute_to_time_scale
 from statistics import mean
+from enum import Enum
+from typing import List, Dict
+from itertools import groupby
+from operator import itemgetter
+
+
+class SREventType(str, Enum):
+    BREAK = 'break'
+    BOUNCE = 'bounce'
+    IN_ZONE = 'in_zone'
+    PASS_HORIZONTAL = 'pass_horizontal'
+    PASS_VERTICAL = 'pass_vertical'
+
+
+@dataclass
+class SREvent():
+    type: SREventType
+    start_index: int
+    end_index: int
+    price_min: float
+    price_mean: float
+    price_max: float
+    before: int
+    after: int
+
+
+def sr_eval_price_position(low: float, high: float, price_min: float, price_max: float) -> int:
+    if low > price_max:
+        return 1
+    elif high < price_min:
+        return -1
+    else:
+        return 0
+
+
+def sr_evaluate_event_type(meaningful_move_th: int,  length: int, before_pos: int, after_pos: int, is_last_candle: bool) -> SREventType:
+    if is_last_candle:
+        return SREventType.IN_ZONE
+
+    is_directions_same = after_pos == before_pos
+
+    if length <= meaningful_move_th:
+        if is_directions_same: return SREventType.PASS_VERTICAL
+        else: return SREventType.BREAK
+    else:
+        return SREventType.PASS_HORIZONTAL
+    
 
 @dataclass
 class SRConfig():
@@ -44,6 +91,7 @@ class SRConfig():
 
 @dataclass
 class SRCluster():
+    
     type: str
     centroids: list = field(default_factory=list)
     validation_index: int = 0
@@ -61,6 +109,7 @@ class SRCluster():
     number_of_retest: int = None                        # Higher the better
     number_of_members: int = None                       # Higher the better
     distribution_efficiency: int = None                 # Higher the better
+    events: List[SREvent] = field(default_factory=lambda: [])
 
     def __post_init__(self):
         self.distribution_score = round(self.horizontal_distribution_score/self.vertical_distribution_score,2) 
@@ -84,6 +133,18 @@ class SRCluster():
         else:
             # Price is on the cluster
             return 0
+
+
+def serialize_srevents(raw_srevents: List) -> SREvent:
+    return [SREvent(**raw_srevent) for raw_srevent in raw_srevents]
+
+
+def serialize_srcluster(raw_srcluster: Dict) -> SRCluster:
+    srcluster = SRCluster(**raw_srcluster)
+    if len(srcluster.events):
+        srcluster.events = serialize_srevents(srcluster.events)
+    return srcluster
+
 
 class SupportResistance():
 
@@ -383,3 +444,70 @@ class SupportResistance():
             'support': await self._support_meanshift(analysis, **kwargs.get('support',{})),
             'resistance': await self._resistance_meanshift(analysis, **kwargs.get('resistance',{}))
         }
+
+
+    async def _sr_events(self, analysis: Dict, **kwargs):
+        sr_analyzers = kwargs.get('analyzers')
+        sequence_th = kwargs.get('sequence_th')
+
+        for sr in sr_analyzers:
+            bounce_events = {} # Dict[ (): List[SREvent] ]
+
+            # NOTE: SRCluster order is from lowest to highest price_mean for each cluster in analysis[sr]
+            for cluster in analysis[sr]:
+                price_min = cluster.price_min
+                price_max = cluster.price_max
+
+                chunk_candlesticks = analysis['candlesticks'].iloc[cluster.chunk_start_index : cluster.chunk_end_index]
+                sr_price_interactions = np.array([sr_eval_price_position(candle['low'], candle['high'], price_min, price_max) for _, candle in chunk_candlesticks.iterrows()])
+                intersect = np.where(sr_price_interactions == 0)[0]
+                chunk_length = len(chunk_candlesticks.index)
+
+                for k, g in groupby(enumerate(intersect), lambda ix: ix[0] - ix[1]):
+                    seq_idx = list(map(itemgetter(1), g))
+
+                    before_position = sr_price_interactions[seq_idx[0]-1]
+
+                    is_last_candle = False
+                    if seq_idx[-1] + 1 >= chunk_length:
+                        after_position = seq_idx[-1]
+                        is_last_candle = True
+                    else:
+                        after_position = sr_price_interactions[seq_idx[-1]+1]
+                    
+                    sr_event_type = sr_evaluate_event_type(sequence_th, len(seq_idx), before_position, after_position, is_last_candle)
+                    
+
+                    sr_event = SREvent(
+                        type=sr_event_type,
+                        start_index=int(seq_idx[0]),
+                        end_index=int(seq_idx[-1]),
+                        price_min=cluster.price_min,
+                        price_mean=cluster.price_mean,
+                        price_max=cluster.price_max,
+                        before=int(before_position),
+                        after=int(after_position)
+                    )
+
+                    # Save references for each SREventType.PASS_VERTICAL events to evaluate BOUNCE events from the big picture
+                    if sr_event_type == SREventType.PASS_VERTICAL:
+                        new_bounce_entry = (chunk_candlesticks.index[seq_idx[0]], len(seq_idx), before_position)
+                        if new_bounce_entry not in bounce_events:
+                            bounce_events[new_bounce_entry] = []
+                        bounce_events[new_bounce_entry].append(sr_event)
+
+                    cluster.events.append(sr_event)
+            
+            for key in bounce_events.keys():
+                # NOTE: Check before_position to evaluate which tip point to label as SREventType.BOUNCE
+                if key[2] == -1:
+                    # Make the bottom most one (-1) SREventType.BOUNCE
+                    bounce_events[key][-1].type = SREventType.BOUNCE
+                elif key[2] == 1:
+                    # Make the top most one (0) SREventType.BOUNCE
+                    bounce_events[key][0].type = SREventType.BOUNCE
+
+        return 
+    
+
+
