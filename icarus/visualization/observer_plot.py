@@ -82,7 +82,7 @@ def adapt_clusters_decorator(type, color_map):
         def wrapper(x, y, axes):
             clusters = adapt_cluster_indexes(x, y)
             indicator_plot.disable_ax_bot(axes)
-            indicator_plot.support_resistance_handler(x, clusters, axes, **{'type': type, 'cmap': color_map, 'details': True})
+            indicator_plot.support_resistance_handler(x, clusters, axes, **{'type': type, 'cmap': color_map, 'details': False})
             return func(x, y, axes)
         return wrapper
     return decorator

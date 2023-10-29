@@ -26,7 +26,6 @@ class SREventsReactiveLast(StrategyBase):
         supports = analysis[self.support_analyzer]
 
         # Find the SRClusters that has bounce event
-        chunk_length = len(analysis['candlesticks'])
         bounce_event_happened = False
         for cluster in supports:
             if cluster.events == []:
@@ -36,10 +35,11 @@ class SREventsReactiveLast(StrategyBase):
             enter_condition = [
                 last_event.type == SREventType.BOUNCE,
                 last_event.after == 1,                      # Price should come and go from/to the top, compare to the cluster
-                last_event.end_index == chunk_length-2      
+                last_event.end_index == cluster.chunk_end_index-1      
                 # NOTE: We only notice that en event is concluded when there is an non-event candle occured. Tha
-                # is the difference between the IN_ZONE and other events. That is the reason why "chunk_length-2" 
+                # is the difference between the IN_ZONE and other events. That is the reason why "cluster.chunk_end_index-1" 
             ]
+
             if all(enter_condition):
                 bounce_event_happened = True
                 break
@@ -75,21 +75,20 @@ class SREventsReactiveLast(StrategyBase):
         resistances = analysis[self.resistance_analyzer]
 
         # Find the SRClusters that has bounce event
-        chunk_length = len(analysis['candlesticks'])
         bounce_event_happened = False
         for cluster in resistances:
             if cluster.events == []:
                 continue
 
             last_event = cluster.events[-1]
-            enter_condition = [
+            exit_conditions = [
                 last_event.type == SREventType.BOUNCE,
                 last_event.after == -1,                      # Price should come and go from/to the bottom, compare to the cluster
-                last_event.end_index == chunk_length-2      
+                last_event.end_index == cluster.chunk_end_index-1     
                 # NOTE: We only notice that en event is concluded when there is an non-event candle occured. Tha
-                # is the difference between the IN_ZONE and other events. That is the reason why "chunk_length-2" 
+                # is the difference between the IN_ZONE and other events. That is the reason why "cluster.chunk_end_index-1" 
             ]
-            if all(enter_condition):
+            if all(exit_conditions):
                 bounce_event_happened = True
                 break
 
