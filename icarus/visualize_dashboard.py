@@ -32,6 +32,7 @@ def change_asset(*args, **kwargs):
     symbol = ctrl_panel.symbol.currentText()
     interval = ctrl_panel.interval.currentText()
     indicator = ctrl_panel.indicators.currentText().lower()
+    trade_id = ctrl_panel.trades.currentText().lower()
 
     # remove any previous plots
     if ctrl_panel.autoclear.isChecked() or "symbol" in args:
@@ -75,6 +76,48 @@ def change_asset(*args, **kwargs):
                 indicator = indicator.rsplit('_', 1)[0]
             handler(data_dict[symbol][interval].index, analysis_dict[symbol][interval][indicator], 
                 {'ax':ax, 'axo':axo, 'ax_bot':ax_bot, 'axo_bot':axo_bot})
+
+    if trade_id != 'clean':
+        # NOTE: Horrible implementation but works :)
+        trades = analysis_dict[symbol][interval]['trades']
+
+        is_visualized = False
+        for trade in trades['closed']:
+            if trade._id != trade_id:
+                continue
+            trade_plot.plot_closed_orders(ax, [trade])
+            is_visualized = True
+            break
+
+        if not is_visualized:
+            for trade in trades['canceled']:
+                if trade._id != trade_id:
+                    continue
+                trade_plot.plot_canceled_orders([trade])
+                is_visualized = True
+                break
+
+        # Visualize
+        if is_visualized:
+            # Get observers except quote asset
+            observers = []
+            for analysis in analysis_dict.keys():
+                if analysis[:3] == 'obs' and analysis != 'obs_quote_asset':
+                    observers.append(analysis)
+            
+            
+            for indicator in observers:
+                observer = indicator.split('_', 1)[1]
+                handler = getattr(observer_plot, observer)
+                observations = []
+                for observation in analysis_dict[indicator]:
+                    if observation['ts'] not in [trade.decision_time, trade.result.exit.time]:
+                        continue
+                    observations.append(observation)
+                if observations != []:
+                    handler(data_dict[symbol][interval].index, observations, 
+                        {'ax':ax, 'axo':axo, 'ax_bot':ax_bot, 'axo_bot':axo_bot})
+
 
     ax.set_visible(xaxis=True)
     # restores saved zoom position, if in range
@@ -148,7 +191,7 @@ def dark_mode_toggle(dark):
                 item.repaint()
 
 
-def create_ctrl_panel(win, pairs, time_scales, indicators):
+def create_ctrl_panel(win, pairs, time_scales, indicators, trade_ids):
     panel = QWidget(win)
     panel.move(150, 0)
     win.scene().addWidget(panel)
@@ -193,43 +236,14 @@ def create_ctrl_panel(win, pairs, time_scales, indicators):
     panel.autoclear.setCheckState(2)
     layout.addWidget(panel.autoclear, 0, 8)
 
+    panel.trades = QComboBox(panel)
+    panel.trades.addItem('clean')
+    [panel.trades.addItem(tid) for tid in trade_ids]
+    layout.addWidget(panel.trades, 0, 10)
+    panel.trades.currentTextChanged.connect(partial(change_asset, "trades"))
     return panel
 
 
-'''
-async def get_trade_data(bwrapper, mongocli, config):
-    start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
-    start_timestamp = int(datetime.datetime.timestamp(start_time))*1000
-    end_time = datetime.datetime.strptime(config['backtest']['end_time'], "%Y-%m-%d %H:%M:%S")
-    end_timestamp = int(datetime.datetime.timestamp(end_time))*1000
-
-    # Create pools for pair-scales
-    meta_data_pool = []
-    for strategy_tag, strategy in config['strategy'].items():
-        meta_data_pool.append(list(itertools.product([strategy_tag], strategy['time_scales'], strategy['pairs'])))
-
-    meta_data_pool = list(set(chain(*meta_data_pool)))
-
-    dashboard_data_pack = {}
-    
-    for strategy_tag, timeframe, symbol in meta_data_pool:
-        canceled = await mongo_utils.do_find_trades(mongocli, 'hist-trades', {'result.cause':ECause.ENTER_EXP, 'pair':symbol, 'strategy':strategy_tag})
-        closed = await mongo_utils.do_find_trades(mongocli, 'hist-trades', {'result.cause':{'$in':[ECause.MARKET, ECause.STOP_LIMIT, ECause.LIMIT]}, 'pair':symbol, 'strategy':strategy_tag})
-
-        if symbol not in dashboard_data_pack:
-            dashboard_data_pack[symbol] = {}
-          
-        if timeframe not in dashboard_data_pack[symbol]:
-            dashboard_data_pack[symbol][timeframe] = {}
-
-        dashboard_data_pack[symbol][timeframe]['trades'] = {
-            'canceled':canceled,
-            'closed':closed
-        }
-
-    return dashboard_data_pack
-
-'''
 async def get_trade_data(bwrapper, mongocli, config):
     start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
     start_timestamp = int(datetime.datetime.timestamp(start_time))*1000
@@ -245,10 +259,11 @@ async def get_trade_data(bwrapper, mongocli, config):
     
     df_pair_list = list(await asyncio.gather(*df_list))
 
+    trade_ids = []
     for idx, item in enumerate(pair_scale_mapping.items()):
         canceled = await mongo_utils.do_find_trades(mongocli, 'hist-trades', {'result.cause':ECause.ENTER_EXP, 'pair':item[0]})
         closed = await mongo_utils.do_find_trades(mongocli, 'hist-trades', {'result.cause':{'$in':[ECause.MARKET, ECause.STOP_LIMIT, ECause.LIMIT]}, 'pair':item[0]})
-        
+        trade_ids += [str(closed_trade._id) for closed_trade in closed]
         if item[1] not in dashboard_data_pack[item[0]]:
             dashboard_data_pack[item[0]][item[1]] = {}
 
@@ -258,7 +273,7 @@ async def get_trade_data(bwrapper, mongocli, config):
             'closed':closed
         }
 
-    return dashboard_data_pack
+    return dashboard_data_pack, trade_ids
 
 
 async def get_observer_data(mongocli, config):
@@ -289,7 +304,7 @@ async def get_observer_data(mongocli, config):
     return dashboard_data_pack
 
 
-def analysis_dashboard(pair_pool, time_scale_pool, indicator_pool, title='Buy/Sell Plot'):
+def analysis_dashboard(pair_pool, time_scale_pool, indicator_pool, trade_ids, title='Buy/Sell Plot'):
 
     global ctrl_panel, ax, axo, ax_bot, axo_bot, pair_data, pair_analysis
     pair_data = data_dict
@@ -309,7 +324,7 @@ def analysis_dashboard(pair_pool, time_scale_pool, indicator_pool, title='Buy/Se
     ax_bot.vb.setBackgroundColor(None) # don't use odd background color
     ax.set_visible(xaxis=True)
 
-    ctrl_panel = create_ctrl_panel(ax.vb.win, pair_pool, time_scale_pool, indicator_pool)
+    ctrl_panel = create_ctrl_panel(ax.vb.win, pair_pool, time_scale_pool, indicator_pool, trade_ids)
     dark_mode_toggle(False)
     change_asset()
 
@@ -357,7 +372,7 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, config
 
     config['mongodb']['clean'] = False
     mongo_client = mongo_utils.MongoClient(**config['mongodb'])
-    trade_pair_dict = await get_trade_data(bwrapper, mongo_client, config)   
+    trade_pair_dict, trade_ids = await get_trade_data(bwrapper, mongo_client, config)   
     analysis_dict = merge_dicts(trade_pair_dict, analysis_dict)
 
     observer_dict = await get_observer_data(mongo_client, config)  
@@ -375,7 +390,7 @@ async def visualize_dashboard(bwrapper: backtest_wrapper.BacktestWrapper, config
     analyzer_names.append('trades')
     [analyzer_names.append(obs) for obs in observer_dict.keys()]
     analyzer_names.sort()
-    analysis_dashboard(pair_pool, time_scale_pool, analyzer_names, title=f'Visualizing Time Frame: {config["backtest"]["start_time"]} - {config["backtest"]["end_time"]}')
+    analysis_dashboard(pair_pool, time_scale_pool, analyzer_names, trade_ids, title=f'Visualizing Time Frame: {config["backtest"]["start_time"]} - {config["backtest"]["end_time"]}')
 
 async def main():
 
