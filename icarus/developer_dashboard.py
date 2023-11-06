@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource
+from bokeh.models import ColumnDataSource, Range1d, LinearAxis, Legend, HoverTool
+from bokeh.layouts import gridplot
 from utils import time_scale_to_milisecond
 import json
 import sys
@@ -121,10 +122,46 @@ dec = df['open'] > df['close']
 # Create a Bokeh candlestick chart
 source = ColumnDataSource(df)
 p = figure(title=f"{symbol} Candlestick Chart ({timeframe})", x_axis_label="Date", x_axis_type="datetime")
-p.segment(x0="open_time", y0="high", x1="open_time", y1="low", source=source, line_color="black")
-#p.vbar(x="open_time", width=candle_width, top="open", bottom="close", source=source, fill_color="green", line_color="black", legend_label="Open/Close")
-p.vbar(df.index[inc], candle_width, df.open[inc], df.close[inc], fill_color="#26a69a", line_color="black")
-p.vbar(df.index[dec], candle_width, df.open[dec], df.close[dec], fill_color="#ef5350", line_color="black")
+p.add_layout(Legend(click_policy="hide", orientation='horizontal', spacing=20), 'above')
+low, high = source.data['open'].min(), source.data['close'].max()
+diff = high - low
+p.y_range = Range1d(low - 0.1 * diff, high + 0.1 * diff)
+p.segment(x0="open_time", y0="high", x1="open_time", y1="low", source=source, line_color="black", legend_label='Candlestick')
+p.vbar(df.index[inc], candle_width, df.open[inc], df.close[inc], fill_color="#26a69a", line_color="black", legend_label='Candlestick')
+p.vbar(df.index[dec], candle_width, df.open[dec], df.close[dec], fill_color="#ef5350", line_color="black", legend_label='Candlestick')
+
+# Add HoverTool to display open, high, close data
+hover = HoverTool(
+    tooltips=[
+        ("Open", "@open{0}"),
+        ("High", "@high{0}"),
+        ("Low", "@low{0}"),
+        ("Close", "@close{0}"),
+        ("Date", "@open_time{%F %T}")
+    ],
+    formatters={
+        "@open_time": "datetime",  # Format the date and time
+    }
+)
+p.add_tools(hover)
+
+
+# Add new overlay
+p.extra_y_ranges = {"volume": Range1d(start=0, end=df['volume'].max() * 4)}
+alpha = 0.5
+p.vbar(df.index[inc], candle_width/2, df['volume'][inc], 0, fill_color="green", line_color="black", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
+p.vbar(df.index[dec], candle_width/2, df['volume'][dec], 0, fill_color="red", line_color="black", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
+p.add_layout(LinearAxis(y_range_name="volume", axis_label="Volume"), 'right')
+
+# Access RSI data
+rsi_data = analysis_dict[symbol][timeframe]['close']
+
+# Create a new plot for RSI
+p_rsi = figure(title=f"{symbol} RSI Indicator ({timeframe})", x_axis_label="Date", x_axis_type="datetime", x_range=p.x_range, plot_height=200)
+p_rsi.line(df.index, rsi_data, line_color="blue", legend_label='RSI')
+
+# Create a grid layout with the two plots
+grid = gridplot([[p], [p_rsi]], sizing_mode='stretch_width')
 
 # Streamlit Bokeh chart
-st.bokeh_chart(p, use_container_width=True)
+st.bokeh_chart(grid, use_container_width=True)
