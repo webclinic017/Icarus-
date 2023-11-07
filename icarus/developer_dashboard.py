@@ -15,6 +15,7 @@ import itertools
 import datetime
 from collections import defaultdict
 from PIL import Image
+from dashboard import analyzer_plot
 
 st.set_page_config(layout="wide")
 
@@ -100,7 +101,7 @@ data_dict = get_data_dict(config, credentials)
 analysis_dict = get_analysis_dict(config, data_dict)
 
 # Configure dashboard
-st.title("Icarus Developer Dashboard")
+st.sidebar.title("Icarus Developer Dashboard")
 
 
 image = Image.open('resources/icarus-visual.jpg')
@@ -111,57 +112,78 @@ with column1:
 with column2:
     timeframe = st.sidebar.selectbox("Select Timeframe", time_scales)
 st.sidebar.markdown("----")
-analyzer = st.sidebar.selectbox("Select Analyzer", analyzer_names)
-on = st.sidebar.toggle('Overwrite Indicator')
+selected_analyzers = st.sidebar.multiselect(
+    "Select analyzers:",
+    analyzer_names,
+    max_selections=5,
+)
 
 # Visualize Data
 candle_width = time_scale_to_milisecond(timeframe)/2
 df = data_dict[symbol][timeframe]
+
+df_red = df.loc[(df['open'] >= df['close'])]
+df_green = df.loc[(df['close'] >= df['open'])]
+
 inc = df['close'] > df['open']
 dec = df['open'] > df['close']
 # Create a Bokeh candlestick chart
 source = ColumnDataSource(df)
-p = figure(title=f"{symbol} Candlestick Chart ({timeframe})", x_axis_label="Date", x_axis_type="datetime")
-p.add_layout(Legend(click_policy="hide", orientation='horizontal', spacing=20), 'above')
+source_red = ColumnDataSource(df_red)
+source_green = ColumnDataSource(df_green)
+
+p = figure(title=f"{symbol} Candlestick Chart ({timeframe})", x_axis_label="Date", x_axis_type="datetime", toolbar_location='left')
+p.add_layout(Legend(click_policy="hide", orientation='horizontal', spacing=20), 'below')
 low, high = source.data['open'].min(), source.data['close'].max()
 diff = high - low
 p.y_range = Range1d(low - 0.1 * diff, high + 0.1 * diff)
-p.segment(x0="open_time", y0="high", x1="open_time", y1="low", source=source, line_color="black", legend_label='Candlestick')
-p.vbar(df.index[inc], candle_width, df.open[inc], df.close[inc], fill_color="#26a69a", line_color="black", legend_label='Candlestick')
-p.vbar(df.index[dec], candle_width, df.open[dec], df.close[dec], fill_color="#ef5350", line_color="black", legend_label='Candlestick')
+
+segmnts_green = p.segment('open_time', 'high', 'open_time', 'low', color="#26a69a", source=source_green, legend_label='Candlesticks')
+segmnts_red = p.segment('open_time', 'high', 'open_time', 'low', color="#ef5350", source=source_red, legend_label='Candlesticks')
+vbars_green = p.vbar('open_time', candle_width, 'open', 'close', source=source_green, fill_color="#26a69a", line_color="#26a69a", legend_label='Candlesticks')
+vbars_red = p.vbar('open_time', candle_width, 'close', 'open', source=source_red, fill_color="#ef5350", line_color="#ef5350", legend_label='Candlesticks')
 
 # Add HoverTool to display open, high, close data
-hover = HoverTool(
-    tooltips=[
-        ("Open", "@open{0}"),
-        ("High", "@high{0}"),
-        ("Low", "@low{0}"),
-        ("Close", "@close{0}"),
-        ("Date", "@open_time{%F %T}")
-    ],
-    formatters={
-        "@open_time": "datetime",  # Format the date and time
-    }
-)
-p.add_tools(hover)
+tooltips=[
+    ("Open", "@open"),
+    ("High", "@high"),
+    ("Low", "@low"),
+    ("Close", "@close"),
+    ("Date", "@open_time{%F %T}")
+]
+formatters={
+    "@open_time": "datetime"  # Format the date and time
+}
 
+red_hover = HoverTool(renderers=[vbars_red], tooltips=tooltips, formatters=formatters)
+p.add_tools(red_hover)
+green_hover = HoverTool(renderers=[vbars_green], tooltips=tooltips, formatters=formatters)
+p.add_tools(green_hover)
 
 # Add new overlay
 p.extra_y_ranges = {"volume": Range1d(start=0, end=df['volume'].max() * 4)}
 alpha = 0.5
-p.vbar(df.index[inc], candle_width/2, df['volume'][inc], 0, fill_color="green", line_color="black", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
-p.vbar(df.index[dec], candle_width/2, df['volume'][dec], 0, fill_color="red", line_color="black", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
+p.vbar('open_time', candle_width/2, 'volume', 0, source=source_green, fill_color="green", line_color="green", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
+p.vbar('open_time', candle_width/2, 'volume', 0, source=source_red, fill_color="red", line_color="red", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
 p.add_layout(LinearAxis(y_range_name="volume", axis_label="Volume"), 'right')
 
-# Access RSI data
-rsi_data = analysis_dict[symbol][timeframe]['close']
+grid_list = [[p]]
 
-# Create a new plot for RSI
-p_rsi = figure(title=f"{symbol} RSI Indicator ({timeframe})", x_axis_label="Date", x_axis_type="datetime", x_range=p.x_range, plot_height=200)
-p_rsi.line(df.index, rsi_data, line_color="blue", legend_label='RSI')
+p_analyzer = figure(title=f"Analyzer", x_axis_label="Date", x_axis_type="datetime", x_range=p.x_range, plot_height=200, toolbar_location='left')
+
+print(selected_analyzers)
+for analyzer in selected_analyzers:
+    if not hasattr(analyzer_plot, analyzer):
+        continue
+
+    analysis = analysis_dict[symbol][timeframe][analyzer]
+    analysis_plotter = getattr(analyzer_plot, analyzer)
+    analysis_plotter(p, p_analyzer, source, analysis)
+
+grid_list.append([p_analyzer])
 
 # Create a grid layout with the two plots
-grid = gridplot([[p], [p_rsi]], sizing_mode='stretch_width')
+grid = gridplot(grid_list, sizing_mode='stretch_width')
 
 # Streamlit Bokeh chart
 st.bokeh_chart(grid, use_container_width=True)
