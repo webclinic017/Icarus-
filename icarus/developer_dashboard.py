@@ -55,7 +55,6 @@ def async_to_sync(async_function):
 @st.cache_data
 @async_to_sync
 async def get_data_dict(config, credentials):
-    print("backtest wrapper")
     client = await AsyncClient.create(**credentials['Binance']['Production'])
     bwrapper = backtest_wrapper.BacktestWrapper(client, config)
     start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
@@ -171,13 +170,19 @@ grid_list = [[p]]
 
 p_analyzer = figure(title=f"Analyzer", x_axis_label="Date", x_axis_type="datetime", x_range=p.x_range, plot_height=200, toolbar_location='left')
 
-print(selected_analyzers)
 for analyzer in selected_analyzers:
-    if not hasattr(analyzer_plot, analyzer):
+    # Evaluate plotter function name
+    if hasattr(analyzer_plot, analyzer):
+        plotter_name = analyzer
+    elif analyzer[:3] == 'cdl':
+        plotter_name = 'pattern_visualizer'
+    elif 'market_class' in analyzer:
+        plotter_name = 'market_class_handler'
+    else:
         continue
 
     analysis = analysis_dict[symbol][timeframe][analyzer]
-    analysis_plotter = getattr(analyzer_plot, analyzer)
+    analysis_plotter = getattr(analyzer_plot, plotter_name)
     analysis_plotter(p, p_analyzer, source, analysis)
 
 grid_list.append([p_analyzer])
