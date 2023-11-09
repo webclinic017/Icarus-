@@ -50,7 +50,7 @@ def sr_evaluate_event_type(meaningful_move_th: int,  length: int, before_pos: in
         else: return SREventType.BREAK
     else:
         return SREventType.PASS_HORIZONTAL
-    
+
 
 @dataclass
 class SRConfig():
@@ -109,6 +109,9 @@ class SRCluster():
     number_of_retest: int = None                        # Higher the better
     number_of_members: int = None                       # Higher the better
     distribution_efficiency: int = None                 # Higher the better
+    price_mean: float = 0.0
+    price_min: float = 0.0
+    price_max: float = 0.0
     events: List[SREvent] = field(default_factory=lambda: [])
 
     def __post_init__(self):
@@ -133,6 +136,13 @@ class SRCluster():
         else:
             # Price is on the cluster
             return 0
+
+def count_srevent(cluster: SRCluster, srevent_type: SREventType) -> int:
+    counter = 0
+    for event in cluster.events:
+        if event.type == srevent_type:
+            counter += 1
+    return counter
 
 
 def serialize_srevents(raw_srevents: List) -> SREvent:

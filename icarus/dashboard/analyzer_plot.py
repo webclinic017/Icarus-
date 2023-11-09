@@ -1,9 +1,12 @@
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.palettes import Category10, Category20, Category20b, Category20c
 from bokeh.models import Legend, HoverTool
-from analyzers.support_resistance import SRCluster, SREvent, SREventType
+from bokeh.models.glyphs import Scatter
+from analyzers.support_resistance import SRCluster, SREvent, SREventType, count_srevent
 import numpy as np
 from typing import List
+from dataclasses import asdict
+import pandas as pd
 
 BLUE='#0000FF'
 PALE_BLUE='#CCCCFF'
@@ -43,6 +46,24 @@ color_map_cluster = [
     (CYAN, PALE_CYAN)
 ]
 
+
+sr_event_colors = {
+    SREventType.BOUNCE: BLUE,
+    SREventType.BREAK: MAGENTA,
+    SREventType.IN_ZONE: CYAN,
+    SREventType.PASS_HORIZONTAL: YELLOW,
+    SREventType.PASS_VERTICAL: PALE_RED
+}
+
+sr_event_marker = {
+    SREventType.BOUNCE: 'circle',
+    SREventType.BREAK: 'diamond',
+    SREventType.IN_ZONE: 'star',
+    SREventType.PASS_HORIZONTAL: 'square',
+    SREventType.PASS_VERTICAL: 'square'
+}
+
+
 def line_plotter(p: figure, source: ColumnDataSource, analysis, **kwargs):
     number_of_lines = max(len(analysis),3)
     print(number_of_lines)
@@ -62,86 +83,145 @@ def line_plotter(p: figure, source: ColumnDataSource, analysis, **kwargs):
     if 'y_range' in kwargs:
         p.y_range.start, p.y_range.end = kwargs['y_range']
 
+
 def scatter_plotter(p: figure, source: ColumnDataSource, analysis, **kwargs):
+    style = kwargs.get('style','diamond')
     if type(analysis) == list:
         is_not_nan = ~np.isnan(analysis)
-        p.diamond(source.data['open_time'][is_not_nan], np.array(analysis)[is_not_nan], size=20, color=kwargs.get('color',Category10[3][0]))
+        getattr(p, style)(source.data['open_time'][is_not_nan], np.array(analysis)[is_not_nan], size=20, color=kwargs.get('color',Category10[3][0]))
     elif type(analysis) == dict:
         num_of_class = max(len(analysis),3)
         for i, (key, value) in enumerate(analysis.items()):
             is_not_nan = ~np.isnan(value)
-            p.diamond(source.data['open_time'][is_not_nan], np.array(value)[is_not_nan], size=20, color=Category10[num_of_class][i])
+            getattr(p, style)(source.data['open_time'][is_not_nan], np.array(value)[is_not_nan], size=20, color=Category10[num_of_class][i])
 
-def support_resistance_handler(p: figure, source: ColumnDataSource, analysis: List[SRCluster], **kwargs):
+
+def support_resistance_plotter(p: figure, source: ColumnDataSource, analysis: List[SRCluster], **kwargs):
     sr_details = kwargs.get('details', True)
     sr_type = kwargs.get('type', '')
     sr_cmap = kwargs.get('cmap')
 
-    # Color Map params
+    raw_data = {
+        'x': [],
+        'y': [],
+        'line_color': []
+    }
+
+    chunk_start_indexes = list(set([sr_cluster.chunk_start_index for sr_cluster in analysis]))
+    sorted(chunk_start_indexes)
     colormap_idx = 0
-    start_idx = None
+    color_start_index_mapping = dict()
+    for index in chunk_start_indexes:
+        colormap_idx += 1
+        colormap_idx = colormap_idx % len(sr_cmap)
+        color_start_index_mapping[index] = sr_cmap[colormap_idx]
 
     for sr_cluster in analysis:
-
+        # NOTE: Normally this is used to filter sr clusters
         if sr_cluster.distribution_score < 0:
             continue
 
-        if start_idx == None:
-            start_idx = sr_cluster.chunk_start_index
-
-        # Change color of cluster based on the start_index of cluster
-        if start_idx != sr_cluster.chunk_start_index:
-            start_idx = sr_cluster.chunk_start_index
-            colormap_idx += 1
-            colormap_idx = colormap_idx % len(color_map_support)
-
         if sr_details:
-            text_bot = "HorDist:{}, VerDist:{}, Dist:{}".format(
-                sr_cluster.horizontal_distribution_score, 
-                sr_cluster.vertical_distribution_score, 
-                sr_cluster.distribution_score)
-
-            text_top_left = "#MinMember: {}, #NumOfRetest:{}".format(sr_cluster.min_cluster_members,sr_cluster.number_of_retest)
-            text_top_right = "#Frame:{}".format(sr_cluster.chunk_end_index-sr_cluster.chunk_start_index)
-
             xyxy = [source.data['open_time'][sr_cluster.validation_index], sr_cluster.price_min, source.data['open_time'][sr_cluster.chunk_end_index], sr_cluster.price_max]
             rect_center = ((xyxy[2] + xyxy[0])/2, (xyxy[3] + xyxy[1])/2)
             rect_width = xyxy[2] - xyxy[0]
             rect_height = xyxy[3] - xyxy[1]
             p.rect(x=rect_center[0], y=rect_center[1], width=rect_width, height=rect_height,
-                color=sr_cmap[colormap_idx][1], alpha=0.5)
-            
-        p.line(source.data['open_time'][sr_cluster.chunk_start_index:sr_cluster.chunk_end_index+1], 
-               sr_cluster.price_mean, line_color=sr_cmap[colormap_idx][0], line_width=4, line_dash = [1, 2])
+                color=color_start_index_mapping[sr_cluster.chunk_start_index][1], alpha=0.5,
+                legend_label=sr_type+'Cluster')
+            sr_event_plotter(p, source, sr_cluster)
+        x_data = list(source.data['open_time'][sr_cluster.chunk_start_index:sr_cluster.chunk_end_index+1])
+        y_data = [sr_cluster.price_mean]*len(x_data)
+        raw_data['x'].append(x_data)
+        raw_data['y'].append(y_data)
+        raw_data['line_color'].append(color_start_index_mapping[sr_cluster.chunk_start_index][0])
 
+    raw_data['line_dash'] = [[1,2]] * len(raw_data['y'])
+    raw_data['distribution_score'] = [sr_cluster.distribution_score for sr_cluster in analysis]
+    raw_data['price_mean'] = [sr_cluster.price_mean for sr_cluster in analysis]
+    raw_data['number_of_members'] = [sr_cluster.number_of_members for sr_cluster in analysis]
+    raw_data['distribution_efficiency'] = [sr_cluster.distribution_efficiency for sr_cluster in analysis]
+    raw_data['bounce'] = [count_srevent(sr_cluster, SREventType.BOUNCE) for sr_cluster in analysis]
+    raw_data['break'] = [count_srevent(sr_cluster, SREventType.BREAK) for sr_cluster in analysis]
+    raw_data['pass_horizontal'] = [count_srevent(sr_cluster, SREventType.PASS_HORIZONTAL) for sr_cluster in analysis]
+    raw_data['pass_vertical'] = [count_srevent(sr_cluster, SREventType.PASS_VERTICAL) for sr_cluster in analysis]
+
+    data_source = ColumnDataSource(data=raw_data)
+
+    # Plot center line of cluster
+    sr_cluster_lines = p.multi_line(xs='x', ys='y', source=data_source, line_color='line_color', line_width=4, line_dash='line_dash', legend_label=sr_type+'Line')
+
+    # Hover Tool
     hover = HoverTool()
     hover.tooltips = [
-        ("Horizontal Distance", "@cluster_data.horizontal_distribution_score"),
-        ("Vertical Distance", "@cluster_data.vertical_distribution_score"),
-        ("Total Distance", "@cluster_data.distribution_score"),
-        ("Min Members", "@cluster_data.min_cluster_members"),
-        ("Number of Retests", "@cluster_data.number_of_retest"),
-        ("Frame Count", "@cluster_data.chunk_end_index - @cluster_data.chunk_start_index")
+        ("PriceMean", "@price_mean"),
+        ("# Members", "@number_of_members"),
+        ("DistScore", "@distribution_score"),
+        ("DistEff", "@distribution_efficiency"),
+        ("# Bounce", "@bounce"),
+        ("#  Break", "@break"),
+        ("# Pass H", "@pass_horizontal"),
+        ("# Pass V", "@pass_vertical")
     ]
-
+    hover.renderers = [sr_cluster_lines]
     p.add_tools(hover)
 
-        #fplt.add_line((x[sr_cluster.chunk_start_index], sr_cluster.price_mean), 
-        #    (x[sr_cluster.chunk_end_index], sr_cluster.price_mean), style='.', color=sr_cmap[colormap_idx][0], width=2, interactive=False)
 
-#def support_birch(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Support', 'cmap':color_map_support})
-#def resistance_birch(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Resistance', 'cmap':color_map_resistance})
-#def support_optics(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Support', 'cmap':color_map_support})
-#def resistance_optics(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+def sr_event_plotter(p: figure, source: ColumnDataSource, sr_cluster: SRCluster, **kwargs):
+    sr_events = sr_cluster.events
+    raw_data = {'x': [], 'y': [], 'markers': [], 'colors': []}
+    for sr_event in sr_events:
+        raw_data['x'].append(source.data['open_time'][sr_cluster.chunk_start_index + sr_event.start_index])
+        raw_data['y'].append(sr_cluster.price_mean)
+        raw_data['markers'].append(sr_event_marker[sr_event.type])
+        raw_data['colors'].append(sr_event_colors[sr_event.type])
+    
+    sr_event_data_source = ColumnDataSource(data=raw_data)
+
+    glyph = Scatter(x='x', y='y', size=20, marker='markers', fill_color='colors', fill_alpha=0.7)
+    p.add_glyph(sr_event_data_source, glyph)
+    # TODO: Add legend item
+
+
+def support_birch(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Support', 'cmap':color_map_support}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
+
+def resistance_birch(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Resistance', 'cmap':color_map_resistance}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
+
+def support_optics(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Support', 'cmap':color_map_support}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
+
+def resistance_optics(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Resistance', 'cmap':color_map_resistance}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
+
 def support_meanshift(p_candlesticks, p_analyzer, source, analysis): 
     kwargs = {'type':'Support', 'cmap':color_map_support}; 
-    support_resistance_handler(p_candlesticks, source, analysis, **kwargs)
-#def resistance_meanshift(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Resistance', 'cmap':color_map_resistance})
-#def support_dbscan(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Support', 'cmap':color_map_support})
-#def resistance_dbscan(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Resistance', 'cmap':color_map_resistance})
-#def support_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Support', 'cmap':color_map_support})
-#def resistance_kmeans(x, y, axes): disable_ax_bot(axes); support_resistance_handler(x, y, axes, **{'type':'Resistance', 'cmap':color_map_resistance})
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
 
+def resistance_meanshift(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Resistance', 'cmap':color_map_resistance}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
+
+def support_dbscan(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Support', 'cmap':color_map_support}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
+
+def resistance_dbscan(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Resistance', 'cmap':color_map_resistance}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
+
+def support_kmeans(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Support', 'cmap':color_map_support}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
+
+def resistance_kmeans(p_candlesticks, p_analyzer, source, analysis): 
+    kwargs = {'type':'Resistance', 'cmap':color_map_resistance}; 
+    support_resistance_plotter(p_candlesticks, source, analysis, **kwargs)
 
 def fractal_line_3(p_candlesticks, p_analyzer, source, analysis): kwargs = {}; line_plotter(p_candlesticks, source, analysis, **kwargs)
 def fractal_aroon(p_candlesticks, p_analyzer, source, analysis): kwargs = {'y_range': (0, 100)}; line_plotter(p_analyzer, source, analysis, **kwargs)
