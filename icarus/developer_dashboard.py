@@ -121,49 +121,47 @@ selected_analyzers = st.sidebar.multiselect(
 candle_width = time_scale_to_milisecond(timeframe)/2
 df = data_dict[symbol][timeframe]
 
-df_red = df.loc[(df['open'] >= df['close'])]
-df_green = df.loc[(df['close'] >= df['open'])]
+df_bearish = df.loc[(df['open'] >= df['close'])]
+df_bullish = df.loc[(df['close'] >= df['open'])]
 
 inc = df['close'] > df['open']
 dec = df['open'] > df['close']
 # Create a Bokeh candlestick chart
 source = ColumnDataSource(df)
-source_red = ColumnDataSource(df_red)
-source_green = ColumnDataSource(df_green)
+source_bearish = ColumnDataSource(df_bearish)
+source_bullish = ColumnDataSource(df_bullish)
 
 p = figure(title=f"{symbol} Candlestick Chart ({timeframe})", x_axis_label="Date", x_axis_type="datetime", toolbar_location='left')
-p.add_layout(Legend(click_policy="hide", orientation='horizontal', spacing=20), 'below')
+p.add_layout(Legend(click_policy="hide", orientation='horizontal', spacing=20), 'center')
 low, high = source.data['open'].min(), source.data['close'].max()
 diff = high - low
 p.y_range = Range1d(low - 0.1 * diff, high + 0.1 * diff)
 
-segmnts_green = p.segment('open_time', 'high', 'open_time', 'low', color="#26a69a", source=source_green, legend_label='Candlesticks')
-segmnts_red = p.segment('open_time', 'high', 'open_time', 'low', color="#ef5350", source=source_red, legend_label='Candlesticks')
-vbars_green = p.vbar('open_time', candle_width, 'open', 'close', source=source_green, fill_color="#26a69a", line_color="#26a69a", legend_label='Candlesticks')
-vbars_red = p.vbar('open_time', candle_width, 'close', 'open', source=source_red, fill_color="#ef5350", line_color="#ef5350", legend_label='Candlesticks')
+p.segment('open_time', 'high', 'open_time', 'low', color="#26a69a", source=source_bullish, legend_label='Candlesticks')
+p.segment('open_time', 'high', 'open_time', 'low', color="#ef5350", source=source_bearish, legend_label='Candlesticks')
+vbars_bullish = p.vbar('open_time', candle_width, 'open', 'close', source=source_bullish, fill_color="#26a69a", line_color="#26a69a", legend_label='Candlesticks')
+vbars_bearish = p.vbar('open_time', candle_width, 'close', 'open', source=source_bearish, fill_color="#ef5350", line_color="#ef5350", legend_label='Candlesticks')
 
 # Add HoverTool to display open, high, close data
 tooltips=[
-    ("Open", "@open"),
-    ("High", "@high"),
-    ("Low", "@low"),
-    ("Close", "@close"),
+    ("Open", "@open{0.00}"),
+    ("High", "@high{0.00}"),
+    ("Low", "@low{0.00}"),
+    ("Close", "@close{0.00}"),
     ("Date", "@open_time{%F %T}")
 ]
 formatters={
     "@open_time": "datetime"  # Format the date and time
 }
 
-red_hover = HoverTool(renderers=[vbars_red], tooltips=tooltips, formatters=formatters)
-p.add_tools(red_hover)
-green_hover = HoverTool(renderers=[vbars_green], tooltips=tooltips, formatters=formatters)
-p.add_tools(green_hover)
+hover = HoverTool(renderers=[vbars_bearish, vbars_bullish], tooltips=tooltips, formatters=formatters)
+p.add_tools(hover)
 
 # Add new overlay
 p.extra_y_ranges = {"volume": Range1d(start=0, end=df['volume'].max() * 4)}
 alpha = 0.5
-p.vbar('open_time', candle_width/2, 'volume', 0, source=source_green, fill_color="green", line_color="green", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
-p.vbar('open_time', candle_width/2, 'volume', 0, source=source_red, fill_color="red", line_color="red", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
+p.vbar('open_time', candle_width/2, 'volume', 0, source=source_bullish, fill_color="green", line_color="green", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
+p.vbar('open_time', candle_width/2, 'volume', 0, source=source_bearish, fill_color="red", line_color="red", legend_label='Volume', y_range_name="volume", fill_alpha=alpha)
 p.add_layout(LinearAxis(y_range_name="volume", axis_label="Volume"), 'right')
 
 grid_list = [[p]]
@@ -176,14 +174,14 @@ for analyzer in selected_analyzers:
         plotter_name = analyzer
     elif analyzer[:3] == 'cdl':
         plotter_name = 'pattern_visualizer'
-    elif 'market_class' in analyzer:
-        plotter_name = 'market_class_handler'
+    elif 'market_regime' in analyzer and analyzer != 'market_regime_index':
+        plotter_name = 'market_regime_handler'
     else:
         continue
 
     analysis = analysis_dict[symbol][timeframe][analyzer]
     analysis_plotter = getattr(analyzer_plot, plotter_name)
-    analysis_plotter(p, p_analyzer, source, analysis)
+    analysis_plotter(p, p_analyzer, source, analysis, analyzer)
 
 grid_list.append([p_analyzer])
 

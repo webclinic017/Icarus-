@@ -61,27 +61,33 @@
     "analysis": [
         {
             "candlesticks": {},
-            "close": {},
-            "rsi": {},
-            "aroon": {"timeperiod":6},
-            "stochf": {},
-            "stoch": {},
-            "cdlspinningtop": {"is_raw": false},
-            "cdllongline": {"is_raw": false},
-            "supertrend_band": {},
-            "macd": {}
+            "close": {}
         },
         {
             "bullish_fractal_3": {},
             "bearish_fractal_3": {},
-            "bullish_aroon_break": {},
-            "bearish_aroon_break": {}
+            "market_direction_supertrend": {},
+            "market_direction_rsi": {},
+            "market_direction_macd": {},
+            "market_direction_aroon": {}
         },
         {
+            "market_regime_supertrend":{},
+            "market_regime_rsi":{},
+            "market_regime_macd":{},
+            "market_regime_aroon":{},
             "support_meanshift": {"source":"bullish_fractal_3", "step_to_frame_ratio":0.5},
             "resistance_meanshift": {"source":"bearish_fractal_3", "step_to_frame_ratio":0.5}
         },
         {
+            "market_regime_index": {
+                "indicators": [
+                    "market_regime_rsi", 
+                    "market_regime_macd",
+                    "market_regime_aroon",
+                    "market_regime_supertrend"
+                ]
+            },
             "sr_events": {"sequence_th": 5, "analyzers": ["support_meanshift", "resistance_meanshift"]}
         }
     ],

@@ -148,6 +148,8 @@ def bar_handler(x, y, axis):
 def scatter_handler(x, y, axis):
     # Type check for 'y'
     if type(y) == list:
+        plot.diamond(x=[1, 2, 3], y=[1, 2, 3], size=20,
+             color="#1C9099", line_width=2)
         fplt.plot(x=x, y=y, kind='scatter', color=MAGENTA, width=2, ax=axis, zoomscale=False, style='d')
     elif type(y) == dict:
         keys = list(y.keys())
@@ -404,5 +406,4 @@ def trange(x, y, axes): enable_ax_bot(axes); line_handler(x, y, axes['ax_bot'])
 
 # TA-LIB Patterns
 def cdl_handler(x, y, axes): disable_ax_bot(axes); scatter_handler(x, y, axes['ax'])
-
 def direction_macd(x, y, axes): disable_ax_bot(axes); scatter_handler(x, y, axes['ax'])
