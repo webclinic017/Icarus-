@@ -15,7 +15,11 @@ import itertools
 import datetime
 from collections import defaultdict
 from PIL import Image
-from dashboard import analyzer_plot
+from dashboard import analyzer_plot, trade_plot
+import mongo_utils
+from utils import get_pair_min_period_mapping
+from objects import ECause, Observation
+
 
 st.set_page_config(layout="wide")
 
@@ -82,16 +86,57 @@ async def get_data_dict(config, credentials):
 
     return convert_nested_defaultdict(bwrapper.downloaded_data)
 
+def merge_dicts(dict1, dict2):
+    result = {}
+    for key in dict1.keys() | dict2.keys():
+        if key in dict1 and key in dict2:
+            if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
+                result[key] = merge_dicts(dict1[key], dict2[key])
+            else:
+                result[key] = dict1[key]
+        elif key in dict1:
+            result[key] = dict1[key]
+        else:
+            result[key] = dict2[key]
+    return result
+
+async def get_trades(config):
+    mongo_client = mongo_utils.MongoClient(**config['mongodb'])
+    pair_scale_mapping = await get_pair_min_period_mapping(config)
+
+    trade_ids = []
+    trades_dict = {}
+
+    for idx, (pair, scale) in enumerate(pair_scale_mapping.items()):
+        canceled = await mongo_utils.do_find_trades(mongo_client, 'hist-trades', {'result.cause':ECause.ENTER_EXP, 'pair':pair})
+        closed = await mongo_utils.do_find_trades(mongo_client, 'hist-trades', {'result.cause':{'$in':[ECause.MARKET, ECause.STOP_LIMIT, ECause.LIMIT]}, 'pair':pair})
+        trade_ids += [str(closed_trade._id) for closed_trade in closed]
+        
+        if len(trade_ids) == 0:
+            continue
+
+        if pair not in trades_dict:
+            trades_dict[pair] = {}
+
+        if scale not in trades_dict[pair]:
+            trades_dict[pair][scale] = {}
+        trades_dict[pair][scale]['trades'] = closed + canceled
+
+    return trades_dict
+
 @st.cache_data
 @async_to_sync
 async def get_analysis_dict(config, data_dict):
     analyzer = Analyzer(config)
     analysis_dict = await analyzer.analyze(data_dict)
-    return analysis_dict
-
+    trades_dict = await get_trades(config)
+    if len(trades_dict) == 0:
+        return analysis_dict
+    return merge_dicts(analysis_dict, trades_dict)
 
 # Obtain data to visualize
 config = get_config()
+config['mongodb']['clean'] = False
 symbols = get_symbols(config)
 time_scales = get_time_scales(config)
 credentials = get_credentials(config)
@@ -111,11 +156,24 @@ with column1:
 with column2:
     timeframe = st.sidebar.selectbox("Select Timeframe", time_scales)
 st.sidebar.markdown("----")
+
+if 'trades' in analysis_dict[symbol][timeframe]:
+    analyzer_names.append('trades')
+
+analyzer_names.sort()
 selected_analyzers = st.sidebar.multiselect(
     "Select analyzers:",
     analyzer_names,
     max_selections=5,
 )
+
+if 'trades' in analyzer_names:
+    trade_ids = [trade._id for trade in  analysis_dict[symbol][timeframe]['trades']]
+    selected_trades = st.sidebar.multiselect(
+        "Select trades:",
+        trade_ids
+    )
+
 
 # Visualize Data
 candle_width = time_scale_to_milisecond(timeframe)/2
@@ -167,21 +225,23 @@ p.add_layout(LinearAxis(y_range_name="volume", axis_label="Volume"), 'right')
 grid_list = [[p]]
 
 p_analyzer = figure(title=f"Analyzer", x_axis_label="Date", x_axis_type="datetime", x_range=p.x_range, plot_height=200, toolbar_location='left')
-
 for analyzer in selected_analyzers:
     # Evaluate plotter function name
     if hasattr(analyzer_plot, analyzer):
-        plotter_name = analyzer
+        plotter = getattr(analyzer_plot, analyzer)
+    elif hasattr(trade_plot, analyzer):
+        plotter = getattr(trade_plot, analyzer)
     elif analyzer[:3] == 'cdl':
         plotter_name = 'pattern_visualizer'
+        plotter = getattr(analyzer_plot, plotter_name)
     elif 'market_regime' in analyzer and analyzer != 'market_regime_index':
         plotter_name = 'market_regime_handler'
+        plotter = getattr(analyzer_plot, plotter_name)
     else:
         continue
 
     analysis = analysis_dict[symbol][timeframe][analyzer]
-    analysis_plotter = getattr(analyzer_plot, plotter_name)
-    analysis_plotter(p, p_analyzer, source, analysis, analyzer)
+    plotter(p, p_analyzer, source, analysis, analyzer)
 
 grid_list.append([p_analyzer])
 
