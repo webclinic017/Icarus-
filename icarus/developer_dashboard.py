@@ -18,7 +18,7 @@ from PIL import Image
 from dashboard import analyzer_plot, trade_plot, observer_plot
 import mongo_utils
 from utils import get_pair_min_period_mapping
-from objects import ECause, Observation
+from objects import ECause
 
 
 st.set_page_config(layout="wide")
@@ -153,7 +153,7 @@ async def get_observer_dict(config):
         df_obs_data = pd.DataFrame(df_observers['data'].to_list())
         df_obs_data.set_index(df_observers['ts']*1000, inplace=True)
         #df_obs_data = df_obs_data[obs_list]
-        observer_dict['obs_'+obs_config['type']] = df_obs_data
+        observer_dict[obs_config['type']] = df_obs_data
 
     return observer_dict
 
@@ -229,7 +229,7 @@ source = ColumnDataSource(df)
 source_bearish = ColumnDataSource(df_bearish)
 source_bullish = ColumnDataSource(df_bullish)
 
-p = figure(title=f"{symbol} Candlestick Chart ({timeframe})", x_axis_label="Date", x_axis_type="datetime", toolbar_location='left')
+p = figure(title=f"{symbol} Candlestick Chart ({timeframe})", x_axis_label="Date", x_axis_type="datetime")
 p.add_layout(Legend(click_policy="hide", orientation='horizontal', spacing=20), 'center')
 low, high = source.data['open'].min(), source.data['close'].max()
 diff = high - low
@@ -264,7 +264,7 @@ p.add_layout(LinearAxis(y_range_name="volume", axis_label="Volume"), 'right')
 
 grid_list = [[p]]
 
-p_analyzer = figure(title=f"Analyzer", x_axis_label="Date", x_axis_type="datetime", x_range=p.x_range, plot_height=200, toolbar_location='left')
+p_analyzer = figure(title=f"Analyzer", x_axis_label="Date", x_axis_type="datetime", x_range=p.x_range, plot_height=200)
 for analyzer in selected_analyzers:
     # Evaluate plotter function name
     if hasattr(analyzer_plot, analyzer):
@@ -303,7 +303,7 @@ for observer in selected_observers:
 grid_list.append([p_analyzer])
 
 # Create a grid layout with the two plots
-grid = gridplot(grid_list, sizing_mode='stretch_width')
+grid = gridplot(grid_list, sizing_mode='stretch_width', toolbar_location='below')
 
 # Streamlit Bokeh chart
 st.bokeh_chart(grid, use_container_width=True)

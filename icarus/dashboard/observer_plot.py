@@ -1,26 +1,17 @@
-import finplot as fplt
 from analyzers.support_resistance import SRCluster, serialize_srcluster
 from typing import List
-from utils import minute_to_time_scale
-from visualization import indicator_plot
 from functools import wraps
 from dashboard.analyzer_plot import support_resistance_plotter
 from dashboard import analyzer_plot
+from bokeh.palettes import Category10
 
 def quote_asset(p_candlesticks, p_analyzer, source, observation, observer):
-    
-    fplt.plot(y['total'], width=3, ax=axes['ax'], legend='Total')
-    fplt.plot(y['free'], width=2, ax=axes['ax'], legend='Free')
-    fplt.plot(y['in_trade'], width=2, ax=axes['ax'], legend='In Trade')
-    fplt.add_line((y['total'].index[0], y['total'].iloc[0]),
-        (y['total'].index[-1], y['total'].iloc[0]), color='#000000', interactive=False)
 
+    p_analyzer.line([observation.index[0], observation.index[-1]], observation['total'].iloc[0], line_color='black')
+    p_analyzer.line(observation.index, observation['total'], legend_label='total', line_color=Category10[3][0])
+    #p_analyzer.line(observation.index, observation['free'], legend_label='free', line_color=Category10[3][1])
+    #p_analyzer.line(observation.index, observation['in_trade'], legend_label='in_trade', line_color=Category10[3][2])
 
-def text(x, y, axes):
-    fplt.plot(x, y=[1]*len(x), ax=axes['ax_bot'])
-    for index, row in y.iterrows():
-        fplt.add_text((index, 0.5), str(row[0]), color='#000000',anchor=(0,0), ax=axes['ax_bot'])
-    pass
 
 def adapt_cluster_indexes(x, y, enable_details=False) -> List[SRCluster]:
     all_cluster = []

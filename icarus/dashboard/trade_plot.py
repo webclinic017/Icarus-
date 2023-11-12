@@ -105,11 +105,8 @@ def add_enter_lines(source, df, end_of_line, price_level):
     }
 
     for index, row in df.iterrows():
-        mask = (source.data['open_time'] >= row['decision_time']) & (source.data['open_time'] <= row[end_of_line])
-        x_data = list(source.data['open_time'][mask])
-        y_data = [row[price_level]]*len(x_data)
-        raw_lines['xs'].append(x_data)
-        raw_lines['ys'].append(y_data)
+        raw_lines['xs'].append([row['decision_time'], row[end_of_line]])
+        raw_lines['ys'].append([row[price_level], row[price_level]])
 
     df = df.assign(xs=raw_lines['xs'])
     df = df.assign(ys=raw_lines['ys'])
