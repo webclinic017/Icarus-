@@ -6,19 +6,35 @@ import numpy as np
 from typing import List
 import pandas as pd
 
-def trades(p: figure, p_analyzer: figure, source: ColumnDataSource, analysis: List[Trade], analyzer: str):
+def individual_trades(p: figure, p_analyzer: figure, source: ColumnDataSource, analysis: List[Trade], trade_ids: List[str]):
 
     if len(analysis) < 0:
         return
 
     df = pd.DataFrame(analysis)
+    df_trades =  df[df['_id'].isin(trade_ids)]
+    trades(p, p_analyzer, source, df_trades, 'trades')
+
+
+def trades(p: figure, p_analyzer: figure, source: ColumnDataSource, analysis: List[Trade], analyzer: str):
+
+    if len(analysis) < 0:
+        return
+
+    if type(analysis) == pd.DataFrame:
+        df = analysis
+    elif type(analysis) == list:
+        df = pd.DataFrame(analysis)
+    
     df_results = df['result'].apply(pd.Series).add_prefix('result_')
 
     df_closed = df[df_results['result_cause'] != 'enter_expire']
-    plot_closed_trades(p, source, df_closed)
+    if not df_closed.empty:
+        plot_closed_trades(p, source, df_closed)
 
     df_canceled = df[df_results['result_cause'] == 'enter_expire']
-    plot_expired_trades(p, source, df_canceled)
+    if not df_canceled.empty:
+        plot_expired_trades(p, source, df_canceled)
 
 
 def plot_closed_trades(p, source, df_closed):

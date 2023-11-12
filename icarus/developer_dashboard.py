@@ -15,7 +15,7 @@ import itertools
 import datetime
 from collections import defaultdict
 from PIL import Image
-from dashboard import analyzer_plot, trade_plot
+from dashboard import analyzer_plot, trade_plot, observer_plot
 import mongo_utils
 from utils import get_pair_min_period_mapping
 from objects import ECause, Observation
@@ -41,6 +41,10 @@ def get_time_scales(config):
 @st.cache_data
 def get_analyzer_names(config):
     return list(set(chain(*[list(layer.keys()) for layer in config['analysis']])))
+
+@st.cache_data
+def get_observer_names(config):
+    return list(set([obs_config['type'] for obs_config in config['observers']]))
 
 @st.cache_data
 def get_credentials(config):
@@ -126,6 +130,35 @@ async def get_trades(config):
 
 @st.cache_data
 @async_to_sync
+async def get_observer_dict(config):
+    mongo_client = mongo_utils.MongoClient(**config['mongodb'])
+    observer_dict = {}
+    # Get observer objects
+    for obs_config in config.get('observers', []):
+        if not hasattr(observer_plot, obs_config['type']) or obs_config['type'] in observer_dict:
+            continue
+
+        observers = list(await mongo_client.do_find('observer',{'type':obs_config['type']}))
+        df_observers = pd.DataFrame(observers)
+        
+        if df_observers.empty:
+            continue
+
+        observer_dtype = observers[0].get('dtype','')
+        if observer_dtype != '':
+            # TODO: Process the data packs acording to their dtype
+            observer_dict[obs_config['type']] = observers
+            continue
+        
+        df_obs_data = pd.DataFrame(df_observers['data'].to_list())
+        df_obs_data.set_index(df_observers['ts']*1000, inplace=True)
+        #df_obs_data = df_obs_data[obs_list]
+        observer_dict['obs_'+obs_config['type']] = df_obs_data
+
+    return observer_dict
+
+@st.cache_data
+@async_to_sync
 async def get_analysis_dict(config, data_dict):
     analyzer = Analyzer(config)
     analysis_dict = await analyzer.analyze(data_dict)
@@ -141,8 +174,10 @@ symbols = get_symbols(config)
 time_scales = get_time_scales(config)
 credentials = get_credentials(config)
 analyzer_names = get_analyzer_names(config)
+observer_names = get_observer_names(config)
 data_dict = get_data_dict(config, credentials)
 analysis_dict = get_analysis_dict(config, data_dict)
+observer_dict = get_observer_dict(config)
 
 # Configure dashboard
 st.sidebar.title("Icarus Developer Dashboard")
@@ -167,12 +202,17 @@ selected_analyzers = st.sidebar.multiselect(
     max_selections=5,
 )
 
-if 'trades' in analyzer_names:
-    trade_ids = [trade._id for trade in  analysis_dict[symbol][timeframe]['trades']]
-    selected_trades = st.sidebar.multiselect(
-        "Select trades:",
-        trade_ids
-    )
+trade_ids = [trade._id for trade in analysis_dict[symbol][timeframe].get('trades', [])]
+selected_trades = st.sidebar.multiselect(
+    "Select trades:",
+    trade_ids
+)
+
+selected_observers = st.sidebar.multiselect(
+    "Select observers:",
+    observer_names,
+    max_selections=5,
+)
 
 
 # Visualize Data
@@ -242,6 +282,23 @@ for analyzer in selected_analyzers:
 
     analysis = analysis_dict[symbol][timeframe][analyzer]
     plotter(p, p_analyzer, source, analysis, analyzer)
+
+if len(selected_trades) > 0 and 'trades' not in selected_analyzers:
+    analyzer = 'trades'
+    plotter = getattr(trade_plot, 'individual_trades')
+    analysis = analysis_dict[symbol][timeframe][analyzer]
+    plotter(p, p_analyzer, source, analysis, selected_trades)
+
+for observer in selected_observers:
+    # Evaluate plotter function name
+    if hasattr(observer_plot, observer):
+        plotter = getattr(observer_plot, observer)
+    else:
+        continue
+
+    observation = observer_dict[observer]
+    plotter(p, p_analyzer, source, observation, observer)
+
 
 grid_list.append([p_analyzer])
 
