@@ -168,6 +168,21 @@ async def get_analysis_dict(config, data_dict):
         return analysis_dict
     return merge_dicts(analysis_dict, trades_dict)
 
+@st.cache_data
+def get_filtered_observations(trades, observations):
+    df = pd.DataFrame(trades)
+    df_trades =  df[df['_id'].isin(selected_trades)]
+
+    observations_filtered = []
+    for idx, trade_row in df_trades.iterrows():
+        observation_dates = [trade_row['decision_time'], trade_row['result']['exit']['time']]
+        for observation in observations:
+            if observation['ts'] not in observation_dates:
+                continue
+            observations_filtered.append(observation)
+    return observations_filtered
+
+
 # Obtain data to visualize
 config = get_config()
 
@@ -309,9 +324,13 @@ for observer in selected_observers:
     else:
         continue
 
-    observation = observer_dict[observer]
-    plotter(p, p_analyzer, source, observation, observer)
+    observations = observer_dict[observer]
+    if len(selected_trades) == 0:
+        plotter(p, p_analyzer, source, observations, observer)
+        continue
 
+    observations_filtered = get_filtered_observations(analysis_dict[symbol][timeframe]['trades'], observations)
+    plotter(p, p_analyzer, source, observations_filtered, observer, enable_details=True)
 
 grid_list.append([p_analyzer])
 

@@ -102,7 +102,7 @@
                  "icarus/developer_dashboard.py",
                  "--server.port",
                  "8501",
-                 "${workspaceFolder}/configs/IC/168/config.json"
+                 "${workspaceFolder}/configs/IC/147/config.json"
             ]
         },
         {

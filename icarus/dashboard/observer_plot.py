@@ -40,34 +40,35 @@ def adapt_cluster_indexes(x, y, enable_details=False) -> List[SRCluster]:
 def adapt_clusters_decorator(type, color_map):
     def decorator(func):
         @wraps(func)
-        def wrapper(p_candlesticks, p_analyzer, source, analysis, analyzer):
-            clusters = adapt_cluster_indexes(source.data['open_time'], analysis, False)
-            kwargs = {'type': type, 'cmap': color_map, 'details': False}
-            support_resistance_plotter(p_candlesticks, source, clusters, **kwargs)
-            return func(p_candlesticks, p_analyzer, source, clusters, analyzer)
+        def wrapper(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs):
+            enable_details = kwargs.get('enable_details', False)
+            clusters = adapt_cluster_indexes(source.data['open_time'], analysis, enable_details)
+            kwargs_sr_plotter = {'type': type, 'cmap': color_map, 'details': enable_details}
+            support_resistance_plotter(p_candlesticks, source, clusters, **kwargs_sr_plotter)
+            return func(p_candlesticks, p_analyzer, source, clusters, analyzer, **kwargs)
         return wrapper
     return decorator
 
 @adapt_clusters_decorator('Support', analyzer_plot.color_map_support_basic)
-def support_meanshift(p_candlesticks, p_analyzer, source, analysis, analyzer): return
+def support_meanshift(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs): return
 
 @adapt_clusters_decorator('Resistance', analyzer_plot.color_map_resistance_basic)
-def resistance_meanshift(p_candlesticks, p_analyzer, source, analysis, analyzer): return
+def resistance_meanshift(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs): return
 
 @adapt_clusters_decorator('Support', analyzer_plot.color_map_support_basic)
-def support_dbscan(p_candlesticks, p_analyzer, source, analysis, analyzer): return
+def support_dbscan(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs): return
 
 @adapt_clusters_decorator('Resistance', analyzer_plot.color_map_resistance_basic)
-def resistance_dbscan(p_candlesticks, p_analyzer, source, analysis, analyzer): return
+def resistance_dbscan(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs): return
 
 @adapt_clusters_decorator('Support', analyzer_plot.color_map_support_basic)
-def support_birch(p_candlesticks, p_analyzer, source, analysis, analyzer): return
+def support_birch(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs): return
 
 @adapt_clusters_decorator('Resistance', analyzer_plot.color_map_resistance_basic)
-def resistance_birch(p_candlesticks, p_analyzer, source, analysis, analyzer): return
+def resistance_birch(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs): return
 
 @adapt_clusters_decorator('Support', analyzer_plot.color_map_support_basic)
-def support_optics(p_candlesticks, p_analyzer, source, analysis, analyzer): return
+def support_optics(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs): return
 
 @adapt_clusters_decorator('Resistance', analyzer_plot.color_map_resistance_basic)
-def resistance_optics(p_candlesticks, p_analyzer, source, analysis, analyzer): return
+def resistance_optics(p_candlesticks, p_analyzer, source, analysis, analyzer, **kwargs): return
