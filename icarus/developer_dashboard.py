@@ -19,6 +19,7 @@ from dashboard import analyzer_plot, trade_plot, observer_plot
 import mongo_utils
 from utils import get_pair_min_period_mapping
 from objects import ECause
+from sshtunnel import SSHTunnelForwarder
 
 
 st.set_page_config(layout="wide")
@@ -169,6 +170,18 @@ async def get_analysis_dict(config, data_dict):
 
 # Obtain data to visualize
 config = get_config()
+
+if 'ssh_tunnel' in config:
+    #tunnel_server = SSHTunnelForwarder(**config['ssh_tunnel'])
+    tunnel_server = SSHTunnelForwarder(
+        tuple(config['ssh_tunnel']['ssh_address_or_host']),
+        ssh_username=config['ssh_tunnel']['ssh_username'],
+        ssh_pkey=config['ssh_tunnel']['ssh_pkey'],
+        remote_bind_address=tuple(config['ssh_tunnel']['remote_bind_address']),
+        local_bind_address=tuple(config['ssh_tunnel']['local_bind_address'])
+    )
+    tunnel_server.start()
+
 config['mongodb']['clean'] = False
 symbols = get_symbols(config)
 time_scales = get_time_scales(config)
@@ -307,3 +320,6 @@ grid = gridplot(grid_list, sizing_mode='stretch_width', toolbar_location='below'
 
 # Streamlit Bokeh chart
 st.bokeh_chart(grid, use_container_width=True)
+
+if 'ssh_tunnel' in config:
+    tunnel_server.stop()
