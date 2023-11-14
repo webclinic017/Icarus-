@@ -236,9 +236,9 @@ if __name__ == '__main__':
     analyzer = analyzers.Analyzer(config)
 
     logger.info("---------------------------------------------------------")
-    logger.info("------------------- Engine Restarted --------------------")
+    logger.info("------------------- Backtest Started --------------------")
     logger.info("---------------------------------------------------------")
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
 
-    print(f"Test Session <{config['tag']}> completed")
+    print(f"Backtest completed: {config['tag']}")

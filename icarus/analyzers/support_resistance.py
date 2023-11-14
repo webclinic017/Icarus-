@@ -50,7 +50,7 @@ def sr_evaluate_event_type(meaningful_move_th: int,  length: int, before_pos: in
         else: return SREventType.BREAK
     else:
         return SREventType.PASS_HORIZONTAL
-    
+
 
 @dataclass
 class SRConfig():
@@ -109,6 +109,9 @@ class SRCluster():
     number_of_retest: int = None                        # Higher the better
     number_of_members: int = None                       # Higher the better
     distribution_efficiency: int = None                 # Higher the better
+    price_mean: float = 0.0
+    price_min: float = 0.0
+    price_max: float = 0.0
     events: List[SREvent] = field(default_factory=lambda: [])
 
     def __post_init__(self):
@@ -133,6 +136,13 @@ class SRCluster():
         else:
             # Price is on the cluster
             return 0
+
+def count_srevent(cluster: SRCluster, srevent_type: SREventType) -> int:
+    counter = 0
+    for event in cluster.events:
+        if event.type == srevent_type:
+            counter += 1
+    return counter
 
 
 def serialize_srevents(raw_srevents: List) -> SREvent:
@@ -222,7 +232,7 @@ class SupportResistance():
                     await SupportResistance.eval_sup_res_cluster_horizontal_score(indices, len(cluster_predictions)),
                     await SupportResistance.eval_sup_res_cluster_vertical_score(centroids, chart_price_range),
                     meta_chunk[0],
-                    meta_chunk[1]
+                    meta_chunk[1]-1     # NOTE: End index is not lenght but index thus 
                 )
                 sr_levels.append(srcluster)
         
@@ -244,10 +254,10 @@ class SupportResistance():
             
             # Check if we already hit the last candle. If not add the residual candles
             if meta_chunks[-1][1] != (data_points.size-1):
-                meta_chunks.append((filled_chunk_num*step_length, data_points.size-1))
+                meta_chunks.append((filled_chunk_num*step_length, data_points.size))
 
         else:
-            meta_chunks.append((0,data_points.size-1))
+            meta_chunks.append((0,data_points.size))
         return meta_chunks
 
 
@@ -458,7 +468,7 @@ class SupportResistance():
                 price_min = cluster.price_min
                 price_max = cluster.price_max
 
-                chunk_candlesticks = analysis['candlesticks'].iloc[cluster.chunk_start_index : cluster.chunk_end_index]
+                chunk_candlesticks = analysis['candlesticks'].iloc[cluster.chunk_start_index : cluster.chunk_end_index+1] # NOTE: Give +1 offset since chunk_end_index is index not length
                 sr_price_interactions = np.array([sr_eval_price_position(candle['low'], candle['high'], price_min, price_max) for _, candle in chunk_candlesticks.iterrows()])
                 intersect = np.where(sr_price_interactions == 0)[0]
                 chunk_length = len(chunk_candlesticks.index)
@@ -466,14 +476,14 @@ class SupportResistance():
                 for k, g in groupby(enumerate(intersect), lambda ix: ix[0] - ix[1]):
                     seq_idx = list(map(itemgetter(1), g))
 
-                    before_position = sr_price_interactions[seq_idx[0]-1]
+                    before_position = int(sr_price_interactions[seq_idx[0]-1])
 
                     is_last_candle = False
                     if seq_idx[-1] + 1 >= chunk_length:
-                        after_position = seq_idx[-1]
+                        after_position = None
                         is_last_candle = True
                     else:
-                        after_position = sr_price_interactions[seq_idx[-1]+1]
+                        after_position = int(sr_price_interactions[seq_idx[-1]+1])
                     
                     sr_event_type = sr_evaluate_event_type(sequence_th, len(seq_idx), before_position, after_position, is_last_candle)
                     
@@ -485,8 +495,8 @@ class SupportResistance():
                         price_min=cluster.price_min,
                         price_mean=cluster.price_mean,
                         price_max=cluster.price_max,
-                        before=int(before_position),
-                        after=int(after_position)
+                        before=before_position,
+                        after=after_position
                     )
 
                     # Save references for each SREventType.PASS_VERTICAL events to evaluate BOUNCE events from the big picture

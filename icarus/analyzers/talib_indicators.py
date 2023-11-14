@@ -110,7 +110,7 @@ class TALibIndicators():
 
     def _singleclass_pattern_handler(self, flags, candlesticks, key='low', offset=0):
         indices = np.where(np.array(flags) != 0)[0]
-        result = [None]*len(flags)
+        result = [np.nan]*len(flags)
         for idx in indices:
             result[idx+offset] = candlesticks[key].iloc[idx+offset]
         return result
@@ -120,11 +120,11 @@ class TALibIndicators():
         bearish_indices = np.where(np.array(flags) < 0)[0]
         bullish_indices = np.where(np.array(flags) > 0)[0]
         
-        bearish_prices = [None]*len(flags)
+        bearish_prices = [np.nan]*len(flags)
         for idx in bearish_indices:
             bearish_prices[idx] = candlesticks['high'].iloc[idx]
 
-        bullish_prices = [None]*len(flags)
+        bullish_prices = [np.nan]*len(flags)
         for idx in bullish_indices:
             bullish_prices[idx] = candlesticks['low'].iloc[idx]
 

@@ -79,7 +79,7 @@
             "program": "icarus/visualize_dashboard.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/150/config_backtest.json"
+                "${workspaceFolder}/configs/IC/147/config.json"
             ]
         },
         {
@@ -93,13 +93,26 @@
             ]
         },
         {
+            "name": "Developer Dashboard",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "args": [
+                 "run",
+                 "icarus/developer_dashboard.py",
+                 "--server.port",
+                 "8501",
+                 "${workspaceFolder}/configs/IC/147/config.json"
+            ]
+        },
+        {
             "name": "backtest",
             "type": "python",
             "request": "launch",
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/150/config_backtest.json"
+                "${workspaceFolder}/configs/IC/147/config.json"
             ]
         },
         {

@@ -274,7 +274,7 @@ class MarketClassification():
 
 
     async def _market_direction_supertrend(self, analysis, **kwargs):
-
+        # TODO:configure length
 
         analysis_output = pd_ta.supertrend(analysis['candlesticks']['high'], analysis['candlesticks']['low'], analysis['candlesticks']['close'], **kwargs)
         direction_col = analysis_output.iloc[:,1]
@@ -434,6 +434,10 @@ class MarketClassification():
 
     async def _market_regime_stochf(self, analysis, **kwargs):
         detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_stochf'], kwargs.get('validation_threshold', 0))
+        return detected_market_regimes
+
+    async def _market_regime_aroon(self, analysis, **kwargs):
+        detected_market_regimes = await MarketClassification.detect_regime_instances(analysis['candlesticks'], analysis['market_direction_aroon'], kwargs.get('validation_threshold', 0))
         return detected_market_regimes
 
     async def _market_regime_aroonosc(self, analysis, **kwargs):
