@@ -219,6 +219,7 @@ with column1:
 with column2:
     timeframe = st.sidebar.selectbox("Select Timeframe", time_scales)
 st.sidebar.markdown("----")
+visualize_analysis_plot = st.sidebar.toggle('Visualize analysis plot')
 
 if 'trades' in analysis_dict[symbol][timeframe]:
     analyzer_names.append('trades')
@@ -332,7 +333,8 @@ for observer in selected_observers:
     observations_filtered = get_filtered_observations(analysis_dict[symbol][timeframe]['trades'], observations)
     plotter(p, p_analyzer, source, observations_filtered, observer, enable_details=True)
 
-grid_list.append([p_analyzer])
+if visualize_analysis_plot:
+    grid_list.append([p_analyzer])
 
 # Create a grid layout with the two plots
 grid = gridplot(grid_list, sizing_mode='stretch_width', toolbar_location='below')

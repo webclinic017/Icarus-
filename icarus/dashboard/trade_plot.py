@@ -52,6 +52,10 @@ def plot_closed_trades(p, source, df_closed):
     df_source['y'] = (df_source['result_enter_price'] + df_source['result_exit_price']).div(2)
     df_source['h'] = (df_source['result_enter_price'] - df_source['result_exit_price']).abs()
     df_source['w'] = (df_source['result_enter_time'] - df_source['result_exit_time'])
+    df_source['price_change'] = round(100 * (df_source['result_exit_price'] - df_source['result_enter_price']) / df_source['result_enter_price'],2)
+    df_source['calculated_result_enter_amount'] = (df_source['result_enter_quantity'] + df_source['result_enter_fee']) * df_source['result_enter_price']
+    df_source['percentage_profit'] = round(100 * df_source['result_profit'] / df_source['calculated_result_enter_amount'],2)
+
     df_source['color'] = df_source['result_profit'].apply(lambda x: RdYlGn[3][2] if x <= 0 else RdYlGn[3][0])
 
     df_source = add_enter_lines(source, df_source, 'result_exit_time', 'result_enter_price')
@@ -68,11 +72,15 @@ def plot_closed_trades(p, source, df_closed):
     hover_closed.tooltips = [
         ("ID", "@_id"),
         ("Strategy", "@strategy"),
-        ("Profit", "% @result_profit{0.0}"),
+        ("Absolute Profit", "@result_profit{0.0}"),
+        ("Perc. Profit", "% @percentage_profit{0.0}"),
+        ("Perc. Price Change", "% @price_change{0.00}"),
         ("Target Enter Price", "@enter_price{0.00}"),
         ("Enter Price", "@result_enter_price{0.00}"),
         ("Target Exit Price", "@exit_price{0.00}"),
         ("Exit Price", "@result_exit_price{0.00}"),
+        ("Enter Amount", "@result_enter_amount{0.00}"),
+        ("Exit Amount", "@result_exit_amount{0.00}"),
     ]
     hover_closed.renderers = [profit_rects, enter_lines, exit_lines]
     p.add_tools(hover_closed)
