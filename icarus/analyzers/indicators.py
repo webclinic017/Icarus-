@@ -166,12 +166,14 @@ class Indicators():
 
 
     async def _supertrend(self, candlesticks, **kwargs):
-        return pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'])
+        return pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs) # length =10
 
     async def _supertrend_band(self, candlesticks, **kwargs):
-
-        st = pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'])
-        upper_band = st['SUPERT_7_3.0'].where(st['SUPERTd_7_3.0'] == 1, None).tolist()
-        lower_band = st['SUPERT_7_3.0'].where(st['SUPERTd_7_3.0'] == -1, None).tolist()
-        
+        length = kwargs.get('length',7)
+        multiplier = kwargs.get('multiplier',3)
+        column_super_t = 'SUPERT_{}_{}.0'.format(length, multiplier)
+        column_super_td = 'SUPERTd_{}_{}.0'.format(length, multiplier)
+        st = pd_ta.supertrend(candlesticks['high'], candlesticks['low'], candlesticks['close'], **kwargs)
+        upper_band = st[column_super_t].where(st[column_super_td] == 1, None).tolist()
+        lower_band = st[column_super_t].where(st[column_super_td] == -1, None).tolist()
         return {'upper_band': upper_band, 'lower_band': lower_band}
