@@ -8,7 +8,7 @@ from enum import Enum
 from typing import List, Dict
 from itertools import groupby
 from operator import itemgetter
-
+import pandas as pd
 
 class SREventType(str, Enum):
     BREAK = 'break'
@@ -112,6 +112,14 @@ class SRCluster():
     price_mean: float = 0.0
     price_min: float = 0.0
     price_max: float = 0.0
+
+    # SREvent counts
+    count_bounce: int = 0
+    count_break: int = 0
+    count_pass_vertical: int = 0
+    count_pass_horizontal: int = 0
+    count_in_zone: int = 0
+
     events: List[SREvent] = field(default_factory=lambda: [])
 
     def __post_init__(self):
@@ -145,14 +153,14 @@ def count_srevent(cluster: SRCluster, srevent_type: SREventType) -> int:
     return counter
 
 
-def serialize_srevents(raw_srevents: List) -> SREvent:
+def deserialize_srevents(raw_srevents: List) -> SREvent:
     return [SREvent(**raw_srevent) for raw_srevent in raw_srevents]
 
 
-def serialize_srcluster(raw_srcluster: Dict) -> SRCluster:
+def deserialize_srcluster(raw_srcluster: Dict) -> SRCluster:
     srcluster = SRCluster(**raw_srcluster)
     if len(srcluster.events):
-        srcluster.events = serialize_srevents(srcluster.events)
+        srcluster.events = deserialize_srevents(srcluster.events)
     return srcluster
 
 
@@ -517,7 +525,39 @@ class SupportResistance():
                     # Make the top most one (0) SREventType.BOUNCE
                     bounce_events[key][0].type = SREventType.BOUNCE
 
+        for sr in sr_analyzers:
+            for cluster in analysis[sr]:
+                cluster.count_bounce = count_srevent(cluster, SREventType.BOUNCE)
+                cluster.count_break = count_srevent(cluster, SREventType.BREAK)
+                cluster.count_pass_horizontal = count_srevent(cluster, SREventType.PASS_HORIZONTAL)
+                cluster.count_pass_vertical = count_srevent(cluster, SREventType.PASS_VERTICAL)
+                cluster.count_in_zone = count_srevent(cluster, SREventType.IN_ZONE)
         return 
     
 
+def filter_by(clusters_bundle, filter_field, filter_min_max):
+    if type(clusters_bundle[0]) == Dict:
+        clusters = [deserialize_srcluster(cluster_dict) for cluster_dict in clusters_bundle['data']]
+    else:
+        clusters = clusters_bundle
 
+    df = pd.DataFrame(clusters)
+    filtered_df = df[df[filter_field] > filter_min_max[0]]
+    filtered_df = filtered_df[filtered_df[filter_field] < filter_min_max[1]]
+
+    return [deserialize_srcluster(cluster_dict) for cluster_dict in filtered_df.to_dict(orient='records')]
+
+
+def multi_filter_by(filter_dict, clusters_bundle):
+    if type(clusters_bundle[0]) == dict:
+        # TODO: Check obseration conversion
+        clusters = [deserialize_srcluster(observation['data']) for observation in clusters_bundle]
+    else:
+        clusters = clusters_bundle
+
+    df = pd.DataFrame(clusters)
+    for filter_field, filter_min_max in filter_dict.items():
+        df = df.query(f"{filter_min_max[0]} <= {filter_field} <= {filter_min_max[1]}")
+
+
+    return [deserialize_srcluster(cluster_dict) for cluster_dict in df.to_dict(orient='records')]

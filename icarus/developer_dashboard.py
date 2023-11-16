@@ -9,7 +9,7 @@ import sys
 import asyncio
 from binance import AsyncClient
 from brokers import backtest_wrapper
-from analyzers import Analyzer
+from analyzers import support_resistance
 from itertools import chain
 import itertools
 import datetime
@@ -20,168 +20,9 @@ import mongo_utils
 from utils import get_pair_min_period_mapping
 from objects import ECause
 from sshtunnel import SSHTunnelForwarder
-
+from dashboard.cache_functions import *
 
 st.set_page_config(layout="wide")
-
-@st.cache_data
-def get_config():
-    f = open(str(sys.argv[1]),'r')
-    return json.load(f)
-
-@st.cache_data
-def get_symbols(config):
-    symbols = [strategy['pairs'] for strategy in config['strategy'].values()]
-    return list(set(chain(*symbols)))
-
-@st.cache_data
-def get_time_scales(config):
-    time_scales = [strategy['time_scales'] for strategy in config['strategy'].values()]   
-    return list(set(chain(*time_scales)))
-
-@st.cache_data
-def get_analyzer_names(config):
-    return list(set(chain(*[list(layer.keys()) for layer in config['analysis']])))
-
-@st.cache_data
-def get_observer_names(config):
-    return list(set([obs_config['type'] for obs_config in config['observers']]))
-
-@st.cache_data
-def get_credentials(config):
-    with open(config['credential_file'], 'r') as cred_file:
-        cred_info = json.load(cred_file)
-        return cred_info
-
-def async_to_sync(async_function):
-    def sync_function(*args, **kwargs):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(async_function(*args, **kwargs))
-        return result
-    return sync_function
-
-@st.cache_data
-@async_to_sync
-async def get_data_dict(config, credentials):
-    client = await AsyncClient.create(**credentials['Binance']['Production'])
-    bwrapper = backtest_wrapper.BacktestWrapper(client, config)
-    start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
-    start_timestamp = int(datetime.datetime.timestamp(start_time))*1000
-    end_time = datetime.datetime.strptime(config['backtest']['end_time'], "%Y-%m-%d %H:%M:%S")
-    end_timestamp = int(datetime.datetime.timestamp(end_time))*1000
-
-    # Create pools for pair-scales
-    time_scale_pool = []
-    pair_pool = []
-    for strategy in config['strategy'].values():
-        time_scale_pool.append(strategy['time_scales'])
-        pair_pool.append(strategy['pairs'])
-
-    time_scale_pool = list(set(chain(*time_scale_pool)))
-    pair_pool = list(set(chain(*pair_pool)))
-    meta_data_pool = list(itertools.product(time_scale_pool, pair_pool))
-    await bwrapper.obtain_candlesticks(meta_data_pool, start_timestamp, end_timestamp)
-    # Function to recursively convert defaultdict to a normal dictionary
-    def convert_nested_defaultdict(d):
-        if isinstance(d, defaultdict):
-            return {k: convert_nested_defaultdict(v) for k, v in d.items()}
-        else:
-            return d
-
-    return convert_nested_defaultdict(bwrapper.downloaded_data)
-
-def merge_dicts(dict1, dict2):
-    result = {}
-    for key in dict1.keys() | dict2.keys():
-        if key in dict1 and key in dict2:
-            if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
-                result[key] = merge_dicts(dict1[key], dict2[key])
-            else:
-                result[key] = dict1[key]
-        elif key in dict1:
-            result[key] = dict1[key]
-        else:
-            result[key] = dict2[key]
-    return result
-
-async def get_trades(config):
-    mongo_client = mongo_utils.MongoClient(**config['mongodb'])
-    pair_scale_mapping = await get_pair_min_period_mapping(config)
-
-    trade_ids = []
-    trades_dict = {}
-
-    for idx, (pair, scale) in enumerate(pair_scale_mapping.items()):
-        canceled = await mongo_utils.do_find_trades(mongo_client, 'hist-trades', {'result.cause':ECause.ENTER_EXP, 'pair':pair})
-        closed = await mongo_utils.do_find_trades(mongo_client, 'hist-trades', {'result.cause':{'$in':[ECause.MARKET, ECause.STOP_LIMIT, ECause.LIMIT]}, 'pair':pair})
-        trade_ids += [str(closed_trade._id) for closed_trade in closed]
-        
-        if len(trade_ids) == 0:
-            continue
-
-        if pair not in trades_dict:
-            trades_dict[pair] = {}
-
-        if scale not in trades_dict[pair]:
-            trades_dict[pair][scale] = {}
-        trades_dict[pair][scale]['trades'] = closed + canceled
-
-    return trades_dict
-
-@st.cache_data
-@async_to_sync
-async def get_observer_dict(config):
-    mongo_client = mongo_utils.MongoClient(**config['mongodb'])
-    observer_dict = {}
-    # Get observer objects
-    for obs_config in config.get('observers', []):
-        if not hasattr(observer_plot, obs_config['type']) or obs_config['type'] in observer_dict:
-            continue
-
-        observers = list(await mongo_client.do_find('observer',{'type':obs_config['type']}))
-        df_observers = pd.DataFrame(observers)
-        
-        if df_observers.empty:
-            continue
-
-        observer_dtype = observers[0].get('dtype','')
-        if observer_dtype != '':
-            # TODO: Process the data packs acording to their dtype
-            observer_dict[obs_config['type']] = observers
-            continue
-        
-        df_obs_data = pd.DataFrame(df_observers['data'].to_list())
-        df_obs_data.set_index(df_observers['ts']*1000, inplace=True)
-        #df_obs_data = df_obs_data[obs_list]
-        observer_dict[obs_config['type']] = df_obs_data
-
-    return observer_dict
-
-@st.cache_data
-@async_to_sync
-async def get_analysis_dict(config, data_dict):
-    analyzer = Analyzer(config)
-    analysis_dict = await analyzer.analyze(data_dict)
-    trades_dict = await get_trades(config)
-    if len(trades_dict) == 0:
-        return analysis_dict
-    return merge_dicts(analysis_dict, trades_dict)
-
-@st.cache_data
-def get_filtered_observations(trades, observations):
-    df = pd.DataFrame(trades)
-    df_trades =  df[df['_id'].isin(selected_trades)]
-
-    observations_filtered = []
-    for idx, trade_row in df_trades.iterrows():
-        observation_dates = [trade_row['decision_time'], trade_row['result']['exit']['time']]
-        for observation in observations:
-            if observation['ts'] not in observation_dates:
-                continue
-            observations_filtered.append(observation)
-    return observations_filtered
-
 
 # Obtain data to visualize
 config = get_config()
@@ -243,6 +84,19 @@ selected_observers = st.sidebar.multiselect(
     max_selections=5,
 )
 
+# Check Support Resistance Filters
+is_there_sr_analzer = any(['support' in analysis or 'resistance' in analysis for analysis in selected_analyzers])
+is_there_sr_observer = any(['support' in observer or 'resistance' in observer for observer in selected_observers])
+
+if is_there_sr_observer or is_there_sr_analzer:
+    st.sidebar.markdown("----")
+    '''Support Resistance Filters'''
+    filter_score_dist = st.sidebar.slider('Select a range for distribution_score', 0, 50, (0, 50))
+    filter_count_bounce = st.sidebar.slider('Number of Bounce', 0, 50, (0, 50))
+    filter_count_break = st.sidebar.slider('Number of Break', 0, 50, (0, 50))
+    filter_count_pass_horizontal = st.sidebar.slider('Number of Pass Horizontal', 0, 50, (0, 50))
+    filter_count_pass_vertical = st.sidebar.slider('Number of Pass Vertical', 0, 50, (0, 50))
+    filter_count_in_zone = st.sidebar.slider('Number of In Zone', 0, 10, (0, 10))
 
 # Visualize Data
 candle_width = time_scale_to_milisecond(timeframe)/2
@@ -310,6 +164,19 @@ for analyzer in selected_analyzers:
         continue
 
     analysis = analysis_dict[symbol][timeframe][analyzer]
+
+    # Apply sr cluster filters
+    if 'support' in analyzer or 'resistance' in analyzer:
+        filter_dict = {
+            'distribution_score': filter_score_dist,
+            'count_bounce': filter_count_bounce,
+            'count_break': filter_count_break,
+            'count_pass_horizontal': filter_count_pass_horizontal,
+            'count_pass_vertical': filter_count_pass_vertical,
+            'count_in_zone': filter_count_in_zone,
+        }
+        analysis = support_resistance.multi_filter_by(filter_dict, analysis)
+
     plotter(p, p_analyzer, source, analysis, analyzer)
 
 if len(selected_trades) > 0 and 'trades' not in selected_analyzers:
@@ -327,11 +194,25 @@ for observer in selected_observers:
 
     observations = observer_dict[observer]
     if len(selected_trades) == 0:
-        plotter(p, p_analyzer, source, observations, observer)
-        continue
+        enable_details = False
+        observations_filtered = observations
+    else:
+        enable_details = True
+        observations_filtered = filter_observations(analysis_dict[symbol][timeframe]['trades'], observations, selected_trades)
 
-    observations_filtered = get_filtered_observations(analysis_dict[symbol][timeframe]['trades'], observations)
-    plotter(p, p_analyzer, source, observations_filtered, observer, enable_details=True)
+    # Apply sr cluster filters
+    if 'support' in observer or 'resistance' in observer:
+        filter_dict = {
+            'distribution_score': filter_score_dist,
+            'count_bounce': filter_count_bounce,
+            'count_break': filter_count_break,
+            'count_pass_horizontal': filter_count_pass_horizontal,
+            'count_pass_vertical': filter_count_pass_vertical,
+            'count_in_zone': filter_count_in_zone,
+        }
+        analysis = support_resistance.multi_filter_by(filter_dict, observations_filtered)
+
+    plotter(p, p_analyzer, source, observations_filtered, observer, enable_details=enable_details)
 
 if visualize_analysis_plot:
     grid_list.append([p_analyzer])

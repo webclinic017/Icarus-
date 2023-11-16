@@ -1,4 +1,4 @@
-from analyzers.support_resistance import SRCluster, serialize_srcluster
+from analyzers.support_resistance import SRCluster, deserialize_srcluster
 from typing import List
 from functools import wraps
 from dashboard.analyzer_plot import support_resistance_plotter
@@ -16,7 +16,7 @@ def quote_asset(p_candlesticks, p_analyzer, source, observation, observer):
 def adapt_cluster_indexes(x, y, enable_details=False) -> List[SRCluster]:
     all_cluster = []
     for observation in y:
-        raw_clusters = [serialize_srcluster(cluster_dict) for cluster_dict in observation['data']]
+        raw_clusters = [deserialize_srcluster(cluster_dict) for cluster_dict in observation['data']]
         candle_time_diff_sec = int((x[1]-x[0])/1000)
         observation_time = observation['ts']
 

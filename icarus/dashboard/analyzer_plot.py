@@ -113,10 +113,10 @@ def support_resistance_plotter(p: figure, source: ColumnDataSource, analysis: Li
     raw_data['price_mean'] = [sr_cluster.price_mean for sr_cluster in analysis]
     raw_data['number_of_members'] = [sr_cluster.number_of_members for sr_cluster in analysis]
     raw_data['distribution_efficiency'] = [sr_cluster.distribution_efficiency for sr_cluster in analysis]
-    raw_data['bounce'] = [count_srevent(sr_cluster, SREventType.BOUNCE) for sr_cluster in analysis]
-    raw_data['break'] = [count_srevent(sr_cluster, SREventType.BREAK) for sr_cluster in analysis]
-    raw_data['pass_horizontal'] = [count_srevent(sr_cluster, SREventType.PASS_HORIZONTAL) for sr_cluster in analysis]
-    raw_data['pass_vertical'] = [count_srevent(sr_cluster, SREventType.PASS_VERTICAL) for sr_cluster in analysis]
+    raw_data['bounce'] = [sr_cluster.count_bounce for sr_cluster in analysis]
+    raw_data['break'] = [sr_cluster.count_break for sr_cluster in analysis]
+    raw_data['pass_horizontal'] = [sr_cluster.count_pass_horizontal for sr_cluster in analysis]
+    raw_data['pass_vertical'] = [sr_cluster.count_pass_vertical for sr_cluster in analysis]
 
     data_source = ColumnDataSource(data=raw_data)
 
@@ -126,10 +126,10 @@ def support_resistance_plotter(p: figure, source: ColumnDataSource, analysis: Li
     # Hover Tool
     hover = HoverTool()
     hover.tooltips = [
-        ("PriceMean", "@price_mean"),
+        ("PriceMean", "@price_mean{0.000}"),
         ("# Members", "@number_of_members"),
-        ("DistScore", "@distribution_score"),
-        ("DistEff", "@distribution_efficiency"),
+        ("DistScore", "@distribution_score{0.}"),
+        ("DistEff", "@distribution_efficiency{0.}"),
         ("# Bounce", "@bounce"),
         ("#  Break", "@break"),
         ("# Pass H", "@pass_horizontal"),
