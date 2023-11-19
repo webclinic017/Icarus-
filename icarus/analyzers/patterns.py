@@ -22,16 +22,22 @@ class Patterns():
         return np.NaN
 
     async def _bullish_aroon_break(self, analysis, **kwargs):
-        mask = np.roll(pd.Series(analysis['aroon']['aroondown']).rolling(2).apply(Patterns.is_aroon_break), -1)
-        lows = analysis['candlesticks']['low'].copy()
-        lows[mask != 1] = np.nan
-        return lows.to_list()
+        shift = kwargs.get('shift',-1)
+        marker_level = kwargs.get('marker_level', 'low')
+
+        mask = np.roll(pd.Series(analysis['aroon']['aroondown']).rolling(2).apply(Patterns.is_aroon_break), shift)
+        levels = analysis['candlesticks'][marker_level].copy()
+        levels[mask != 1] = np.nan
+        return levels.to_list()
     
     async def _bearish_aroon_break(self, analysis, **kwargs):
-        mask = np.roll(pd.Series(analysis['aroon']['aroonup']).rolling(2).apply(Patterns.is_aroon_break), -1)
-        highes = analysis['candlesticks']['high'].copy()
-        highes[mask != 1] = np.nan
-        return highes.to_list()
+        shift = kwargs.get('shift',-1)
+        marker_level = kwargs.get('marker_level', 'high')
+
+        mask = np.roll(pd.Series(analysis['aroon']['aroonup']).rolling(2).apply(Patterns.is_aroon_break), shift)
+        levels = analysis['candlesticks'][marker_level].copy()
+        levels[mask != 1] = np.nan
+        return levels.to_list()
         
     def is_aroon_break(serie):
         if serie.iloc[0] == 100 and serie.iloc[1] != 100:

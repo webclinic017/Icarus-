@@ -25,9 +25,10 @@ def line_plotter(p: figure, source: ColumnDataSource, analysis, **kwargs):
 
 def scatter_plotter(p: figure, source: ColumnDataSource, analysis, **kwargs):
     style = kwargs.get('style','diamond')
+    legend_label = kwargs.get('analyzer','scatter')
     if type(analysis) == list:
         is_not_nan = ~np.isnan(analysis)
-        getattr(p, style)(source.data['open_time'][is_not_nan], np.array(analysis)[is_not_nan], size=20, color=kwargs.get('color',Category10[3][0]))
+        getattr(p, style)(source.data['open_time'][is_not_nan], np.array(analysis)[is_not_nan], size=20, color=kwargs.get('color',Category10[3][0]), legend_label=legend_label)
     elif type(analysis) == dict:
         num_of_class = max(len(analysis),3)
         for i, (key, value) in enumerate(analysis.items()):
