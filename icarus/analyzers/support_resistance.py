@@ -533,7 +533,17 @@ class SupportResistance():
                 cluster.count_pass_vertical = count_srevent(cluster, SREventType.PASS_VERTICAL)
                 cluster.count_in_zone = count_srevent(cluster, SREventType.IN_ZONE)
         return 
-    
+
+
+    async def _sr_event_filter(self, analysis: Dict, **kwargs):
+        sr_analyzers = kwargs.get('analyzers')
+        filters = kwargs.get('filters')
+
+        for sr in sr_analyzers:
+            analysis[sr] = filter_by(analysis[sr], filters)
+
+        return
+
 
 def filter_by(clusters, filter_dict):
     df = pd.DataFrame(clusters)

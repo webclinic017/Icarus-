@@ -106,13 +106,13 @@
             ]
         },
         {
-            "name": "backtest",
+            "name": "Backtest",
             "type": "python",
             "request": "launch",
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/147/config.json"
+                "${workspaceFolder}/configs/IC/176/config.json"
             ]
         },
         {
