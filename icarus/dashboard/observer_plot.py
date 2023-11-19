@@ -5,7 +5,7 @@ from dashboard.analyzer_plot import support_resistance_plotter
 from dashboard import analyzer_plot
 from bokeh.palettes import Category10
 
-def quote_asset(p_candlesticks, p_analyzer, source, observation, observer):
+def quote_asset(p_candlesticks, p_analyzer, source, observation, observer, **kwargs):
 
     p_analyzer.line([observation.index[0], observation.index[-1]], observation['total'].iloc[0], line_color='black')
     p_analyzer.line(observation.index, observation['total'], legend_label='total', line_color=Category10[3][0])
@@ -16,10 +16,11 @@ def quote_asset(p_candlesticks, p_analyzer, source, observation, observer):
 def adapt_cluster_indexes(x, y, enable_details=False) -> List[SRCluster]:
     all_cluster = []
     for observation in y:
-        raw_clusters = [deserialize_srcluster(cluster_dict) for cluster_dict in observation['data']]
+        raw_clusters = [deserialize_srcluster(cluster_dict) if type(cluster_dict) != SRCluster else cluster_dict for cluster_dict in observation['data']]
         candle_time_diff_sec = int((x[1]-x[0])/1000)
         observation_time = observation['ts']
-
+        if len(raw_clusters) == 0:
+            continue
         # NOTE: Assuming the same timeframe !
         end_candlestick_idx = (observation_time - x[1]/1000)/candle_time_diff_sec
         idx_offset = int(end_candlestick_idx - (raw_clusters[0].chunk_end_index+1))

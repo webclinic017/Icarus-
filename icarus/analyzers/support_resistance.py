@@ -123,7 +123,7 @@ class SRCluster():
     events: List[SREvent] = field(default_factory=lambda: [])
 
     def __post_init__(self):
-        self.distribution_score = round(self.horizontal_distribution_score/self.vertical_distribution_score,2) 
+        self.distribution_score = round(self.vertical_distribution_score and self.horizontal_distribution_score / self.vertical_distribution_score or 0, 2)
         self.number_of_members = len(self.centroids)
         self.number_of_retest = self.number_of_members-self.min_cluster_members
         self.distribution_efficiency = round(self.distribution_score * self.number_of_members,2)
@@ -535,29 +535,20 @@ class SupportResistance():
         return 
     
 
-def filter_by(clusters_bundle, filter_field, filter_min_max):
-    if type(clusters_bundle[0]) == Dict:
-        clusters = [deserialize_srcluster(cluster_dict) for cluster_dict in clusters_bundle['data']]
-    else:
-        clusters = clusters_bundle
-
-    df = pd.DataFrame(clusters)
-    filtered_df = df[df[filter_field] > filter_min_max[0]]
-    filtered_df = filtered_df[filtered_df[filter_field] < filter_min_max[1]]
-
-    return [deserialize_srcluster(cluster_dict) for cluster_dict in filtered_df.to_dict(orient='records')]
-
-
-def multi_filter_by(filter_dict, clusters_bundle):
-    if type(clusters_bundle[0]) == dict:
-        # TODO: Check obseration conversion
-        clusters = [deserialize_srcluster(observation['data']) for observation in clusters_bundle]
-    else:
-        clusters = clusters_bundle
-
+def filter_by(clusters, filter_dict):
     df = pd.DataFrame(clusters)
     for filter_field, filter_min_max in filter_dict.items():
         df = df.query(f"{filter_min_max[0]} <= {filter_field} <= {filter_min_max[1]}")
 
-
     return [deserialize_srcluster(cluster_dict) for cluster_dict in df.to_dict(orient='records')]
+
+
+def multi_filter_by(filter_dict, clusters_bundle):
+    if type(clusters_bundle[0]) == dict:
+        for index, observation in enumerate(clusters_bundle):
+            raw_clusters = [deserialize_srcluster(cluster_dict) for cluster_dict in observation['data']]
+            clusters_bundle[index]['data'] = filter_by(raw_clusters, filter_dict)
+    else:
+        clusters_bundle = filter_by(clusters_bundle, filter_dict)
+
+    return clusters_bundle

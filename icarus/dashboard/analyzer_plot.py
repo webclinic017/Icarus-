@@ -296,8 +296,8 @@ def bullish_fractal_5(p_candlesticks, p_analyzer, source, analysis, analyzer): k
 def bearish_fractal_5(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'color':MAGENTA}; scatter_plotter(p_candlesticks, source, analysis, **kwargs)
 def bullish_fractal_3(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'color':BLUE}; scatter_plotter(p_candlesticks, source, analysis, **kwargs)
 def bearish_fractal_3(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'color':MAGENTA}; scatter_plotter(p_candlesticks, source, analysis, **kwargs)
-def bullish_aroon_break(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'color':BLUE}; scatter_plotter(p_candlesticks, source, analysis, **kwargs)
-def bearish_aroon_break(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'color':MAGENTA}; scatter_plotter(p_candlesticks, source, analysis, **kwargs)
+def bullish_aroon_break(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'color':BLUE, 'analyzer':'bullish_aroon_break'}; scatter_plotter(p_candlesticks, source, analysis, **kwargs)
+def bearish_aroon_break(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'color':MAGENTA, 'analyzer':'bearish_aroon_break'}; scatter_plotter(p_candlesticks, source, analysis, **kwargs)
 
 def kaufman_efficiency_ratio(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'y_range': (np.nanmin(analysis),np.nanmax(analysis))}; line_plotter(p_analyzer, source, analysis, **kwargs)
 def price_density(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'y_range': (np.nanmin(analysis),np.nanmax(analysis))}; line_plotter(p_analyzer, source, analysis, **kwargs)

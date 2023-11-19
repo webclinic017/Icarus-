@@ -90,8 +90,7 @@ is_there_sr_observer = any(['support' in observer or 'resistance' in observer fo
 
 if is_there_sr_observer or is_there_sr_analzer:
     st.sidebar.markdown("----")
-    '''Support Resistance Filters'''
-    filter_score_dist = st.sidebar.slider('Select a range for distribution_score', 0, 50, (0, 50))
+    filter_score_dist = st.sidebar.slider('Select a range for distribution_score', 0, 1000, (0, 1000))
     filter_count_bounce = st.sidebar.slider('Number of Bounce', 0, 50, (0, 50))
     filter_count_break = st.sidebar.slider('Number of Break', 0, 50, (0, 50))
     filter_count_pass_horizontal = st.sidebar.slider('Number of Pass Horizontal', 0, 50, (0, 50))
@@ -166,7 +165,7 @@ for analyzer in selected_analyzers:
     analysis = analysis_dict[symbol][timeframe][analyzer]
 
     # Apply sr cluster filters
-    if 'support' in analyzer or 'resistance' in analyzer:
+    if 'support' in analyzer or 'resistance' in analyzer and len(analysis) > 0:
         filter_dict = {
             'distribution_score': filter_score_dist,
             'count_bounce': filter_count_bounce,
