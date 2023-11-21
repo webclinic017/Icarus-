@@ -540,12 +540,17 @@ class SupportResistance():
         filters = kwargs.get('filters')
 
         for sr in sr_analyzers:
+            if len(analysis[sr]) == 0:
+                continue
             analysis[sr] = filter_by(analysis[sr], filters)
 
         return
 
 
 def filter_by(clusters, filter_dict):
+    if len(clusters) == 0:
+        return []
+    
     df = pd.DataFrame(clusters)
     for filter_field, filter_min_max in filter_dict.items():
         df = df.query(f"{filter_min_max[0]} <= {filter_field} <= {filter_min_max[1]}")

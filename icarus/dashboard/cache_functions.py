@@ -168,14 +168,14 @@ async def get_analysis_dict(config, data_dict):
 
 
 @st.cache_data
-def filter_observations(trades, observations, selected_trades):
+def filter_observations(trades, _observations, selected_trades):
     df = pd.DataFrame(trades)
     df_trades =  df[df['_id'].isin(selected_trades)]
 
     observations_filtered = []
     for idx, trade_row in df_trades.iterrows():
         observation_dates = [trade_row['decision_time'], trade_row['result']['exit']['time']]
-        for observation in observations:
+        for observation in _observations:
             if observation['ts'] not in observation_dates:
                 continue
             observations_filtered.append(observation)

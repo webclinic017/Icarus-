@@ -45,7 +45,10 @@ def plot_closed_trades(p, source, df_closed):
     df_result_exits = df_results['result_exit'].apply(pd.Series).add_prefix('result_exit_')
     df_result_enters = df_results['result_enter'].apply(pd.Series).add_prefix('result_enter_')
     df_source = pd.concat([df_closed[['_id','decision_time','strategy','order_stash', 'exit']], df_enter, df_exit, df_results[['result_cause','result_profit','result_live_time']], df_result_enters, df_result_exits], axis=1)
+    df_source['decision_datetime'] = pd.to_datetime(df_source['decision_time'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
     df_source['decision_time'] = df_source['decision_time'].mul(1000).astype(np.int64)
+    df_source['result_exit_datetime'] = pd.to_datetime(df_source['result_exit_time'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
+    df_source['result_enter_datetime'] = pd.to_datetime(df_source['result_enter_time'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
     df_source['result_exit_time'] = df_source['result_exit_time'].mul(1000).astype(np.int64)
     df_source['result_enter_time'] = df_source['result_enter_time'].mul(1000).astype(np.int64)
     df_source['x'] = (df_source['result_enter_time'] + df_source['result_exit_time']).div(2)
@@ -81,6 +84,11 @@ def plot_closed_trades(p, source, df_closed):
         ("Exit Price", "@result_exit_price{0.00}"),
         ("Enter Amount", "@result_enter_amount{0.00}"),
         ("Exit Amount", "@result_exit_amount{0.00}"),
+
+        ("Decision Time", "@decision_time (@decision_datetime)"),
+        ("Enter Time", "@result_enter_time (@result_enter_datetime)"),
+        ("Exit Time", "@result_exit_time (@result_exit_datetime)"),
+
     ]
     hover_closed.renderers = [profit_rects, enter_lines, exit_lines]
     p.add_tools(hover_closed)

@@ -1,10 +1,11 @@
-from objects import Trade, ECommand, TradeResult, Market, ECause, Limit
+from objects import Trade, ECommand, TradeResult, Market, ECause, Limit, OCO
 from strategies.StrategyBase import StrategyBase
 from utils import time_scale_to_minute
 import numpy as np
 from typing import Dict
 from analyzers.support_resistance import SREventType
 from itertools import chain
+import position_sizing
 
 class SREventsPredictiveVanilla(StrategyBase):
 
@@ -22,24 +23,21 @@ class SREventsPredictiveVanilla(StrategyBase):
     async def make_decision(self, analysis_dict, ao_pair, ikarus_time, pairwise_alloc_share, **kwargs):
 
         analysis = analysis_dict[ao_pair][self.min_period]
-        enter_clusters = list(chain(*[analysis[analyzer] for analyzer in self.strategy_config['enter_analyzers']]))
+        enter_clusters = np.array(list(chain(*[analysis[analyzer] for analyzer in self.strategy_config['enter_analyzers']])))
 
         cluster_relative_pos = np.array([round(100 * (sr.price_mean - analysis['close'][-1]) / analysis['close'][-1], 2) for sr in enter_clusters])
-        below_cluster_pos = cluster_relative_pos[cluster_relative_pos < 0]
+        below_clusters = enter_clusters[cluster_relative_pos < 0]
+        #below_cluster_pos = cluster_relative_pos[cluster_relative_pos < 0]
 
         entry_conditions = [
-            len(below_cluster_pos) > 0,
-            -len(below_cluster_pos) <= self.strategy_config['enter_cluster_index'] < len(below_cluster_pos)
+            len(below_clusters) > 0,
+            -len(below_clusters) <= self.strategy_config['enter_cluster_index'] < len(below_clusters)
         ]
 
         if not all(entry_conditions):
             return False
 
-
-        # Note support levels are already ordered. Lowest one is on the 0, and the highest one is on -1
-        #closest_below_sup_idx = len(cluster_relative_pos[cluster_relative_pos < 0]) - 1
-
-        enter_price = enter_clusters[self.strategy_config['enter_cluster_index']].price_mean
+        enter_price = below_clusters[self.strategy_config['enter_cluster_index']].price_mean
         enter_ref_amount=pairwise_alloc_share
 
         enter_order = Limit(
@@ -66,37 +64,44 @@ class SREventsPredictiveVanilla(StrategyBase):
 
 
     async def on_waiting_exit(self, trade: Trade, ikarus_time: int, analysis_dict: Dict, strategy_capital):
-
+        '''
+            The clusters below the entry level is eliminated
+            The clusters below the current level is eliminated
+            exit_cluster_index = 0 # Closest above cluster
+            exit_cluster_index = -1 # Remotest above cluster
+        '''
         analysis = analysis_dict[trade.pair][self.min_period]
-        resistances = analysis[self.resistance_analyzer]
+        exit_clusters = np.array(list(chain(*[analysis[analyzer] for analyzer in self.strategy_config['exit_analyzers']])))
 
-        # Find the SRClusters that has bounce event
-        bounce_event_happened = False
-        for cluster in resistances:
-            if cluster.events == []:
-                continue
+        base_price = max(trade.result.enter.price, analysis['close'][-1])
+        cluster_relative_pos = np.array([round(100 * (sr.price_mean - base_price) / base_price, 2) for sr in exit_clusters])
+        above_clusters = exit_clusters[cluster_relative_pos > 0]
 
-            last_event = cluster.events[-1]
-            exit_conditions = [
-                last_event.type == SREventType.BOUNCE,
-                last_event.after == -1,                      # Price should come and go from/to the bottom, compare to the cluster
-                last_event.end_index == cluster.chunk_end_index-1     
-                # NOTE: We only notice that en event is concluded when there is an non-event candle occured. Tha
-                # is the difference between the IN_ZONE and other events. That is the reason why "cluster.chunk_end_index-1" 
-            ]
-            if all(exit_conditions):
-                bounce_event_happened = True
-                break
-
-        if not bounce_event_happened:
+        # If there is no upper level
+        if len(above_clusters) <= 0:
             return True
-   
-        close_price = analysis_dict[trade.pair][self.min_period]['close'][-1]
-        trade.set_exit( Market(quantity=trade.result.enter.quantity, price=close_price) )
+        
+        # If the given exit_cluster_index is not valid
+        if not (-len(above_clusters) <= self.strategy_config['exit_cluster_index'] < len(above_clusters)):
+            return True
+        
+        exit_price = above_clusters[self.strategy_config['enter_cluster_index']].price_mean
+
+        stop_loss_price = position_sizing.evaluate_stop_loss(strategy_capital, self.strategy_config['max_loss_coeff'], trade)
+        stop_price = trade.result.enter.price * 0.99
+        stop_limit_price = max(stop_loss_price, stop_price)
+        stop_price = stop_price*1.001
+
+        exit_oco_order = OCO(
+            price=exit_price,
+            quantity=trade.result.enter.quantity,
+            stop_price=stop_price,
+            stop_limit_price=stop_limit_price,
+            expire=StrategyBase._eval_future_candle_time(ikarus_time, self.strategy_config['exit_expire_period'], time_scale_to_minute(self.min_period))
+        )
+        trade.set_exit(exit_oco_order)
         trade.command = ECommand.EXEC_EXIT
 
-        # Apply the filters
-        # TODO: Add min notional fix (No need to add the check because we are not gonna do anything with that)
         if not StrategyBase.apply_exchange_filters(trade.exit, self.symbol_info[trade.pair]):
             # TODO: This is a critical case where the exit order failed to pass filters. Decide what to do
             return False
@@ -109,36 +114,10 @@ class SREventsPredictiveVanilla(StrategyBase):
 
     async def on_exit_expire(self, trade: Trade, ikarus_time: int, analysis_dict: Dict, strategy_capital):
         trade.stash_exit()
-
-        analysis = analysis_dict[trade.pair][self.min_period]
-        resistances = analysis[self.resistance_analyzer].copy()
-        resistances.reverse()
-
-        resistance_relative_pos = np.array([round(100 * (sr.price_mean - analysis['close'][-1]) / analysis['close'][-1], 2) for sr in resistances])
-
-        # There is resistance above
-        if not any(resistance_relative_pos > 0):
-            return True
-
-        # Do not look for profitable exit anymore
-        exit_price = resistances[0].price_mean
-   
-        exit_limit_order = Limit(
-            exit_price,
-            quantity=trade.result.enter.quantity,
-            expire=StrategyBase._eval_future_candle_time(ikarus_time, self.exit_duration, time_scale_to_minute(self.min_period))
-        )
-        trade.set_exit(exit_limit_order)
-
-        trade.command = ECommand.UPDATE
-
-        # Apply the filters
-        # TODO: Add min notional fix (No need to add the check because we are not gonna do anything with that)
-        if not StrategyBase.apply_exchange_filters(trade.exit, self.symbol_info[trade.pair]):
-            # TODO: This is a critical case where the exit order failed to pass filters. Decide what to do
-            return False
-
-        return True
+        is_success = await self.on_waiting_exit(trade, ikarus_time, analysis_dict, strategy_capital)
+        if trade.command == ECommand.EXEC_EXIT:
+            trade.command = ECommand.UPDATE
+        return is_success
 
     async def on_closed(self, lto):
         return lto

@@ -1,5 +1,5 @@
 {
-    "tag": "IC-176",
+    "tag": "IC-176-2",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
@@ -7,7 +7,7 @@
     },
     "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "IC-176",
+        "database": "IC-176-2",
         "host": "localhost",
         "port": 27017,
         "clean": true
@@ -38,7 +38,7 @@
         "type": "DiscreteStrategyAllocator",
         "kwargs": {
             "distribution_config": [
-                "SREventsPredictiveVanilla"
+                "SREventsPredictiveVanilla-BTCUSDT", "SREventsPredictiveVanilla-XRPUSDT"
             ],
             "capital_coeff":0.9, 
             "stop_capital":null,
@@ -46,7 +46,7 @@
         }
     },
     "strategy": {
-        "SREventsPredictiveVanilla": {
+        "SREventsPredictiveVanilla-BTCUSDT": {
             "strategy": "SREventsPredictiveVanilla",
             "pairs": ["BTCUSDT"],
             "time_scales": ["1h"],
@@ -56,7 +56,24 @@
                 "exit_analyzers": ["support_optics", "resistance_optics"],
                 "enter_cluster_index": 0,
                 "exit_cluster_index": 0,
-                "enter_expire_period": 24
+                "enter_expire_period": 24,
+                "exit_expire_period": 24,
+                "max_loss_coeff": 0.05
+            }
+        },
+        "SREventsPredictiveVanilla-XRPUSDT": {
+            "strategy": "SREventsPredictiveVanilla",
+            "pairs": ["XRPUSDT"],
+            "time_scales": ["1h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "enter_analyzers": ["support_optics", "resistance_optics"],
+                "exit_analyzers": ["support_optics", "resistance_optics"],
+                "enter_cluster_index": 0,
+                "exit_cluster_index": 0,
+                "enter_expire_period": 24,
+                "exit_expire_period": 24,
+                "max_loss_coeff": 0.05
             }
         }
     },
@@ -96,12 +113,8 @@
                     "resistance_optics"
                 ],
                 "filters": {
-                    "distribution_score": [0,1000],
-                    "count_bounce": [0,100],
-                    "count_break": [0,100],
                     "count_pass_horizontal": [0,0],
-                    "count_pass_vertical": [0,0],
-                    "count_in_zone": [0,100]
+                    "count_pass_vertical": [0,0]
                 }
             }
         }
@@ -126,7 +139,7 @@
             "filters": []
         },
         {
-            "type": "support_meanshift",
+            "type": "support_optics",
             "observer": "analyzer",
             "inputs": ["ikarus_time_sec", "analysis_dict"],
             "filters": [
@@ -142,12 +155,33 @@
             "kwargs": {
                 "symbol": "BTCUSDT",
                 "timeframe": "1h",
-                "analyzer": "support_meanshift",
+                "analyzer": "support_optics",
                 "dtype": "SRCluster"
             }
         },
         {
-            "type": "resistance_meanshift",
+            "type": "resistance_optics",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "new_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": ["SREventsPredictiveVanilla"],
+                        "trade.command.value": ["execute_enter"]
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "BTCUSDT",
+                "timeframe": "1h",
+                "analyzer": "resistance_optics",
+                "dtype": "SRCluster"
+            }
+        },
+        {
+            "type": "support_optics",
             "observer": "analyzer",
             "inputs": ["ikarus_time_sec", "analysis_dict"],
             "filters": [
@@ -156,19 +190,19 @@
                     "object": "live_trade_list_obs",
                     "arg": {
                         "trade.strategy": ["SREventsPredictiveVanilla"],
-                        "trade.command.value": ["execute_exit"]
+                        "trade.command.value": ["execute_exit", "update"]
                     }
                 }
             ],
             "kwargs": {
                 "symbol": "BTCUSDT",
                 "timeframe": "1h",
-                "analyzer": "resistance_meanshift",
+                "analyzer": "support_optics",
                 "dtype": "SRCluster"
             }
         },
         {
-            "type": "resistance_meanshift",
+            "type": "resistance_optics",
             "observer": "analyzer",
             "inputs": ["ikarus_time_sec", "analysis_dict"],
             "filters": [
@@ -177,14 +211,99 @@
                     "object": "live_trade_list_obs",
                     "arg": {
                         "trade.strategy": ["SREventsPredictiveVanilla"],
-                        "trade.command.value": "update"
+                        "trade.command.value": ["execute_exit", "update"]
                     }
                 }
             ],
             "kwargs": {
                 "symbol": "BTCUSDT",
                 "timeframe": "1h",
-                "analyzer": "resistance_meanshift",
+                "analyzer": "resistance_optics",
+                "dtype": "SRCluster"
+            }
+        },
+
+        {
+            "type": "support_optics",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "new_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": ["SREventsPredictiveVanilla"],
+                        "trade.command.value": ["execute_enter"]
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "XRPUSDT",
+                "timeframe": "1h",
+                "analyzer": "support_optics",
+                "dtype": "SRCluster"
+            }
+        },
+        {
+            "type": "resistance_optics",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "new_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": ["SREventsPredictiveVanilla"],
+                        "trade.command.value": ["execute_enter"]
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "XRPUSDT",
+                "timeframe": "1h",
+                "analyzer": "resistance_optics",
+                "dtype": "SRCluster"
+            }
+        },
+        {
+            "type": "support_optics",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "live_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": ["SREventsPredictiveVanilla"],
+                        "trade.command.value": ["execute_exit", "update"]
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "XRPUSDT",
+                "timeframe": "1h",
+                "analyzer": "support_optics",
+                "dtype": "SRCluster"
+            }
+        },
+        {
+            "type": "resistance_optics",
+            "observer": "analyzer",
+            "inputs": ["ikarus_time_sec", "analysis_dict"],
+            "filters": [
+                {
+                    "type": "trade",
+                    "object": "live_trade_list_obs",
+                    "arg": {
+                        "trade.strategy": ["SREventsPredictiveVanilla"],
+                        "trade.command.value": ["execute_exit", "update"]
+                    }
+                }
+            ],
+            "kwargs": {
+                "symbol": "XRPUSDT",
+                "timeframe": "1h",
+                "analyzer": "resistance_optics",
                 "dtype": "SRCluster"
             }
         }
@@ -194,7 +313,7 @@
     "grid_search_reporters": {
         "grid": {
             "<strategy>": [
-                "SREventsReactiveLast"
+                "SREventsPredictiveVanilla"
             ],
             "<pair>": ["BTCUSDT"],
             "<start_time>": [0],
