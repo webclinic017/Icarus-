@@ -4,6 +4,8 @@ from functools import wraps
 from dashboard.analyzer_plot import support_resistance_plotter
 from dashboard import analyzer_plot
 from bokeh.palettes import Category10
+from dashboard.plot_tools import line_plotter
+from bokeh.plotting import figure, ColumnDataSource
 
 def quote_asset(p_candlesticks, p_analyzer, source, observation, observer, **kwargs):
 
@@ -11,6 +13,14 @@ def quote_asset(p_candlesticks, p_analyzer, source, observation, observer, **kwa
     p_analyzer.line(observation.index, observation['total'], legend_label='total', line_color=Category10[3][0])
     #p_analyzer.line(observation.index, observation['free'], legend_label='free', line_color=Category10[3][1])
     #p_analyzer.line(observation.index, observation['in_trade'], legend_label='in_trade', line_color=Category10[3][2])
+
+
+def strategy_capitals(p_candlesticks, p_analyzer, source, observation, observer, **kwargs):
+    number_of_lines = max(len(observation.columns),3)
+    for i, column in enumerate(observation.columns):
+        p_analyzer.line(observation.index, observation[column], 
+            legend_label=column,
+            line_color=Category10[number_of_lines][i])
 
 
 def adapt_cluster_indexes(x, y, enable_details=False) -> List[SRCluster]:
