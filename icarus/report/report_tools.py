@@ -300,6 +300,9 @@ async def strategy_statistics(index, reporter_input):
     for cause in ECause:
         stat_count[cause.value] = count_cause.get(cause,0)
 
+    df_expired = df[ df['cause'] == ECause.ENTER_EXP.value]
+    df = df[ df['cause'] != ECause.ENTER_EXP.value]
+
     count_updated = df['is_updated'].value_counts()
     stat_count['not_updated'] = count_updated.get(False, 0)
     stat_count['updated'] = count_updated.get(True, 0)
@@ -317,6 +320,7 @@ async def strategy_statistics(index, reporter_input):
         'average_not_updated': df[df['is_updated']==False]['profit'].mean()
     }
 
+    df['percentage_profit'] = df['percentage_profit'] * 100
     stat_percentage_profit = {
         'best': df['percentage_profit'].max(),
         'worst': df['percentage_profit'].min(),
@@ -328,6 +332,7 @@ async def strategy_statistics(index, reporter_input):
         'average_not_updated': df[df['is_updated']==False]['percentage_profit'].mean()
     }
 
+    df['price_change'] = df['price_change'] * 100
     stat_price_change = {
         'best': df['price_change'].max(),
         'worst': df['price_change'].min(),
@@ -356,7 +361,7 @@ async def strategy_statistics(index, reporter_input):
     stat_rates = {
         'win': (df['profit'] > 0).sum() / len(df['profit']),
         'lose': (df['profit'] <= 0).sum() / len(df['profit']),
-        'enter': (df['cause'] != ECause.ENTER_EXP).sum() / len(df)
+        'enter': len(df) / (len(df) + len(df_expired))
     }
 
     stat_risk = dict()
@@ -386,7 +391,7 @@ async def strategy_statistics(index, reporter_input):
 
     # Combine Stats
     stats = {
-        'strategy': df['strategy'][0],
+        'strategy': df['strategy'].iloc[0],
         'count': stat_count,
         'absolute_profit': stat_absolute_profit,
         'percentage_profit': stat_percentage_profit,
@@ -408,7 +413,7 @@ async def strategy_statistics(index, reporter_input):
             elif type(v) == np.int64:
                 stat[k] = int(v)
 
-    return Report(ReportMeta(title='strategy_{}'.format(df['strategy'][0])), data=stats)
+    return Report(ReportMeta(title='strategy_{}'.format(df['strategy'].iloc[0])), data=stats)
 
 
 async def balance_statistics(index, reporter_input):

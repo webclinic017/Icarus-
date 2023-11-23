@@ -22,7 +22,7 @@ from objects import ECause
 from sshtunnel import SSHTunnelForwarder
 from dashboard.cache_functions import *
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="Icarus Developer Dashboard")
 
 # Obtain data to visualize
 config = get_config()
@@ -124,10 +124,10 @@ vbars_bearish = p.vbar('open_time', candle_width, 'close', 'open', source=source
 
 # Add HoverTool to display open, high, close data
 tooltips=[
-    ("Open", "@open{0.00}"),
-    ("High", "@high{0.00}"),
-    ("Low", "@low{0.00}"),
-    ("Close", "@close{0.00}"),
+    ("Open", "@open{0.0000}"),
+    ("High", "@high{0.0000}"),
+    ("Low", "@low{0.0000}"),
+    ("Close", "@close{0.0000}"),
     ("Date", "@open_time{%F %T}")
 ]
 formatters={
