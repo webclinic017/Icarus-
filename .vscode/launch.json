@@ -36,13 +36,13 @@
             ]
         },
         {
-            "name": "generate_report",
+            "name": "Generate Report",
             "type": "python",
             "request": "launch",
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/150/config_backtest.json"
+                "${workspaceFolder}/configs/IC/176/config.json"
             ]
         },
         {
@@ -112,7 +112,7 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/176/config.json"
+                "${workspaceFolder}/configs/IC/174/config.json"
             ]
         },
         {

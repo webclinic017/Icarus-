@@ -180,3 +180,13 @@ def filter_observations(trades, _observations, selected_trades):
                 continue
             observations_filtered.append(observation)
     return observations_filtered
+
+
+@st.cache_data
+def get_strategies(trades):
+    return list(set([trade.strategy for trade in trades]))
+
+
+@st.cache_data
+def filter_trades(trades, selected_strategies):
+    return [trade for trade in trades if trade.strategy in selected_strategies]

@@ -72,7 +72,18 @@ selected_analyzers = st.sidebar.multiselect(
     max_selections=5,
 )
 
-trade_ids = [trade._id for trade in analysis_dict[symbol][timeframe].get('trades', [])]
+current_trades = analysis_dict[symbol][timeframe].get('trades', [])
+if 'trades' in selected_analyzers:
+    strategy_names = get_strategies(analysis_dict[symbol][timeframe].get('trades', []))
+    selected_strategies = st.sidebar.multiselect(
+        "Select strategies:",
+        strategy_names
+    )
+
+    if len(selected_strategies) != 0:
+        current_trades = filter_trades(analysis_dict[symbol][timeframe].get('trades', []), selected_strategies)
+
+trade_ids = [trade._id for trade in current_trades]
 selected_trades = st.sidebar.multiselect(
     "Select trades:",
     trade_ids
@@ -162,7 +173,10 @@ for analyzer in selected_analyzers:
     else:
         continue
 
-    analysis = analysis_dict[symbol][timeframe][analyzer]
+    if analyzer == 'trades':
+        analysis = current_trades
+    else:
+        analysis = analysis_dict[symbol][timeframe][analyzer]
 
     # Apply sr cluster filters
     if 'support' in analyzer or 'resistance' in analyzer and len(analysis) > 0:
@@ -179,10 +193,8 @@ for analyzer in selected_analyzers:
     plotter(p, p_analyzer, source, analysis, analyzer)
 
 if len(selected_trades) > 0 and 'trades' not in selected_analyzers:
-    analyzer = 'trades'
     plotter = getattr(trade_plot, 'individual_trades')
-    analysis = analysis_dict[symbol][timeframe][analyzer]
-    plotter(p, p_analyzer, source, analysis, selected_trades)
+    plotter(p, p_analyzer, source, current_trades, selected_trades)
 
 for observer in selected_observers:
     # Evaluate plotter function name
@@ -197,7 +209,7 @@ for observer in selected_observers:
         observations_filtered = observations
     else:
         enable_details = True
-        observations_filtered = filter_observations(analysis_dict[symbol][timeframe]['trades'], observations, selected_trades)
+        observations_filtered = filter_observations(current_trades, observations, selected_trades)
 
     # Apply sr cluster filters
     if 'support' in observer or 'resistance' in observer:
