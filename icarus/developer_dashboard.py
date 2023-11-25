@@ -139,7 +139,8 @@ tooltips=[
     ("High", "@high{0.0000}"),
     ("Low", "@low{0.0000}"),
     ("Close", "@close{0.0000}"),
-    ("Date", "@open_time{%F %T}")
+    ("Timestamp", "@open_time"),
+    ("Datetime", "@open_time{%F %T}")
 ]
 formatters={
     "@open_time": "datetime"  # Format the date and time

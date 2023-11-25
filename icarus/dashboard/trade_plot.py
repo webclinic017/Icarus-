@@ -137,28 +137,38 @@ def add_exit_order_frames(df):
     for index, row in df.iterrows():
         x_data = []
         y_data = []
-        for stashed_order in row['order_stash']:
+        for i, stashed_order in enumerate(row['order_stash']):
+            if i == 0:
+                stashed_order_start_date = row['result_enter_time']
+            else:
+                stashed_order_start_date = row['order_stash'][i-1]['expire']*1000
             stashed_order_expire = stashed_order['expire']*1000
             if 'stop_price' in stashed_order: # OCO
-                x_data += [row['result_enter_time'], stashed_order_expire, stashed_order_expire, row['result_enter_time'], row['result_enter_time'], stashed_order_expire, stashed_order_expire]
-                y_data += [row['result_enter_price'], row['result_enter_price'], row['exit_price'], row['exit_price'], stashed_order['stop_limit_price'], stashed_order['stop_limit_price'], row['result_enter_price']]
+                x_data += [stashed_order_start_date, stashed_order_expire, stashed_order_expire, stashed_order_start_date, stashed_order_start_date, stashed_order_expire, stashed_order_expire]
+                y_data += [row['result_enter_price'], row['result_enter_price'], stashed_order['price'], stashed_order['price'], stashed_order['stop_limit_price'], stashed_order['stop_limit_price'], row['result_enter_price']]
             elif 'expire' in stashed_order: # LIMIT
-                x_data += [row['result_enter_time'], stashed_order_expire, stashed_order_expire, row['result_enter_time'], row['result_enter_time']]
+                x_data += [stashed_order_start_date, stashed_order_expire, stashed_order_expire, stashed_order_start_date, stashed_order_start_date]
                 y_data += [row['result_enter_price'], row['result_enter_price'], stashed_order['price'], stashed_order['price'], row['result_enter_price']]
             else:  # MARKET
                 # NOTE: It does not make sense the market orders to be stashed
                 pass
         
+        # Determine exit order start date
+        if len(row['order_stash']) == 0:
+            exit_order_start_date = row['result_enter_time']
+        else:
+            exit_order_start_date = row['order_stash'][-1]['expire']*1000
+        
         # Filled Exit orders
         if 'stop_price' in row['exit']: # OCO
             # NOTE: not tested
-            x_data += [row['result_enter_time'], row['result_exit_time'], row['result_exit_time'], row['result_enter_time'], row['result_enter_time'], row['result_exit_time'], row['result_exit_time']]
+            x_data += [exit_order_start_date, row['result_exit_time'], row['result_exit_time'], exit_order_start_date, exit_order_start_date, row['result_exit_time'], row['result_exit_time']]
             y_data += [row['result_enter_price'], row['result_enter_price'], row['exit_price'], row['exit_price'], row['exit_stop_limit_price'], row['exit_stop_limit_price'], row['result_enter_price']]
         elif 'expire' in row['exit']: # LIMIT
-            x_data += [row['result_enter_time'], row['result_exit_time'], row['result_exit_time'], row['result_enter_time'], row['result_enter_time']]
+            x_data += [exit_order_start_date, row['result_exit_time'], row['result_exit_time'], exit_order_start_date, exit_order_start_date]
             y_data += [row['result_enter_price'], row['result_enter_price'], row['exit_price'], row['exit_price'], row['result_enter_price']]
         else:  # MARKET
-            x_data += [row['result_enter_time'], row['result_exit_time'], row['result_exit_time']]
+            x_data += [exit_order_start_date, row['result_exit_time'], row['result_exit_time']]
             y_data += [row['result_enter_price'], row['result_enter_price'], row['result_exit_price']]
 
         raw_lines['xs'].append(x_data)
