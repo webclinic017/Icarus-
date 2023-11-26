@@ -63,7 +63,7 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
     live_trade_dicts = await mongocli.do_aggregate('live-trades',[{ '$match': { 'strategy': {'$in': list(strategy_period_mapping.keys()) }} }])
 
     live_trade_list = [trade_from_dict(trade_dict) for trade_dict in live_trade_dicts]
-    await sync_trades_of_backtest(live_trade_list, data_dict, strategy_period_mapping, df_balance, config['broker']['quote_currency'])
+    await sync_trades_of_backtest(ikarus_time_sec, live_trade_list, data_dict, strategy_period_mapping, df_balance, config['broker']['quote_currency'])
 
     analysis_dict = await analyzer.analyze(data_dict)
 

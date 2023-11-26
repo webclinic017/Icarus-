@@ -417,7 +417,7 @@ class BacktestWrapper():
         self._execute_nto(new_trades, df_balance)
 
 
-async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping, df_balance, quote_currency):
+async def sync_trades_of_backtest(icarus_time_sec, trade_list, data_dict, strategy_period_mapping, df_balance, quote_currency):
     global symbol_info
     # NOTE: Only get the related LTOs and ONLY update the related LTOs. Doing the same thing here is pointless.
     for i in range(len(trade_list)):
@@ -444,7 +444,7 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
                         logger.error(f"Function failed: balance_manager.buy().")
                         # TODO: Fix the logic. The balance manager should be called prior
 
-                elif int(trade_list[i].enter.expire) <= last_closed_candle_open_time:
+                elif int(trade_list[i].enter.expire) <= icarus_time_sec:
                     logger.debug('Enter order expired')
                     trade_list[i].status = EState.ENTER_EXP
                     # NOTE: No update on command because it is, only placed by the strategies
@@ -483,7 +483,7 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
                         logger.error(f"Function failed: balance_manager.sell().")
                         # TODO: Fix the logic. The balance manager should be called prior
 
-                elif int(trade_list[i].exit.expire) <= last_closed_candle_open_time:
+                elif int(trade_list[i].exit.expire) <= icarus_time_sec:
                     trade_list[i].status = EState.EXIT_EXP
 
 
@@ -511,7 +511,7 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
                         logger.error(f"Function failed: balance_manager.sell().")
                         # TODO: Fix the logic. The balance manager should be called prior
 
-                elif int(trade_list[i].exit.expire) <= last_closed_candle_open_time:
+                elif int(trade_list[i].exit.expire) <= icarus_time_sec:
                     logger.debug('Exit order expired')
                     trade_list[i].status = EState.EXIT_EXP
 

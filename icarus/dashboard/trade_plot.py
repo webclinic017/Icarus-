@@ -157,7 +157,7 @@ def add_exit_order_frames(df):
         if len(row['order_stash']) == 0:
             exit_order_start_date = row['result_enter_time']
         else:
-            exit_order_start_date = row['order_stash'][-1]['expire']*1000
+            exit_order_start_date = row['exit_creation_time']*1000
         
         # Filled Exit orders
         if 'stop_price' in row['exit']: # OCO

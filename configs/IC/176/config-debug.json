@@ -1,5 +1,5 @@
 {
-    "tag": "IC-176-3",
+    "tag": "IC-176-debug",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
@@ -7,7 +7,7 @@
     },
     "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "IC-176-3",
+        "database": "IC-176-debug",
         "host": "localhost",
         "port": 27017,
         "clean": true
@@ -27,11 +27,11 @@
         "1h": 180
     },
     "backtest": {
-        "start_time": "2023-04-01 00:00:00",
-        "end_time": "2023-06-01 00:00:00",
+        "start_time": "2023-04-06 09:00:00",
+        "end_time": "2023-04-18 16:00:00",
         "online": true,
         "breakpoints": {
-            "1680422400000": "ss"
+            "1681138800000": "enter_expire"
         }
     },
     "strategy_allocation":{
