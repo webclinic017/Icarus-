@@ -13,11 +13,12 @@ from utils import time_scale_to_second, get_min_scale, time_scale_to_milisecond,
     safe_multiply, safe_divide, round_to_period
 import balance_manager
 import more_itertools
-from objects import OCO, ECause, ECommand, EState, Limit, Market, trade_to_dict
+from objects import Trade, OCO, ECause, ECommand, EState, Limit, Market, trade_to_dict
 from abc import ABC, abstractmethod
 import binance_filters
 import os
 from collections import defaultdict
+from typing import List
 
 logger = logging.getLogger('app')
 
@@ -331,7 +332,7 @@ class BacktestWrapper():
     def execute_cancel(self, trade, df_balance) -> bool:
         if trade.status in [EState.OPEN_ENTER, EState.ENTER_EXP] : # NOTE: REFACTORING: EState.CLOSED was here as well
             return balance_manager.cancel_enter_order(df_balance, self.quote_currency, trade.enter)
-        elif trade.status in [EState.EXIT_EXP, EState.OPEN_EXIT]:
+        elif trade.status in [EState.EXIT_EXP, EState.OPEN_EXIT, EState.WAITING_EXIT]:
             base_cur = trade.pair.replace(self.config['broker']['quote_currency'],'')
             return balance_manager.cancel_exit_order(df_balance, base_cur, trade.exit)
         logger.warning(f'execute_cancel failed for trade:{trade_to_dict(trade)}')
@@ -357,12 +358,13 @@ class BacktestWrapper():
         return False
 
 
-    def _execute_lto(self, trade_list, df_balance):
+    def _execute_lto(self, trade_list: List[Trade], df_balance):
         for i in range(len(trade_list)):
             if trade_list[i].command == ECommand.CANCEL:
 
                 if self.execute_cancel(trade_list[i], df_balance):
-                    trade_list[i].status = EState.CLOSED
+                    if trade_list[i].result.enter == None:
+                        trade_list[i].status = EState.CLOSED
                     trade_list[i].reset_command()
                 
             elif trade_list[i].command == ECommand.UPDATE:

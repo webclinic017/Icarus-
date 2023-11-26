@@ -73,15 +73,16 @@ selected_analyzers = st.sidebar.multiselect(
 )
 
 current_trades = analysis_dict[symbol][timeframe].get('trades', [])
-if 'trades' in selected_analyzers:
-    strategy_names = get_strategies(analysis_dict[symbol][timeframe].get('trades', []))
-    selected_strategies = st.sidebar.multiselect(
-        "Select strategies:",
-        strategy_names
-    )
 
-    if len(selected_strategies) != 0:
-        current_trades = filter_trades(analysis_dict[symbol][timeframe].get('trades', []), selected_strategies)
+strategy_names = get_strategies(analysis_dict[symbol][timeframe].get('trades', []))
+selected_strategies = st.sidebar.multiselect(
+    "Select strategies:",
+    strategy_names,
+    disabled=('trades' not in selected_analyzers)
+)
+
+if len(selected_strategies) != 0:
+    current_trades = filter_trades(analysis_dict[symbol][timeframe].get('trades', []), selected_strategies)
 
 trade_ids = [trade._id for trade in current_trades]
 selected_trades = st.sidebar.multiselect(

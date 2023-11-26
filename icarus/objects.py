@@ -133,6 +133,7 @@ class Order:
     # NOTE: If the change of an field affects others,
     #       then it is performed via a setter.
 
+    creation_time: int = None
     price: float = None
     amount: float = None
     quantity: float = None
@@ -369,6 +370,7 @@ def order_from_dict(order_data):
             order.stop_limit_price = order_data['stop_limit_price']
             order.stop_limit_orderId = order_data['stop_limit_orderId']
         order.expire = order_data['expire']
+    order.creation_time = order_data['creation_time']
     order.price = order_data['price']
     order.amount = order_data['amount']
     order.quantity = order_data['quantity']
@@ -402,14 +404,3 @@ def trade_from_dict(data):
         order_from_dict(data['enter']), order_from_dict(data['exit']), result_from_dict(data['result']),
         ECommand(data['command']), [order_from_dict(order) for order in data['order_stash']], _id=data['_id'])
     
-
-if __name__ == "__main__":
-    price=0.2906
-    price_to_set=0.25
-    quantity=4749.5664
-    amount=1187.3916
-    fee_rate = 0.001
-
-    order_buy = Limit(price=price, amount=amount, fee_rate=fee_rate, orderId=1652629743339, expire=1559001600000)
-    order_buy.set_price(price=price_to_set, use_amount_for_fee_calc=False)
-    pass
