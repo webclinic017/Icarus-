@@ -79,7 +79,7 @@ class SREventsPredictiveVanilla(StrategyBase):
 
         base_price = max(trade.result.enter.price, analysis['close'][-1])
         cluster_relative_pos = np.array([round(100 * (sr.price_mean - base_price) / base_price, 2) for sr in exit_clusters])
-        above_clusters = exit_clusters[cluster_relative_pos > 0]
+        above_clusters = exit_clusters[cluster_relative_pos > 0.05]
 
         # If there is no upper level
         if len(above_clusters) <= 0:

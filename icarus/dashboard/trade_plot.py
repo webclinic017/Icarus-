@@ -138,10 +138,7 @@ def add_exit_order_frames(df):
         x_data = []
         y_data = []
         for i, stashed_order in enumerate(row['order_stash']):
-            if i == 0:
-                stashed_order_start_date = row['result_enter_time']
-            else:
-                stashed_order_start_date = row['order_stash'][i]['creation_time']*1000
+            stashed_order_start_date = row['order_stash'][i]['creation_time']*1000
             stashed_order_expire = stashed_order['expire']*1000
             if 'stop_price' in stashed_order: # OCO
                 x_data += [stashed_order_start_date, stashed_order_expire, stashed_order_expire, stashed_order_start_date, stashed_order_start_date, stashed_order_expire, stashed_order_expire]
