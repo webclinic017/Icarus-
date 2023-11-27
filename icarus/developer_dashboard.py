@@ -22,7 +22,7 @@ from objects import ECause
 from sshtunnel import SSHTunnelForwarder
 from dashboard.cache_functions import *
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="Icarus Developer Dashboard")
 
 # Obtain data to visualize
 config = get_config()
@@ -72,7 +72,19 @@ selected_analyzers = st.sidebar.multiselect(
     max_selections=5,
 )
 
-trade_ids = [trade._id for trade in analysis_dict[symbol][timeframe].get('trades', [])]
+current_trades = analysis_dict[symbol][timeframe].get('trades', [])
+
+strategy_names = get_strategies(analysis_dict[symbol][timeframe].get('trades', []))
+selected_strategies = st.sidebar.multiselect(
+    "Select strategies:",
+    strategy_names,
+    disabled=('trades' not in selected_analyzers)
+)
+
+if len(selected_strategies) != 0:
+    current_trades = filter_trades(analysis_dict[symbol][timeframe].get('trades', []), selected_strategies)
+
+trade_ids = [trade._id for trade in current_trades]
 selected_trades = st.sidebar.multiselect(
     "Select trades:",
     trade_ids
@@ -124,11 +136,12 @@ vbars_bearish = p.vbar('open_time', candle_width, 'close', 'open', source=source
 
 # Add HoverTool to display open, high, close data
 tooltips=[
-    ("Open", "@open{0.00}"),
-    ("High", "@high{0.00}"),
-    ("Low", "@low{0.00}"),
-    ("Close", "@close{0.00}"),
-    ("Date", "@open_time{%F %T}")
+    ("Open", "@open{0.0000}"),
+    ("High", "@high{0.0000}"),
+    ("Low", "@low{0.0000}"),
+    ("Close", "@close{0.0000}"),
+    ("Timestamp", "@open_time"),
+    ("Datetime", "@open_time{%F %T}")
 ]
 formatters={
     "@open_time": "datetime"  # Format the date and time
@@ -162,7 +175,10 @@ for analyzer in selected_analyzers:
     else:
         continue
 
-    analysis = analysis_dict[symbol][timeframe][analyzer]
+    if analyzer == 'trades':
+        analysis = current_trades
+    else:
+        analysis = analysis_dict[symbol][timeframe][analyzer]
 
     # Apply sr cluster filters
     if 'support' in analyzer or 'resistance' in analyzer and len(analysis) > 0:
@@ -179,10 +195,8 @@ for analyzer in selected_analyzers:
     plotter(p, p_analyzer, source, analysis, analyzer)
 
 if len(selected_trades) > 0 and 'trades' not in selected_analyzers:
-    analyzer = 'trades'
     plotter = getattr(trade_plot, 'individual_trades')
-    analysis = analysis_dict[symbol][timeframe][analyzer]
-    plotter(p, p_analyzer, source, analysis, selected_trades)
+    plotter(p, p_analyzer, source, current_trades, selected_trades)
 
 for observer in selected_observers:
     # Evaluate plotter function name
@@ -197,7 +211,7 @@ for observer in selected_observers:
         observations_filtered = observations
     else:
         enable_details = True
-        observations_filtered = filter_observations(analysis_dict[symbol][timeframe]['trades'], observations, selected_trades)
+        observations_filtered = filter_observations(current_trades, observations, selected_trades)
 
     # Apply sr cluster filters
     if 'support' in observer or 'resistance' in observer:

@@ -13,11 +13,12 @@ from utils import time_scale_to_second, get_min_scale, time_scale_to_milisecond,
     safe_multiply, safe_divide, round_to_period
 import balance_manager
 import more_itertools
-from objects import OCO, ECause, ECommand, EState, Limit, Market, trade_to_dict
+from objects import Trade, OCO, ECause, ECommand, EState, Limit, Market, trade_to_dict
 from abc import ABC, abstractmethod
 import binance_filters
 import os
 from collections import defaultdict
+from typing import List
 
 logger = logging.getLogger('app')
 
@@ -331,7 +332,7 @@ class BacktestWrapper():
     def execute_cancel(self, trade, df_balance) -> bool:
         if trade.status in [EState.OPEN_ENTER, EState.ENTER_EXP] : # NOTE: REFACTORING: EState.CLOSED was here as well
             return balance_manager.cancel_enter_order(df_balance, self.quote_currency, trade.enter)
-        elif trade.status in [EState.EXIT_EXP, EState.OPEN_EXIT]:
+        elif trade.status in [EState.EXIT_EXP, EState.OPEN_EXIT, EState.WAITING_EXIT]:
             base_cur = trade.pair.replace(self.config['broker']['quote_currency'],'')
             return balance_manager.cancel_exit_order(df_balance, base_cur, trade.exit)
         logger.warning(f'execute_cancel failed for trade:{trade_to_dict(trade)}')
@@ -357,12 +358,13 @@ class BacktestWrapper():
         return False
 
 
-    def _execute_lto(self, trade_list, df_balance):
+    def _execute_lto(self, trade_list: List[Trade], df_balance):
         for i in range(len(trade_list)):
             if trade_list[i].command == ECommand.CANCEL:
 
                 if self.execute_cancel(trade_list[i], df_balance):
-                    trade_list[i].status = EState.CLOSED
+                    if trade_list[i].result.enter == None:
+                        trade_list[i].status = EState.CLOSED
                     trade_list[i].reset_command()
                 
             elif trade_list[i].command == ECommand.UPDATE:
@@ -415,14 +417,17 @@ class BacktestWrapper():
         self._execute_nto(new_trades, df_balance)
 
 
-async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping, df_balance, quote_currency):
+async def sync_trades_of_backtest(icarus_time_sec, trade_list, data_dict, strategy_period_mapping, df_balance, quote_currency):
     global symbol_info
     # NOTE: Only get the related LTOs and ONLY update the related LTOs. Doing the same thing here is pointless.
     for i in range(len(trade_list)):
+        logger.debug('Processing trade: {}, pair: {},current state: {}'.format(trade_list[i]._id, trade_list[i].pair, trade_list[i].status))
         pair = trade_list[i].pair
 
         strategy_min_scale = strategy_period_mapping[trade_list[i].strategy]
         last_kline = data_dict[pair][strategy_min_scale].tail(1)
+        logger.debug('last kline: {}'.format(last_kline.to_dict()))
+
         #last_closed_candle_open_time = bson.Int64(last_kline.index.values[0])
         last_closed_candle_open_time = int(last_kline.index.values[0]/1000)
         base_cur = pair.replace(quote_currency,'')
@@ -432,13 +437,15 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
             if type(trade_list[i].enter) == Limit:
 
                 # Check if the open enter trade is filled else if the trade is expired
-                if float(last_kline['low'].iloc[0]) < trade_list[i].enter.price:                    
+                if float(last_kline['low'].iloc[0]) < trade_list[i].enter.price:
+                    logger.debug('Limit is taken')
                     trade_list[i].set_result_enter(last_closed_candle_open_time, fee_rate=BacktestWrapper.fee_rate)
                     if not balance_manager.buy(df_balance, quote_currency, base_cur, trade_list[i]):
                         logger.error(f"Function failed: balance_manager.buy().")
                         # TODO: Fix the logic. The balance manager should be called prior
 
-                elif int(trade_list[i].enter.expire) <= last_closed_candle_open_time:
+                elif int(trade_list[i].enter.expire) <= icarus_time_sec:
+                    logger.debug('Enter order expired')
                     trade_list[i].status = EState.ENTER_EXP
                     # NOTE: No update on command because it is, only placed by the strategies
 
@@ -476,7 +483,7 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
                         logger.error(f"Function failed: balance_manager.sell().")
                         # TODO: Fix the logic. The balance manager should be called prior
 
-                elif int(trade_list[i].exit.expire) <= last_closed_candle_open_time:
+                elif int(trade_list[i].exit.expire) <= icarus_time_sec:
                     trade_list[i].status = EState.EXIT_EXP
 
 
@@ -484,7 +491,7 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
                 # NOTE: Think about the worst case and check the stop loss first.
 
                 if float(last_kline['low']) < trade_list[i].exit.stop_price:
-                    # Stop Loss takens
+                    logger.debug('Stop loss is taken')
                     trade_list[i].set_result_exit(last_closed_candle_open_time,
                         cause=ECause.STOP_LIMIT,
                         price=trade_list[i].exit.stop_limit_price,
@@ -494,7 +501,7 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
                     balance_manager.sell(df_balance, quote_currency, base_cur, trade_list[i])
                 
                 elif float(last_kline['high']) > trade_list[i].exit.price:
-                    # Limit taken
+                    logger.debug('Limit is taken')
                     trade_list[i].set_result_exit(last_closed_candle_open_time,
                         fee_rate=BacktestWrapper.fee_rate,
                         cause=ECause.LIMIT)
@@ -504,11 +511,9 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
                         logger.error(f"Function failed: balance_manager.sell().")
                         # TODO: Fix the logic. The balance manager should be called prior
 
-                elif int(trade_list[i].exit.expire) <= last_closed_candle_open_time:
+                elif int(trade_list[i].exit.expire) <= icarus_time_sec:
+                    logger.debug('Exit order expired')
                     trade_list[i].status = EState.EXIT_EXP
-
-                else:
-                    pass
 
 
             elif type(trade_list[i].exit) == Market:
@@ -530,3 +535,5 @@ async def sync_trades_of_backtest(trade_list, data_dict, strategy_period_mapping
         else:
             # TODO: Internal Error
             pass
+        
+        logger.debug('Processed trade: {}, pair: {}, current state: {}, command: {}, stash size: {}'.format(trade_list[i]._id, trade_list[i].pair, trade_list[i].status, trade_list[i].command, len(trade_list[i].order_stash)))

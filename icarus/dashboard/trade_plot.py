@@ -45,7 +45,10 @@ def plot_closed_trades(p, source, df_closed):
     df_result_exits = df_results['result_exit'].apply(pd.Series).add_prefix('result_exit_')
     df_result_enters = df_results['result_enter'].apply(pd.Series).add_prefix('result_enter_')
     df_source = pd.concat([df_closed[['_id','decision_time','strategy','order_stash', 'exit']], df_enter, df_exit, df_results[['result_cause','result_profit','result_live_time']], df_result_enters, df_result_exits], axis=1)
+    df_source['decision_datetime'] = pd.to_datetime(df_source['decision_time'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
     df_source['decision_time'] = df_source['decision_time'].mul(1000).astype(np.int64)
+    df_source['result_exit_datetime'] = pd.to_datetime(df_source['result_exit_time'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
+    df_source['result_enter_datetime'] = pd.to_datetime(df_source['result_enter_time'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
     df_source['result_exit_time'] = df_source['result_exit_time'].mul(1000).astype(np.int64)
     df_source['result_enter_time'] = df_source['result_enter_time'].mul(1000).astype(np.int64)
     df_source['x'] = (df_source['result_enter_time'] + df_source['result_exit_time']).div(2)
@@ -75,12 +78,17 @@ def plot_closed_trades(p, source, df_closed):
         ("Absolute Profit", "@result_profit{0.0}"),
         ("Perc. Profit", "% @percentage_profit{0.0}"),
         ("Perc. Price Change", "% @price_change{0.00}"),
-        ("Target Enter Price", "@enter_price{0.00}"),
-        ("Enter Price", "@result_enter_price{0.00}"),
-        ("Target Exit Price", "@exit_price{0.00}"),
-        ("Exit Price", "@result_exit_price{0.00}"),
-        ("Enter Amount", "@result_enter_amount{0.00}"),
-        ("Exit Amount", "@result_exit_amount{0.00}"),
+        ("Target Enter Price", "@enter_price{0.0000}"),
+        ("Enter Price", "@result_enter_price{0.0000}"),
+        ("Target Exit Price", "@exit_price{0.0000}"),
+        ("Exit Price", "@result_exit_price{0.0000}"),
+        ("Enter Amount", "@result_enter_amount{0.0000}"),
+        ("Exit Amount", "@result_exit_amount{0.0000}"),
+
+        ("Decision Time", "@decision_time (@decision_datetime)"),
+        ("Enter Time", "@result_enter_time (@result_enter_datetime)"),
+        ("Exit Time", "@result_exit_time (@result_exit_datetime)"),
+
     ]
     hover_closed.renderers = [profit_rects, enter_lines, exit_lines]
     p.add_tools(hover_closed)
@@ -129,28 +137,35 @@ def add_exit_order_frames(df):
     for index, row in df.iterrows():
         x_data = []
         y_data = []
-        for stashed_order in row['order_stash']:
+        for i, stashed_order in enumerate(row['order_stash']):
+            stashed_order_start_date = row['order_stash'][i]['creation_time']*1000
             stashed_order_expire = stashed_order['expire']*1000
             if 'stop_price' in stashed_order: # OCO
-                x_data += [row['result_enter_time'], stashed_order_expire, stashed_order_expire, row['result_enter_time'], row['result_enter_time'], stashed_order_expire, stashed_order_expire]
-                y_data += [row['result_enter_price'], row['result_enter_price'], row['exit_price'], row['exit_price'], stashed_order['stop_limit_price'], stashed_order['stop_limit_price'], row['result_enter_price']]
+                x_data += [stashed_order_start_date, stashed_order_expire, stashed_order_expire, stashed_order_start_date, stashed_order_start_date, stashed_order_expire, stashed_order_expire]
+                y_data += [row['result_enter_price'], row['result_enter_price'], stashed_order['price'], stashed_order['price'], stashed_order['stop_limit_price'], stashed_order['stop_limit_price'], row['result_enter_price']]
             elif 'expire' in stashed_order: # LIMIT
-                x_data += [row['result_enter_time'], stashed_order_expire, stashed_order_expire, row['result_enter_time'], row['result_enter_time']]
+                x_data += [stashed_order_start_date, stashed_order_expire, stashed_order_expire, stashed_order_start_date, stashed_order_start_date]
                 y_data += [row['result_enter_price'], row['result_enter_price'], stashed_order['price'], stashed_order['price'], row['result_enter_price']]
             else:  # MARKET
                 # NOTE: It does not make sense the market orders to be stashed
                 pass
         
+        # Determine exit order start date
+        if len(row['order_stash']) == 0:
+            exit_order_start_date = row['result_enter_time']
+        else:
+            exit_order_start_date = row['exit_creation_time']*1000
+        
         # Filled Exit orders
         if 'stop_price' in row['exit']: # OCO
             # NOTE: not tested
-            x_data += [row['result_enter_time'], row['result_exit_time'], row['result_exit_time'], row['result_enter_time'], row['result_enter_time'], row['result_exit_time'], row['result_exit_time']]
+            x_data += [exit_order_start_date, row['result_exit_time'], row['result_exit_time'], exit_order_start_date, exit_order_start_date, row['result_exit_time'], row['result_exit_time']]
             y_data += [row['result_enter_price'], row['result_enter_price'], row['exit_price'], row['exit_price'], row['exit_stop_limit_price'], row['exit_stop_limit_price'], row['result_enter_price']]
         elif 'expire' in row['exit']: # LIMIT
-            x_data += [row['result_enter_time'], row['result_exit_time'], row['result_exit_time'], row['result_enter_time'], row['result_enter_time']]
+            x_data += [exit_order_start_date, row['result_exit_time'], row['result_exit_time'], exit_order_start_date, exit_order_start_date]
             y_data += [row['result_enter_price'], row['result_enter_price'], row['exit_price'], row['exit_price'], row['result_enter_price']]
         else:  # MARKET
-            x_data += [row['result_enter_time'], row['result_exit_time'], row['result_exit_time']]
+            x_data += [exit_order_start_date, row['result_exit_time'], row['result_exit_time']]
             y_data += [row['result_enter_price'], row['result_enter_price'], row['result_exit_price']]
 
         raw_lines['xs'].append(x_data)
