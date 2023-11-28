@@ -1,24 +1,7 @@
-<p align="center"><img src="https://user-images.githubusercontent.com/40933377/151241659-1fd03ef8-5723-4a57-8ea8-58a9b6386304.jpg" width="1000" height="288"></p>
-
+![icarus-visual](https://github.com/bilkosem/Icarus/assets/40933377/6d9ea5e7-f39d-44c4-a602-263ea87c3379)
 # Icarus
-Icarus is an all-in-one cryptocurrency trading bot for Binance. It enables you to
-- backtest
-- live-trade
-- monitor
-  - boot diagnostics
-  - trade related events
-  - balance
-- create 
-  - custom strategies
-  - custom indicators
-- visualize
-  - trades on charts
-  - custom indicators
-  - technical research results
-- report
-  - backtest results
-  - strategy performances
-  - technical research results
+Icarus is a trading platform that enable users to do technical analysis on financial markets and develop strategies with an engineering approach. It enable users to do backtest, live-trade, report, monitor, and develop custom trading strategies.
+
 
 
 # Table of content
@@ -193,6 +176,7 @@ Use Icarus Developer Dashboard to
 
 ### 5. Visualize Indicators 📉
 If you are developing a custom indicator you can still use the Icarus Developer Dashboard without any backtest.
+
 `streamlit run icarus/developer_dashboard.py configs/quick-start/config.json`
 
 <p align="center">
@@ -200,18 +184,13 @@ If you are developing a custom indicator you can still use the Icarus Developer 
 </p>
 
 ## Live-Trade
-### 1. Configure 🛠
-Live-Trade configs may contain some additional configurations regarding the monitoring settings to enable/disable such as "live trade objects(LTO)", "statistics", "errors" etc.
 
-### 2. Run 🚀
+### 1. Run 🚀
 `python icarus/live-trade.py configs/quick-start/config.json`
 
-### 3. Visualize 📈
-Visualization works the same as the backtest mechanism (Combining the historical trade objects from MongoDB and combining it with the data).
+### 2. Visualize 📈
+Visualize live-trades and events on the Developer Dashboard
 
-### 4. Monitor 🔍
-Based on the configured options, the messages are published to the target telegram channel. Below, you can see the messages regarding the state of a trade object (LTO: Live Trade Object, HTO: Historical Trade Object)
-
+### 3. Monitor 🔍
+Get notifications on certain events.
 <p align="center"><img src="/docs/readme/telegram-bot-interface.png" width="225" height="400"></p>
-
-## Report
