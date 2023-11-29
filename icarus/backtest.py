@@ -241,4 +241,4 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
 
-    print(f"Backtest completed: {config['tag']}")
+    print(f"Backtest completed")

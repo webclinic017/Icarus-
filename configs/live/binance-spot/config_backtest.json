@@ -1,5 +1,5 @@
 {
-    "tag": "trend_change_supertrend_1d",
+    "tag": "IC-143_backtest",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
@@ -7,7 +7,7 @@
     },
     "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "trend_change_supertrend_1d",
+        "database": "IC-143_backtest",
         "host": "localhost",
         "port": 27017,
         "clean": true
@@ -15,7 +15,7 @@
     "balances": [
         {
             "asset": "USDT",
-            "free": 10000,
+            "free": 120000,
             "locked": 0
         }
     ],
@@ -26,59 +26,61 @@
     "strategy_allocation":{
         "type": "DiscreteStrategyAllocator",
         "kwargs": {
-            "distribution_config": ["TrendChangeMCI"],
+            "distribution_config": [
+                "market_direction_supertrend"
+            ],
             "capital_coeff":0.9, 
             "stop_capital":null,
-            "capital_limit": null
+            "capital_limit": 1000
         }
     },
     "strategy": {
-        "TrendChangeMCI": {
-            "strategy": "TrendChangeMCI",
+        "MarketDirectionTrigger": {
+            "strategy": "MarketDirectionTrigger",
             "pairs": ["BTCUSDT"],
-            "time_scales": ["1d"],
+            "time_scales": ["4h"],
             "max_live_trade": 1,
             "kwargs":{
-                "target_profit_coeff":1.126,
-                "exit_duration":24,
-                "max_loss_coeff": 0.05,
-                "enter_uptrend_th": 1,
-                "exit_downtrend_th": 1
+                "analyzer": "market_direction_supertrend"
             }
         }
     },
-    "analysis": {
-        "close": {},
-        "market_class_supertrend": {
-            "format": "regime"
+    "analysis": [
+        {
+            "candlesticks": {},
+            "close": {}
         },
-        "market_class_index": {
-            "market_class_supertrend": {
-                "format": "direction",
-                "length": 7
-            }
-        },
-        "market_regime_index": {
-            "market_class_supertrend": {
-                "format": "regime",
-                "length": 7
-            }
+        {
+            "market_direction_supertrend": {"timeperiod":12}
         }
-    },
-    "report_folder_name": "reports_trend_change_supertrend_1d",
+    ],
+    "report_folder_name": "reports",
     "report": [],
     "grid_search_reporters": {
         "grid": {
-            "<strategy>": ["TrendChangeMCI"],
+            "<strategy>": [
+                "market_direction_rsi", 
+                "market_direction_macd",
+                "market_direction_stoch",
+                "market_direction_stochf",
+                "market_direction_aroonosc",
+                "market_direction_willr",
+                "market_direction_cci",
+                "market_direction_mfi",
+                "market_direction_ultosc",
+                "market_direction_dmi",
+                "market_direction_supertrend",
+                "market_direction_logisticregression"
+            ],
             "<pair>": ["BTCUSDT"],
             "<start_time>": [0],
-            "<end_time>": [1688947200]
+            "<end_time>": [1788947200]
         },
         "reporters": [
             {
                 "parameters": {
                     "<pair-indice>": ["BTCUSDT"],
-                    "<timeframe>": ["1d"],
+                    "<timeframe>": ["4h"],
                     "<analyzer>": ["close"]
                 },
                 "reporter": "symbol_price_change",
@@ -367,12 +369,11 @@
         ]
     },
     "time_scales": {
-        "1d": 170,
-        "4h": 170,
-        "1h": 170
+        "1h": 170,
+        "4h": 170
     },
     "backtest": {
-        "start_time": "2023-04-10 00:00:00",
+        "start_time": "2021-07-10 00:00:00",
         "end_time": "2023-07-10 00:00:00",
         "online": true,
         "breakpoints": {
