@@ -302,7 +302,7 @@ def bearish_aroon_break(p_candlesticks, p_analyzer, source, analysis, analyzer):
 def kaufman_efficiency_ratio(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'y_range': (np.nanmin(analysis),np.nanmax(analysis))}; line_plotter(p_analyzer, source, analysis, **kwargs)
 def price_density(p_candlesticks, p_analyzer, source, analysis, analyzer): kwargs = {'y_range': (np.nanmin(analysis),np.nanmax(analysis))}; line_plotter(p_analyzer, source, analysis, **kwargs)
 def dmi(p_candlesticks, p_analyzer, source, analysis, analyzer): line_plotter(p_analyzer, source, analysis)
-def supertrend_band(p_candlesticks, p_analyzer, source, analysis, analyzer): line_plotter(p_candlesticks, source, analysis)
+def supertrend_band(p_candlesticks, p_analyzer, source, analysis, analyzer): line_plotter(p_candlesticks, source, analysis, **{'line_width':4, 'line_color': [GREEN, RED]})
 
 ####################################  TA-LIB Indicators Visualization ####################################
 

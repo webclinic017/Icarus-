@@ -44,9 +44,11 @@ time_scales = get_time_scales(config)
 credentials = get_credentials(config)
 analyzer_names = get_analyzer_names(config)
 observer_names = get_observer_names(config)
-data_dict = get_data_dict(config, credentials)
-analysis_dict = get_analysis_dict(config, data_dict)
 observer_dict = get_observer_dict(config)
+candle_start, candle_end = get_start_end_times(config, observer_dict)
+data_dict = get_data_dict(config, credentials, candle_start, candle_end)
+analysis_dict = get_analysis_dict(config, data_dict)
+
 
 # Configure dashboard
 st.sidebar.title("Icarus Developer Dashboard")

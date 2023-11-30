@@ -61,13 +61,9 @@ def async_to_sync(async_function):
 
 @st.cache_data
 @async_to_sync
-async def get_data_dict(config, credentials):
+async def get_data_dict(config, credentials, candle_start_ms, candle_end_ms):
     client = await AsyncClient.create(**credentials['Binance']['Production'])
     bwrapper = backtest_wrapper.BacktestWrapper(client, config)
-    start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
-    start_timestamp = int(datetime.datetime.timestamp(start_time))*1000
-    end_time = datetime.datetime.strptime(config['backtest']['end_time'], "%Y-%m-%d %H:%M:%S")
-    end_timestamp = int(datetime.datetime.timestamp(end_time))*1000
 
     # Create pools for pair-scales
     time_scale_pool = []
@@ -79,7 +75,7 @@ async def get_data_dict(config, credentials):
     time_scale_pool = list(set(chain(*time_scale_pool)))
     pair_pool = list(set(chain(*pair_pool)))
     meta_data_pool = list(itertools.product(time_scale_pool, pair_pool))
-    await bwrapper.obtain_candlesticks(meta_data_pool, start_timestamp, end_timestamp)
+    await bwrapper.obtain_candlesticks(meta_data_pool, candle_start_ms, candle_end_ms)
     # Function to recursively convert defaultdict to a normal dictionary
     def convert_nested_defaultdict(d):
         if isinstance(d, defaultdict):
@@ -130,6 +126,23 @@ async def get_trades(config):
 @st.cache_data
 @async_to_sync
 async def get_observer_dict(config):
+    candle_start_sec, candle_end_sec = None, None
+
+    if 'backtest' in config:
+        if 'start_time' in config['backtest']:
+            start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
+            candle_start_sec = int(datetime.datetime.timestamp(start_time))
+
+        if 'end_time' in config['backtest']:
+            end_time = datetime.datetime.strptime(config['backtest']['end_time'], "%Y-%m-%d %H:%M:%S")
+            candle_end_sec = int(datetime.datetime.timestamp(end_time))
+
+    base_query = {}
+    if candle_start_sec:
+        base_query["$gte"] = candle_start_sec
+    if candle_end_sec:
+        base_query["$lte"] = candle_end_sec
+
     mongo_client = mongo_utils.MongoClient(**config['mongodb'])
     observer_dict = {}
     # Get observer objects
@@ -137,7 +150,16 @@ async def get_observer_dict(config):
         if not hasattr(observer_plot, obs_config['type']) or obs_config['type'] in observer_dict:
             continue
 
-        observers = list(await mongo_client.do_find('observer',{'type':obs_config['type']}))
+        query = {'type':obs_config['type']}
+        if len(base_query) > 0:
+            ts_query = {'ts': base_query}
+            query = {**query, **ts_query}
+
+        aggregation = [
+            {'$match': query},
+            {'$sort': { 'ts': 1 } }
+        ]
+        observers = list(await mongo_client.do_aggregate('observer', aggregation))
         df_observers = pd.DataFrame(observers)
         
         if df_observers.empty:
@@ -153,7 +175,7 @@ async def get_observer_dict(config):
         df_obs_data.set_index(df_observers['ts']*1000, inplace=True)
         #df_obs_data = df_obs_data[obs_list]
         observer_dict[obs_config['type']] = df_obs_data
-
+    mongo_client.client.close()
     return observer_dict
 
 @st.cache_data
@@ -165,6 +187,11 @@ async def get_analysis_dict(config, data_dict):
     if len(trades_dict) == 0:
         return analysis_dict
     return merge_dicts(analysis_dict, trades_dict)
+
+@st.cache_data
+@async_to_sync
+async def get_start_end_times(config, observer_dict):
+    return int(observer_dict['quote_asset'].index[0]), int(observer_dict['quote_asset'].index[-1])
 
 
 @st.cache_data
