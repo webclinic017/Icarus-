@@ -2,14 +2,14 @@
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
-        "clear": true
+        "clear": false
     },
     "credential_file": "test_credentials.json",
     "mongodb": {
         "database": "production",
         "host": "localhost",
         "port": 27017,
-        "clean": true
+        "clean": false
     },
     "broker": {
         "quote_currency": "USDT"
