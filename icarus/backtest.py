@@ -12,6 +12,7 @@ import sys
 from itertools import chain
 import itertools
 import resource_allocator
+from resource_allocator import DiscreteStrategyAllocator
 import observers
 from observers import filters
 
@@ -26,17 +27,17 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         print()
 
 
-async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_time_sec):
-    ikarus_time_ms = ikarus_time_sec * 1000 # Convert to ms
+async def application(strategy_list, strategy_res_allocator: DiscreteStrategyAllocator, bwrapper: BacktestWrapper, icarus_time_sec: int):
+    icarus_time_ms = icarus_time_sec * 1000 # Convert to ms
 
-    if str(ikarus_time_ms) in config['backtest'].get('breakpoints',{}).keys():
-        logger.debug(f"Stopped at breakpoint \"{config['backtest']['breakpoints'][str(ikarus_time_ms)]}\": {ikarus_time_sec}")
+    if str(icarus_time_ms) in config['backtest'].get('breakpoints',{}).keys():
+        logger.debug(f"Stopped at breakpoint \"{config['backtest']['breakpoints'][str(icarus_time_ms)]}\": {icarus_time_sec}")
 
     
     # The close time of the last_kline + 1ms, corresponds to the open_time of the future kline which is actually the kline we are in. 
     # If the execution takes 2 second, then the order execution and the updates will be done
     # 2 second after the new kline started. But the analysis will be done based on the last closed kline
-    logger.info(f'Ikarus Time in sec: [{ikarus_time_sec}]') # UTC
+    logger.info(f'Icarus Time in sec: [{icarus_time_sec}]') # UTC
 
     # TODO: give index paramter to retrieve a single object instead of a list
     info = await mongocli.get_n_docs('observer', {'type':'balance'}) # Default is the last doc
@@ -48,7 +49,7 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
     strategy_period_mapping = {}
     # NOTE: Active Strategies is used to determine the strategies and gather the belonging LTOs
     for strategy_obj in strategy_list:
-        if ikarus_time_sec % time_scale_to_second(strategy_obj.min_period) == 0:
+        if icarus_time_sec % time_scale_to_second(strategy_obj.min_period) == 0:
             meta_data_pool.append(strategy_obj.meta_do)
             strategy_period_mapping[strategy_obj.name] = strategy_obj.min_period
             active_strategies.append(strategy_obj) # Create a copy of each strategy object
@@ -56,28 +57,20 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
 
     meta_data_pool = set(chain(*meta_data_pool))
 
-    tasks_pre_calc = bwrapper.get_current_balance(info[0]), bwrapper.get_data_dict_download(meta_data_pool, ikarus_time_ms)
+    tasks_pre_calc = bwrapper.get_current_balance(info[0]), bwrapper.get_data_dict_download(meta_data_pool, icarus_time_ms)
     df_balance, data_dict = await asyncio.gather(*tasks_pre_calc)
 
     # NOTE: Query to get all of the LTOs that has a strategy property that is contained in 'active_strategies'
     live_trade_dicts = await mongocli.do_aggregate('live-trades',[{ '$match': { 'strategy': {'$in': list(strategy_period_mapping.keys()) }} }])
-
-    live_trade_list = [trade_from_dict(trade_dict) for trade_dict in live_trade_dicts]
-    await sync_trades_of_backtest(ikarus_time_sec, live_trade_list, data_dict, strategy_period_mapping, df_balance, config['broker']['quote_currency'])
+    live_trades = [trade_from_dict(trade_dict) for trade_dict in live_trade_dicts]
+    await sync_trades_of_backtest(icarus_time_sec, live_trades, data_dict, strategy_period_mapping, df_balance, config['broker']['quote_currency'])
 
     analysis_dict = await analyzer.analyze(data_dict)
 
-    # NOTE: Group the LTOs: It is only required here since only each strategy may know what todo with its own LTOs
-    # Total usable qc
-    #total_qc = eval_total_capital(df_balance, live_trade_list, config['broker']['quote_currency'], config['strategy_allocation']['kwargs']['max_capital_use'])
-    
-    #total_qc_in_lto = eval_total_capital_in_lto(live_trade_list) # Total used qc in lto
-    #logger.info(f'Total QC: {total_qc}, Total amount of LTO: {total_qc_in_lto}')
-
-    strategy_resources = strategy_res_allocator.allocate(df_balance, live_trade_list)
+    strategy_resources = strategy_res_allocator.allocate(df_balance, live_trades)
 
     grouped_ltos = {}
-    for live_trade in live_trade_list:
+    for live_trade in live_trades:
         grouped_ltos.setdefault(live_trade.strategy, []).append(live_trade)
 
     strategy_tasks = []
@@ -85,29 +78,29 @@ async def application(strategy_list, strategy_res_allocator, bwrapper, ikarus_ti
         strategy_tasks.append(asyncio.create_task(active_strategy.run(
             analysis_dict, 
             grouped_ltos.get(active_strategy.name, []), 
-            ikarus_time_sec, 
+            icarus_time_sec, 
             strategy_resources[active_strategy.name])))
 
     strategy_decisions = list(await asyncio.gather(*strategy_tasks))
-    new_trade_list = list(chain(*strategy_decisions)) # TODO: NEXT: Strategy output is only nto but it edits the ltos as well, so return ltos too
+    new_trades = list(chain(*strategy_decisions))
 
 
     # Object just for observation
     # TODO: Find a more generic solution to observe trades
-    new_trade_list_obs = copy.deepcopy(new_trade_list)
-    live_trade_list_obs = copy.deepcopy(live_trade_list)
+    new_trades_obs = copy.deepcopy(new_trades)
+    live_trades_obs = copy.deepcopy(live_trades)
 
-    if len(new_trade_list) or len(live_trade_list):
+    if len(new_trades) or len(live_trades):
         # NOTE: If there is any error during execution, then it the trade can be removed/fixed and the error can be handled inside the execute_decisison
-        bwrapper.execute_decision(new_trade_list, df_balance, live_trade_list)
+        bwrapper.execute_decision(new_trades, df_balance, live_trades)
 
-    new_trade_list = [i for i in new_trade_list if i is not None]
+    new_trades = [i for i in new_trades if i is not None]
 
-    if len(new_trade_list):
+    if len(new_trades):
         # Write trade_dict to [live-trades] (assume it is executed successfully)
-        result = await mongocli.do_insert_many("live-trades", [trade_to_dict(new_trade) for new_trade in new_trade_list])
+        result = await mongocli.do_insert_many("live-trades", [trade_to_dict(new_trade) for new_trade in new_trades])
 
-    await mongo_utils.update_live_trades(mongocli, live_trade_list)
+    await mongo_utils.update_live_trades(mongocli, live_trades)
 
     observations = []
     for obs_config in config['observers']:
@@ -178,8 +171,8 @@ async def main():
         meta_data_pool.append(strategy_obj.meta_do)
     meta_data_pool = set(chain(*meta_data_pool))
 
-    ikarus_cycle_period = get_min_scale(config['time_scales'].keys(), strategy_periods)
-    if ikarus_cycle_period == '': raise ValueError('No ikarus_cycle_period specified')
+    icarus_cycle_period = get_min_scale(config['time_scales'].keys(), strategy_periods)
+    if icarus_cycle_period == '': raise ValueError('No icarus_cycle_period specified')
 
     # Init the df_tickers to not to call binance API in each iteration
     BacktestWrapper.df_tickers = await bwrapper.get_all_tickers()
@@ -199,16 +192,16 @@ async def main():
     session_end_timestamp = int(datetime.timestamp(session_end_time))
 
     # Iterate through the time stamps
-    ikarus_cycle_period_in_sec = time_scale_to_second(ikarus_cycle_period)
-    session_start_timestamp = round_to_period(session_start_timestamp, ikarus_cycle_period_in_sec, direction='ceiling')
-    session_end_timestamp = round_to_period(session_end_timestamp, ikarus_cycle_period_in_sec, direction='floor')
+    icarus_cycle_period_in_sec = time_scale_to_second(icarus_cycle_period)
+    session_start_timestamp = round_to_period(session_start_timestamp, icarus_cycle_period_in_sec, direction='ceiling')
+    session_end_timestamp = round_to_period(session_end_timestamp, icarus_cycle_period_in_sec, direction='floor')
 
-    total_len = int((session_end_timestamp - session_start_timestamp) / time_scale_to_second(ikarus_cycle_period)) # length = Second / Min*60
+    total_len = int((session_end_timestamp - session_start_timestamp) / time_scale_to_second(icarus_cycle_period)) # length = Second / Min*60
     printProgressBar(0, total_len, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
     await bwrapper.obtain_candlesticks(meta_data_pool, session_start_timestamp*1000, session_end_timestamp*1000)
 
-    for idx, start_time in enumerate(range(session_start_timestamp, session_end_timestamp, time_scale_to_second(ikarus_cycle_period))):
+    for idx, start_time in enumerate(range(session_start_timestamp, session_end_timestamp, time_scale_to_second(icarus_cycle_period))):
         logger.debug(f'Iteration {idx}:')
         printProgressBar(idx + 1, total_len, prefix = 'Progress:', suffix = 'Complete', length = 50)
         

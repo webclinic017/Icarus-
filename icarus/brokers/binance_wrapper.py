@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass
 from binance import AsyncClient
 from connectivity.telegram_wrapper import TelegramBot
 import itertools
-from typing import Dict, List
+from typing import Dict, List, Any
 
 
 logger = logging.getLogger('app')
@@ -67,7 +67,7 @@ class BinanceWrapper():
         return int(server_time['serverTime']/1000)
 
 
-    async def get_info(self):
+    async def get_info(self) -> pd.DataFrame:
 
         info = await self.client.get_account()
         balance = [{'asset':b['asset'], 'free':b['free'], 'locked':b['locked']}
@@ -81,20 +81,14 @@ class BinanceWrapper():
         return df_balance
 
 
-    async def get_all_tickers(self):
-        """
-        Get all possible tickers
-
-        Returns:
-            pd.DataFrame: tickers
-        """        
+    async def get_all_tickers(self) -> pd.DataFrame:   
         df = pd.DataFrame(await self.client.get_all_tickers())
         df.set_index('symbol', inplace=True)
         df.astype(float)
         return df
 
 
-    async def get_all_symbol_info(self, all_pairs):
+    async def get_all_symbol_info(self, all_pairs) -> Dict[str, str]:
         all_info = await self.client.get_exchange_info()
 
         selected_info = {}
@@ -111,7 +105,7 @@ class BinanceWrapper():
         return df_balance
 
 
-    async def get_data_dict(self, meta_data_pool, ikarus_time):
+    async def get_data_dict(self, meta_data_pool, icarus_time_ms: int) -> Dict[str, Dict[str, Any]]:
         """
         meta_do = [('1m', 'BTCUSDT'), ('15m', 'BTCUSDT'), ('15m', 'XRPUSDT')]
         (time_scale, pair)
@@ -120,14 +114,14 @@ class BinanceWrapper():
         tasks_klines_scales = []
         for meta_data in meta_data_pool:
 
-            if type(ikarus_time) == int:
+            if type(icarus_time_ms) == int:
                 # NOTE: If you need exactly 720 candles not 719 (unclosed (last) candle removed) then push hist_data_start_time back 1 step
                 # NOTE: The cause of +1 comes from the desire to not the make hist_data_start_time an exact minute, Because when it is an exact 1m or 15m, 1 extra hist_kline is retrived addi
-                hist_data_start_time = ikarus_time - time_scale_to_second(meta_data[0]) * (self.config['time_scales'][meta_data[0]]) * 1000 + 1 # ms = start_time + x sec * y times * 1000 + 1
+                hist_data_start_time = icarus_time_ms - time_scale_to_second(meta_data[0]) * (self.config['time_scales'][meta_data[0]]) * 1000 + 1 # ms = start_time + x sec * y times * 1000 + 1
             else:
                 raise NotImplementedException('start_time is not integer')
 
-            tasks_klines_scales.append(asyncio.create_task(self.client.get_historical_klines(meta_data[1], meta_data[0], start_str=hist_data_start_time, end_str=ikarus_time )))
+            tasks_klines_scales.append(asyncio.create_task(self.client.get_historical_klines(meta_data[1], meta_data[0], start_str=hist_data_start_time, end_str=icarus_time_ms )))
 
         composit_klines = list(await asyncio.gather(*tasks_klines_scales, return_exceptions=True))
 
@@ -229,7 +223,7 @@ class BinanceWrapper():
                 logger.error(f'Order could not be canceled: {e}\n{order}')
 
 
-    async def _execute_oco_sell(self, trade: Trade):
+    async def _execute_oco_sell(self, trade: Trade) -> bool:
         try:
             logger.debug(f'trade.exit: {asdict(trade.exit)}')
             response = await self.client.order_oco_sell(
@@ -247,8 +241,8 @@ class BinanceWrapper():
 
         else:
             response_stoploss, response_limit_maker = response["orderReports"][0], response["orderReports"][1]
-            logger.info(f'LTO "{trade._id}": "{response_limit_maker["side"]}" "{response_limit_maker["type"]}" order placed: {response_limit_maker["orderId"]}')
-            logger.info(f'LTO "{trade._id}": "{response_stoploss["side"]}" "{response_stoploss["type"]}" order placed: {response_stoploss["orderId"]}')
+            logger.info(f'{trade._id}: "{response_limit_maker["side"]}" "{response_limit_maker["type"]}" order placed: {response_limit_maker["orderId"]}')
+            logger.info(f'{trade._id}: "{response_stoploss["side"]}" "{response_stoploss["type"]}" order placed: {response_stoploss["orderId"]}')
 
             trade.exit.orderId = response_limit_maker['orderId']
             trade.exit.stop_limit_orderId = response_stoploss['orderId']
@@ -259,7 +253,7 @@ class BinanceWrapper():
         return True
 
 
-    async def _execute_limit_sell(self, trade: Trade):
+    async def _execute_limit_sell(self, trade: Trade) -> bool:
         try:
             logger.debug(f'trade.exit: {asdict(trade.exit)}')
             logger.debug(f'trade.exit.price: %.{self.pricePrecision}f' % trade.exit.price)
@@ -274,7 +268,7 @@ class BinanceWrapper():
             return False
 
         else:
-            logger.info(f'LTO "_id": "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
+            logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
             trade.exit.orderId = response['orderId']
             trade.status = EState.OPEN_EXIT
             TelegramBot.send_formatted_message('order_executed', asdict(trade.exit), [response["side"], trade.strategy, trade.pair], [trade._id])
@@ -282,7 +276,7 @@ class BinanceWrapper():
         return True
 
 
-    async def _execute_limit_buy(self, trade: Trade):
+    async def _execute_limit_buy(self, trade: Trade) -> bool:
         try:
             logger.debug(f'trade.enter: {asdict(trade.enter)}')
             logger.debug(f'trade.enter.price: %.{self.pricePrecision}f' % trade.enter.price)
@@ -297,7 +291,7 @@ class BinanceWrapper():
             return False
 
         else:
-            logger.info(f'LTO "_id": "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
+            logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
             trade.enter.orderId = response['orderId']
             trade.status = EState.OPEN_ENTER
             TelegramBot.send_formatted_message('order_executed', asdict(trade.enter), [response["side"], trade.strategy, trade.pair], [trade._id])
@@ -305,7 +299,7 @@ class BinanceWrapper():
         return True
 
 
-    async def _execute_cancel(self, trade: Trade):
+    async def _execute_cancel(self, trade: Trade) -> bool:
         
         try:
             # Obtain which order to cancel
@@ -339,17 +333,17 @@ class BinanceWrapper():
                 response_stoploss, response_limit_maker = response['orderReports'][0], response['orderReports'][1]
 
                 if response_stoploss['status'] == ORDER_STATUS_CANCELED:
-                    logger.info(f'LTO "{trade._id}": "{response_stoploss["side"]}" "{response_stoploss["type"]}" order canceled: {response_stoploss["orderId"]}')
+                    logger.info(f'{trade._id}: "{response_stoploss["side"]}" "{response_stoploss["type"]}" order canceled: {response_stoploss["orderId"]}')
                 
                 if response_limit_maker['status'] == ORDER_STATUS_CANCELED:
-                    logger.info(f'LTO "{trade._id}": "{response_limit_maker["side"]}" "{response_limit_maker["type"]}" order canceled: {response_limit_maker["orderId"]}')
+                    logger.info(f'{trade._id}: "{response_limit_maker["side"]}" "{response_limit_maker["type"]}" order canceled: {response_limit_maker["orderId"]}')
 
             else:
-                logger.info(f'LTO "{trade._id}": "{response["side"]}" "{response["type"]}" order canceled: {response["orderId"]}')
+                logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order canceled: {response["orderId"]}')
             return True
 
 
-    async def _execute_market_buy(self, trade: Trade):
+    async def _execute_market_buy(self, trade: Trade) -> bool:
         try:
             logger.debug(f'trade.enter: {asdict(trade.enter)}')
             response = await self.client.order_market_buy(
@@ -362,7 +356,7 @@ class BinanceWrapper():
             return False
 
         else:
-            logger.info(f'LTO "_id": "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
+            logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
             trade.enter.orderId = response['orderId']
             trade.status = EState.OPEN_ENTER
             TelegramBot.send_formatted_message('order_executed', asdict(trade.enter), [response["side"], trade.strategy, trade.pair], [trade._id])
@@ -370,7 +364,7 @@ class BinanceWrapper():
         return True
 
 
-    async def _execute_market_sell(self, trade: Trade):
+    async def _execute_market_sell(self, trade: Trade) -> bool:
         try:
             logger.debug(f'trade.exit: {asdict(trade.exit)}')
             response = await self.client.order_market_sell(
@@ -383,7 +377,7 @@ class BinanceWrapper():
             return False
 
         else:
-            logger.info(f'LTO "_id": "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
+            logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
             trade.exit.orderId = response['orderId']
             trade.status = EState.OPEN_EXIT
             TelegramBot.send_formatted_message('order_executed', asdict(trade.exit), [response["side"], trade.strategy, trade.pair], [trade._id])
@@ -391,7 +385,7 @@ class BinanceWrapper():
         return True
 
 
-    async def execute_decision(self, trades:'list[Trade]'):
+    async def execute_decision(self, trades:'list[Trade]') -> None:
         for trade in trades:
 
             if trade.command == ECommand.NONE:
@@ -432,14 +426,11 @@ class BinanceWrapper():
                     trade.reset_command()
 
 
-async def sync_trades_with_orders(trades: List[Trade], data_dict: dict, strategy_period_mapping: dict, order_info_mapping: Dict[int, OrderInfo]):
+async def sync_trades_with_orders(icarus_time_sec: int, trades: List[Trade], data_dict: dict, strategy_period_mapping: dict, order_info_mapping: Dict[int, OrderInfo]) -> None:
     quote_cur = 'USDT'
     for trade in trades:
         base_cur = trade.pair.replace(quote_cur,'') # How to get this info?
-
         strategy_min_scale = strategy_period_mapping[trade.strategy]
-        last_kline = data_dict[trade.pair][strategy_min_scale].tail(1)
-        last_closed_candle_open_time = int(last_kline.index.values[0]/1000)
 
         if trade.status == EState.OPEN_ENTER:
             # Check order
@@ -468,7 +459,7 @@ async def sync_trades_with_orders(trades: List[Trade], data_dict: dict, strategy
                     fee=sum_fee)
                 TelegramBot.send_formatted_message('order_filled', asdict(trade.result.enter), [order_info.order["side"], trade.strategy, trade.pair], [trade._id])
                 
-            elif hasattr(trade.enter, 'expire') and trade.enter.expire <= last_closed_candle_open_time:
+            elif hasattr(trade.enter, 'expire') and trade.enter.expire <= icarus_time_sec:
                 trade.status = EState.ENTER_EXP
 
         elif trade.status == EState.OPEN_EXIT:
@@ -532,6 +523,6 @@ async def sync_trades_with_orders(trades: List[Trade], data_dict: dict, strategy
                 TelegramBot.send_formatted_message('trade_closed', asdict(trade.result), [trade.strategy, trade.pair], [trade._id])
 
                 
-            elif hasattr(trade.exit, 'expire') and trade.exit.expire <= last_closed_candle_open_time:
+            elif hasattr(trade.exit, 'expire') and trade.exit.expire <= icarus_time_sec:
                 trade.status = EState.EXIT_EXP
 

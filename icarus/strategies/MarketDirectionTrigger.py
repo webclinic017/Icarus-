@@ -33,7 +33,7 @@ class MarketDirectionTrigger(StrategyBase):
         enter_price = analysis['close'][-1]
         enter_ref_amount=pairwise_alloc_share
 
-        enter_order = Market(amount=enter_ref_amount, price=enter_price)
+        enter_order = Market(creation_time=ikarus_time, amount=enter_ref_amount, price=enter_price)
 
         # Set decision_time to timestamp which is the open time of the current kline (newly started not closed kline)
         trade = Trade(int(ikarus_time), self.name, ao_pair, command=ECommand.EXEC_ENTER)
@@ -62,7 +62,7 @@ class MarketDirectionTrigger(StrategyBase):
             return True
    
         close_price = analysis_dict[trade.pair][self.min_period]['close'][-1]
-        trade.set_exit( Market(quantity=trade.result.enter.quantity, price=close_price) )
+        trade.set_exit( Market(creation_time=ikarus_time, quantity=trade.result.enter.quantity, price=close_price) )
         trade.command = ECommand.EXEC_EXIT
 
         # Apply the filters

@@ -274,8 +274,6 @@ class MarketClassification():
 
 
     async def _market_direction_supertrend(self, analysis, **kwargs):
-        # TODO:configure length
-
         analysis_output = pd_ta.supertrend(analysis['candlesticks']['high'], analysis['candlesticks']['low'], analysis['candlesticks']['close'], **kwargs)
         direction_col = analysis_output.iloc[:,1]
         classification = np.where(direction_col == -1, Direction.DOWN, Direction.UP)

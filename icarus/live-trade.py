@@ -13,7 +13,8 @@ import sys
 import itertools
 import resource_allocator
 from resource_allocator import DiscreteStrategyAllocator
-
+import observers
+from observers import filters
 from connectivity.telegram_wrapper import TelegramBot
 import telegram_interface
 
@@ -33,21 +34,19 @@ async def run_at(dt, coro):
     return await coro
 
 
-async def application(strategy_list, strategy_res_allocator: DiscreteStrategyAllocator, broker_client: BinanceWrapper, ikarus_time_sec: int):
-    ikarus_time_ms = ikarus_time_sec * 1000 # Convert to ms
-    logger.info(f'Ikarus Time: [{ikarus_time_sec}]') # UTC
+async def application(strategy_list, strategy_res_allocator: DiscreteStrategyAllocator, broker_client: BinanceWrapper, icarus_time_sec: int):
+    icarus_time_ms = icarus_time_sec * 1000 # Convert to ms
+    logger.info(f'Icarus Time: [{icarus_time_sec}]') # UTC
     
     meta_data_pool = []
     active_strategies = []
     strategy_period_mapping = {}
-    # NOTE: Active Strategies is used to determine the strategies and gather the belonging LTOs
     for strategy_obj in strategy_list:
-        if ikarus_time_sec % time_scale_to_second(strategy_obj.min_period) == 0:
+        if icarus_time_sec % time_scale_to_second(strategy_obj.min_period) == 0:
             meta_data_pool.append(strategy_obj.meta_do)
             strategy_period_mapping[strategy_obj.name] = strategy_obj.min_period
             active_strategies.append(strategy_obj) # Create a copy of each strategy object
 
-    #ikarus_time = ikarus_time * 1000 # Convert to ms
     meta_data_pool = set(itertools.chain(*meta_data_pool))
 
     # Query to get all of the trades that has a strategy property that is contained in 'active_strategies'
@@ -56,7 +55,7 @@ async def application(strategy_list, strategy_res_allocator: DiscreteStrategyAll
 
     df_balance, data_dict = await asyncio.gather(*[
         broker_client.get_current_balance(),
-        broker_client.get_data_dict(meta_data_pool, ikarus_time_ms)
+        broker_client.get_data_dict(meta_data_pool, icarus_time_ms)
         ]
     )
     logger.info(f'Current Balance: \n{df_balance.to_string()}')
@@ -64,7 +63,7 @@ async def application(strategy_list, strategy_res_allocator: DiscreteStrategyAll
     order_info_mapping = await broker_client.get_order_info(live_trades)
 
     _, analysis_dict = await asyncio.gather(*[
-        sync_trades_with_orders(live_trades, data_dict, strategy_period_mapping, order_info_mapping),
+        sync_trades_with_orders(icarus_time_sec, live_trades, data_dict, strategy_period_mapping, order_info_mapping),
         analyzer.analyze(data_dict)]
     )
 
@@ -80,14 +79,18 @@ async def application(strategy_list, strategy_res_allocator: DiscreteStrategyAll
         strategy_tasks.append(asyncio.create_task(active_strategy.run(
             analysis_dict, 
             grouped_ltos.get(active_strategy.name, []), 
-            ikarus_time_sec, 
+            icarus_time_sec, 
             strategy_resources[active_strategy.name])))
 
     strategy_decisions = list(await asyncio.gather(*strategy_tasks))
-    new_trades = list(itertools.chain(*strategy_decisions)) # TODO: NEXT: Strategy output is only nto but it edits the ltos as well, so return ltos too
+    new_trades = list(itertools.chain(*strategy_decisions))
+
+    # Object just for observation
+    # TODO: Find a more generic solution to observe trades
+    new_trades_obs = copy.deepcopy(new_trades)
+    live_trades_obs = copy.deepcopy(live_trades)
 
     if len(new_trades) or len(live_trades):
-        #nto_list, lto_list = await asyncio.create_task(bwrapper.execute_decision(nto_list, lto_list))
         await broker_client.execute_decision(new_trades+live_trades)
 
     new_trades = [i for i in new_trades if i is not None]
@@ -101,39 +104,51 @@ async def application(strategy_list, strategy_res_allocator: DiscreteStrategyAll
     df_balance = await broker_client.get_current_balance()
     logger.debug(f'Current Balance after execution: \n{df_balance.to_string()}')
 
-    obs_strategy_capitals = Observer('strategy_capitals', ts=ikarus_time_sec, data=strategy_res_allocator.strategy_capitals).to_dict()
+    observations = []
+    for obs_config in config['observers']:
+        obs_function_name = obs_config['observer']
+        if not hasattr(observers, obs_function_name):
+            logger.warning('Observer does not exit: {}'.format(obs_function_name))
+            continue
 
-    observer_item = list(df_balance.reset_index(level=0).T.to_dict().values())
-    obs_balance = Observer(EObserverType.BALANCE, ts=ikarus_time_sec, data=observer_item).to_dict()
+        # Check filters
+        filter_passed = True
+        if 'filters' in obs_config:
+            for filter in obs_config['filters']:
+                filter_function = filter['type'] + '_filter'
+                if not hasattr(filters, filter_function):
+                    logger.error('Observer filter does not exit: {}'.format(filter_function))
+                    continue
 
-    observation_obj = {}
-    observation_obj['free'] = df_balance.loc[config['broker']['quote_currency'],'free']
-    observation_obj['in_trade'] = eval_total_capital_in_lto(live_trades+new_trades)
-    observation_obj['total'] = observation_obj['free'] + observation_obj['in_trade']
-    obs_quote_asset = Observer(EObserverType.QUOTE_ASSET, ts=ikarus_time_sec, data=observation_obj).to_dict()
+                filter_passed = getattr(filters, filter_function)(locals()[filter['object']], filter['arg'])
+                if not filter_passed:
+                    break
+    
+        if not filter_passed:
+            continue
 
-    '''
-    # NOTE: capital_limit is not integrated to this leak evaluation 
-    observation_obj = {}
-    free = df_balance.loc[config['broker']['quote_currency'],'free']
-    in_trade = eval_total_capital_in_lto(live_trade_list+new_trade_list)
-    observation_obj['total'] = safe_sum(free, in_trade)
-    observation_obj['ideal_free'] = safe_multiply(observation_obj['total'], safe_substract(1, config['strategy_allocation']['kwargs']['capital_coeff']))
-    observation_obj['real_free'] = free
-    observation_obj['binary'] = int(observation_obj['ideal_free'] < observation_obj['real_free'])
+        # Evaluate Observation
+        observer = getattr(observers, obs_function_name)
+        args = [obs_config]
+        for input in obs_config['inputs']:
+            if input in locals():
+                args.append(locals()[input])
+            elif input in globals():
+                args.append(globals()[input])
+            else:
+                logger.error('Observer input is not found: {}'.format(input))
+                args = []
+                break
 
-    obs_quote_asset_leak = Observer('quote_asset_leak', ts=ikarus_time, data=observation_obj).to_dict()
-    '''
+        if args ==  []:
+            logger.warning('Skipping observer calculation because of missing args: {}'.format(obs_function_name))
+            continue
 
-    # TODO: NEXT: Observer configuration needs to be implemented just like analyzers
-    observer_list = [
-        obs_quote_asset,
-        #obs_quote_asset_leak,
-        obs_balance,
-        obs_strategy_capitals
-    ]
-    #observer_objs = list(await asyncio.gather(*observer_list))
-    await mongocli.do_insert_many("observer", observer_list)
+        observation = observer(*args)
+        observations.append(observation.to_dict()) 
+    
+    if len(observations) != 0:
+        await mongocli.do_insert_many("observer", observations)
 
 async def main():
     client = await AsyncClient.create(**cred_info['Binance']['Production'])
@@ -156,9 +171,9 @@ async def main():
     strategy_res_allocator = getattr(resource_allocator, config['strategy_allocation']['type'])\
         (**config['strategy_allocation']['kwargs'])
 
-    ikarus_cycle_period = get_min_scale(config['time_scales'].keys(), strategy_periods)
-    if ikarus_cycle_period == '': raise ValueError('No ikarus_cycle_period specified')
-    ikarus_cycle_period_in_sec = time_scale_to_second(ikarus_cycle_period)
+    icarus_cycle_period = get_min_scale(config['time_scales'].keys(), strategy_periods)
+    if icarus_cycle_period == '': raise ValueError('No icarus_cycle_period specified')
+    icarus_cycle_period_in_sec = time_scale_to_second(icarus_cycle_period)
 
     while True:
         try:
@@ -173,7 +188,7 @@ async def main():
 
 
             start_time_offset = 10
-            next_start_time = round_to_period(current_time, ikarus_cycle_period_in_sec, direction='ceiling', offset=start_time_offset)
+            next_start_time = round_to_period(current_time, icarus_cycle_period_in_sec, direction='ceiling', offset=start_time_offset)
 
             logger.debug(f'Cycle start time: {next_start_time}, ({datetime.fromtimestamp(next_start_time)})')
             result = await asyncio.create_task(run_at(next_start_time, application(strategy_list, strategy_res_allocator, broker_client, next_start_time-start_time_offset)))
