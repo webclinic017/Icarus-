@@ -10,15 +10,17 @@ def line_plotter(p: figure, source: ColumnDataSource, analysis, **kwargs):
         for i, (param, analysis_data) in enumerate(analysis.items()):
             p.line(source.data['open_time'], analysis_data, 
                 legend_label=param,
-                line_color=Category10[number_of_lines][i])
+                line_color=kwargs.get('line_color', Category10[number_of_lines])[i],
+                line_width=kwargs.get('line_width',1))
     elif type(analysis) == list:
         if all(isinstance(el, list) for el in analysis): 
             for sub_list in analysis:
-                p.line(source.data['open_time'], sub_list)
+                p.line(source.data['open_time'], sub_list, line_width=kwargs.get('line_width',1))
         else:
             p.line(source.data['open_time'], analysis, 
                 line_color=kwargs.get('line_color','blue'),
-                legend_label=kwargs.get('legend_label',''))
+                legend_label=kwargs.get('legend_label',''),
+                line_width=kwargs.get('line_width',1))
     if 'y_range' in kwargs:
         p.y_range.start, p.y_range.end = kwargs['y_range']
 
