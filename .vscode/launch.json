@@ -16,26 +16,6 @@
             ]
         },
         {
-            "name": "get_most_traded_pairs",
-            "type": "python",
-            "request": "launch",
-            "console": "integratedTerminal",
-            "program": "icarus/get_most_traded_pairs.py",
-            "args": [
-                "${workspaceFolder}/configs/research/correlated_symbols/config_get_most_traded_pairs.json"
-            ]
-        },
-        {
-            "name": "trade_statistics",
-            "type": "python",
-            "request": "launch",
-            "program": "icarus/trade_statistics.py",
-            "console": "integratedTerminal",
-            "args": [
-                "${workspaceFolder}/configs/test/LimitLimit/config.json"
-            ]
-        },
-        {
             "name": "Generate Report",
             "type": "python",
             "request": "launch",
@@ -43,53 +23,6 @@
             "console": "integratedTerminal",
             "args": [
                 "${workspaceFolder}/configs/IC/176/config.json"
-            ]
-        },
-        {
-            "name": "mongo_utils",
-            "type": "python",
-            "request": "launch",
-            "program": "icarus/mongo_utils.py",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "visualize_analyzers",
-            "type": "python",
-            "request": "launch",
-            "program": "icarus/visualize_analyzers.py",
-            "console": "integratedTerminal",
-            "args": [
-                "${workspaceFolder}/configs/IC/6/config.json"
-            ]
-        },
-        {
-            "name": "visualize_backtest",
-            "type": "python",
-            "request": "launch",
-            "program": "icarus/visualize_backtest.py",
-            "console": "integratedTerminal",
-            "args": [
-                "${workspaceFolder}/configs/IC/138/config_backtest.json"
-            ]
-        },
-        {
-            "name": "visualize_dashboard",
-            "type": "python",
-            "request": "launch",
-            "program": "icarus/visualize_dashboard.py",
-            "console": "integratedTerminal",
-            "args": [
-                "${workspaceFolder}/configs/IC/147/config.json"
-            ]
-        },
-        {
-            "name": "visualize_live_session",
-            "type": "python",
-            "request": "launch",
-            "program": "icarus/visualize_live_session.py",
-            "console": "integratedTerminal",
-            "args": [
-                "${workspaceFolder}/configs/live-trade/FixedTarget/config_remote.json"
             ]
         },
         {
@@ -102,7 +35,7 @@
                  "icarus/developer_dashboard.py",
                  "--server.port",
                  "8501",
-                 "${workspaceFolder}/configs/IC/176/config.json"
+                 "${workspaceFolder}/configs/IC/181/config.json"
             ]
         },
         {
@@ -112,17 +45,17 @@
             "program": "icarus/backtest.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/174/config.json"
+                "${workspaceFolder}/configs/IC/176/config-debug.json"
             ]
         },
         {
-            "name": "live-trade",
+            "name": "Live Trade",
             "type": "python",
             "request": "launch",
             "program": "icarus/live-trade.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/live-trade/FixedTarget/config_production.json"
+                "${workspaceFolder}/configs/IC/180/config.json"
             ]
         },
         {
@@ -168,16 +101,6 @@
             "console": "integratedTerminal",
             "args": [
                 "${workspaceFolder}/configs/live-trade/FixedTarget/config_testnet.json",
-            ]
-        },
-        {
-            "name": "remote_mongodb",
-            "type": "python",
-            "request": "launch",
-            "program": "icarus/remote_mongodb.py",
-            "console": "integratedTerminal",
-            "args": [
-                "test_credentials.json"
             ]
         }
     ]

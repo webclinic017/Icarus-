@@ -247,8 +247,8 @@ class BinanceWrapper():
 
         else:
             response_stoploss, response_limit_maker = response["orderReports"][0], response["orderReports"][1]
-            logger.info(f'LTO "{trade._id}": "{response_limit_maker["side"]}" "{response_limit_maker["type"]}" order placed: {response_limit_maker["orderId"]}')
-            logger.info(f'LTO "{trade._id}": "{response_stoploss["side"]}" "{response_stoploss["type"]}" order placed: {response_stoploss["orderId"]}')
+            logger.info(f'{trade._id}: "{response_limit_maker["side"]}" "{response_limit_maker["type"]}" order placed: {response_limit_maker["orderId"]}')
+            logger.info(f'{trade._id}: "{response_stoploss["side"]}" "{response_stoploss["type"]}" order placed: {response_stoploss["orderId"]}')
 
             trade.exit.orderId = response_limit_maker['orderId']
             trade.exit.stop_limit_orderId = response_stoploss['orderId']
@@ -274,7 +274,7 @@ class BinanceWrapper():
             return False
 
         else:
-            logger.info(f'LTO "_id": "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
+            logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
             trade.exit.orderId = response['orderId']
             trade.status = EState.OPEN_EXIT
             TelegramBot.send_formatted_message('order_executed', asdict(trade.exit), [response["side"], trade.strategy, trade.pair], [trade._id])
@@ -297,7 +297,7 @@ class BinanceWrapper():
             return False
 
         else:
-            logger.info(f'LTO "_id": "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
+            logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
             trade.enter.orderId = response['orderId']
             trade.status = EState.OPEN_ENTER
             TelegramBot.send_formatted_message('order_executed', asdict(trade.enter), [response["side"], trade.strategy, trade.pair], [trade._id])
@@ -339,13 +339,13 @@ class BinanceWrapper():
                 response_stoploss, response_limit_maker = response['orderReports'][0], response['orderReports'][1]
 
                 if response_stoploss['status'] == ORDER_STATUS_CANCELED:
-                    logger.info(f'LTO "{trade._id}": "{response_stoploss["side"]}" "{response_stoploss["type"]}" order canceled: {response_stoploss["orderId"]}')
+                    logger.info(f'{trade._id}: "{response_stoploss["side"]}" "{response_stoploss["type"]}" order canceled: {response_stoploss["orderId"]}')
                 
                 if response_limit_maker['status'] == ORDER_STATUS_CANCELED:
-                    logger.info(f'LTO "{trade._id}": "{response_limit_maker["side"]}" "{response_limit_maker["type"]}" order canceled: {response_limit_maker["orderId"]}')
+                    logger.info(f'{trade._id}: "{response_limit_maker["side"]}" "{response_limit_maker["type"]}" order canceled: {response_limit_maker["orderId"]}')
 
             else:
-                logger.info(f'LTO "{trade._id}": "{response["side"]}" "{response["type"]}" order canceled: {response["orderId"]}')
+                logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order canceled: {response["orderId"]}')
             return True
 
 
@@ -362,7 +362,7 @@ class BinanceWrapper():
             return False
 
         else:
-            logger.info(f'LTO "_id": "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
+            logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
             trade.enter.orderId = response['orderId']
             trade.status = EState.OPEN_ENTER
             TelegramBot.send_formatted_message('order_executed', asdict(trade.enter), [response["side"], trade.strategy, trade.pair], [trade._id])
@@ -383,7 +383,7 @@ class BinanceWrapper():
             return False
 
         else:
-            logger.info(f'LTO "_id": "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
+            logger.info(f'{trade._id}: "{response["side"]}" "{response["type"]}" order placed: {response["orderId"]}')
             trade.exit.orderId = response['orderId']
             trade.status = EState.OPEN_EXIT
             TelegramBot.send_formatted_message('order_executed', asdict(trade.exit), [response["side"], trade.strategy, trade.pair], [trade._id])
@@ -432,14 +432,11 @@ class BinanceWrapper():
                     trade.reset_command()
 
 
-async def sync_trades_with_orders(trades: List[Trade], data_dict: dict, strategy_period_mapping: dict, order_info_mapping: Dict[int, OrderInfo]):
+async def sync_trades_with_orders(icarus_time_sec: int, trades: List[Trade], data_dict: dict, strategy_period_mapping: dict, order_info_mapping: Dict[int, OrderInfo]):
     quote_cur = 'USDT'
     for trade in trades:
         base_cur = trade.pair.replace(quote_cur,'') # How to get this info?
-
         strategy_min_scale = strategy_period_mapping[trade.strategy]
-        last_kline = data_dict[trade.pair][strategy_min_scale].tail(1)
-        last_closed_candle_open_time = int(last_kline.index.values[0]/1000)
 
         if trade.status == EState.OPEN_ENTER:
             # Check order
@@ -468,7 +465,7 @@ async def sync_trades_with_orders(trades: List[Trade], data_dict: dict, strategy
                     fee=sum_fee)
                 TelegramBot.send_formatted_message('order_filled', asdict(trade.result.enter), [order_info.order["side"], trade.strategy, trade.pair], [trade._id])
                 
-            elif hasattr(trade.enter, 'expire') and trade.enter.expire <= last_closed_candle_open_time:
+            elif hasattr(trade.enter, 'expire') and trade.enter.expire <= icarus_time_sec:
                 trade.status = EState.ENTER_EXP
 
         elif trade.status == EState.OPEN_EXIT:
@@ -532,6 +529,6 @@ async def sync_trades_with_orders(trades: List[Trade], data_dict: dict, strategy
                 TelegramBot.send_formatted_message('trade_closed', asdict(trade.result), [trade.strategy, trade.pair], [trade._id])
 
                 
-            elif hasattr(trade.exit, 'expire') and trade.exit.expire <= last_closed_candle_open_time:
+            elif hasattr(trade.exit, 'expire') and trade.exit.expire <= icarus_time_sec:
                 trade.status = EState.EXIT_EXP
 

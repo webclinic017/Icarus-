@@ -158,7 +158,6 @@ def add_exit_order_frames(df):
         
         # Filled Exit orders
         if 'stop_price' in row['exit']: # OCO
-            # NOTE: not tested
             x_data += [exit_order_start_date, row['result_exit_time'], row['result_exit_time'], exit_order_start_date, exit_order_start_date, row['result_exit_time'], row['result_exit_time']]
             y_data += [row['result_enter_price'], row['result_enter_price'], row['exit_price'], row['exit_price'], row['exit_stop_limit_price'], row['exit_stop_limit_price'], row['result_enter_price']]
         elif 'expire' in row['exit']: # LIMIT
