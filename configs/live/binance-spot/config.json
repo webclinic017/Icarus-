@@ -116,7 +116,7 @@
     "observers": [
         {
             "type": "quote_asset",
-            "observer": "quote_asset",
+            "observer": "quote_asset_live",
             "inputs": ["icarus_time_sec", "config", "df_balance", "live_trades", "new_trades"],
             "filters": []
         },
