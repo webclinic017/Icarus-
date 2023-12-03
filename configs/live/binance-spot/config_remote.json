@@ -16,8 +16,7 @@
         "quote_currency": "USDT"
     },
     "backtest": {
-        "start_time": "2023-11-28 11:00:00",
-        "end_time": "2023-11-28 11:00:00"
+        "start_time": "2023-11-28 11:00:00"
     },
     "time_scales": {
         "1h": 170
@@ -313,7 +312,7 @@
                 "SREventsPredictiveVanilla-BTCUSDT",
                 "SREventsPredictiveVanilla-XRPUSDT"
             ],
-            "<start_time>": [1694390400],
+            "<start_time>": [1701165600],
             "<end_time>": [1788947200]
         },
         "reporters": [
