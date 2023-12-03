@@ -26,26 +26,27 @@ st.set_page_config(layout="wide", page_title="Icarus Developer Dashboard")
 
 # Obtain data to visualize
 config = get_config()
+credentials = get_credentials(config)
 
-if 'ssh_tunnel' in config:
-    #tunnel_server = SSHTunnelForwarder(**config['ssh_tunnel'])
+if config.get('ssh_tunnel', False):
     tunnel_server = SSHTunnelForwarder(
-        tuple(config['ssh_tunnel']['ssh_address_or_host']),
-        ssh_username=config['ssh_tunnel']['ssh_username'],
-        ssh_pkey=config['ssh_tunnel']['ssh_pkey'],
-        remote_bind_address=tuple(config['ssh_tunnel']['remote_bind_address']),
-        local_bind_address=tuple(config['ssh_tunnel']['local_bind_address'])
+        tuple(credentials['ssh_tunnel']['ssh_address_or_host']),
+        ssh_username=credentials['ssh_tunnel']['ssh_username'],
+        ssh_pkey=credentials['ssh_tunnel']['ssh_pkey'],
+        remote_bind_address=tuple(credentials['ssh_tunnel']['remote_bind_address']),
+        local_bind_address=tuple(credentials['ssh_tunnel']['local_bind_address'])
     )
     tunnel_server.start()
+    tunnel_server.check_tunnels()
+    print(tunnel_server.tunnel_is_up, flush=True)
 
 config['mongodb']['clean'] = False
 symbols = get_symbols(config)
 time_scales = get_time_scales(config)
-credentials = get_credentials(config)
 analyzer_names = get_analyzer_names(config)
 observer_names = get_observer_names(config)
 observer_dict = get_observer_dict(config)
-candle_start, candle_end = get_start_end_times(config, observer_dict)
+candle_start, candle_end = get_start_end_times(observer_dict)
 data_dict = get_data_dict(config, credentials, candle_start, candle_end)
 analysis_dict = get_analysis_dict(config, data_dict)
 
@@ -238,5 +239,5 @@ grid = gridplot(grid_list, sizing_mode='stretch_width', toolbar_location='below'
 # Streamlit Bokeh chart
 st.bokeh_chart(grid, use_container_width=True)
 
-if 'ssh_tunnel' in config:
+if config.get('ssh_tunnel', False):
     tunnel_server.stop()

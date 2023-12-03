@@ -189,9 +189,8 @@ async def get_analysis_dict(config, data_dict):
     return merge_dicts(analysis_dict, trades_dict)
 
 @st.cache_data
-@async_to_sync
-async def get_start_end_times(config, observer_dict):
-    return int(observer_dict['quote_asset'].index[0]), int(observer_dict['quote_asset'].index[-1])
+def get_start_end_times(_observer_dict):
+    return int(_observer_dict['quote_asset'].index[0]), int(_observer_dict['quote_asset'].index[-1])
 
 
 @st.cache_data
