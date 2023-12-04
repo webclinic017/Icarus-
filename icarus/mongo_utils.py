@@ -181,19 +181,19 @@ async def update_live_trades(mongo_client, trade_list): # TODO: REFACTOR: checko
         else:
             pass
 
-async def do_find_trades(mongo_client, col, query={}):
+async def do_find_trades(mongo_client: MongoClient, col: str, query={}):
     trade_list = await mongo_client.do_find(col,query)
     return [trade_from_dict(hto) for hto in trade_list]
 
-async def do_aggregate_trades(mongo_client, col, query={}):
+async def do_aggregate_trades(mongo_client: MongoClient, col: str, query=[{}]):
     trade_list = await mongo_client.do_aggregate(col,query)
     return [trade_from_dict(hto) for hto in trade_list]
 
-async def do_find_report(mongo_client, col, query={}):
+async def do_find_report(mongo_client: MongoClient, col: str, query={}):
     reports = await mongo_client.do_find(col,query)
     return reports[0]['data']
 
-async def do_aggregate_multi_query(mongo_client, col, queries=[{}]):
+async def do_aggregate_multi_query(mongo_client: MongoClient, col: str, queries=[{}]):
 
     query_coroutines = []
     for query in queries:

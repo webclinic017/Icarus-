@@ -1,7 +1,7 @@
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.palettes import RdYlGn, Greys
 from bokeh.models import HoverTool
-from objects import Trade
+from objects import Trade, EState
 import numpy as np
 from typing import List
 import pandas as pd
@@ -26,13 +26,17 @@ def trades(p: figure, p_analyzer: figure, source: ColumnDataSource, analysis: Li
     elif type(analysis) == list:
         df = pd.DataFrame(analysis)
     
+    df_live = df[df['status'] != EState.CLOSED]
+    if not df_live.empty:
+        plot_live_trades(p, source, df_live)
+
     df_results = df['result'].apply(pd.Series).add_prefix('result_')
 
-    df_closed = df[df_results['result_cause'] != 'enter_expire']
+    df_closed = df[(df['status'] == EState.CLOSED) & (df_results['result_cause'] != 'enter_expire')]
     if not df_closed.empty:
         plot_closed_trades(p, source, df_closed)
 
-    df_canceled = df[df_results['result_cause'] == 'enter_expire']
+    df_canceled = df[(df['status'] == EState.CLOSED) & (df_results['result_cause'] == 'enter_expire')]
     if not df_canceled.empty:
         plot_expired_trades(p, source, df_canceled)
 
@@ -99,6 +103,26 @@ def plot_expired_trades(p, source, df_canceled):
     df_canceled_source = pd.concat([df_canceled[['_id','decision_time','strategy','order_stash']], df_enter[['enter_price','enter_expire']]], axis=1)
     df_canceled_source['decision_time'] = df_canceled_source['decision_time'].mul(1000).astype(np.int64)
     df_canceled_source['enter_expire'] = df_canceled_source['enter_expire'].mul(1000).astype(np.int64)
+    df_canceled_source = add_enter_lines(source, df_canceled_source, 'enter_expire', 'enter_price')
+    data_source_expire = ColumnDataSource(data=df_canceled_source)
+    
+    enter_expire_lines = p.multi_line(xs='xs', ys='ys', source=data_source_expire, line_color=Greys[3][1], line_width=4, legend_label='Enter Expire Trades')
+
+    hover_expired = HoverTool()
+    hover_expired.tooltips = [
+        ("ID", "@_id"),
+        ("Strategy", "@strategy"),
+        ("Target Enter Price", "@enter_price{0.00}"),
+    ]
+    hover_expired.renderers = [enter_expire_lines]
+    p.add_tools(hover_expired)
+
+
+def plot_live_trades(p, source, df: pd.DataFrame):
+    df_enter = df['enter'].apply(pd.Series).add_prefix('enter_')
+    df_canceled_source = pd.concat([df[['_id','decision_time','strategy','order_stash']], df_enter[['enter_price','enter_expire']]], axis=1)
+    df_canceled_source['decision_time'] = df_canceled_source['decision_time'].mul(1000).astype(np.int64)
+    #df_canceled_source['enter_expire'] = df_canceled_source['enter_expire'].mul(1000).astype(np.int64)
     df_canceled_source = add_enter_lines(source, df_canceled_source, 'enter_expire', 'enter_price')
     data_source_expire = ColumnDataSource(data=df_canceled_source)
     

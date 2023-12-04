@@ -37,18 +37,21 @@ if config.get('ssh_tunnel', False):
         local_bind_address=tuple(credentials['ssh_tunnel']['local_bind_address'])
     )
     tunnel_server.start()
-    tunnel_server.check_tunnels()
-    print(tunnel_server.tunnel_is_up, flush=True)
+    #tunnel_server.check_tunnels()
+    #print(tunnel_server.tunnel_is_up, flush=True)
 
 config['mongodb']['clean'] = False
+
+loop = asyncio.new_event_loop()
+mongo_cli = get_mongo_client(loop, config)
+start_time_sec, end_time_sec = evaluate_start_end_times(loop, mongo_cli, config)
 symbols = get_symbols(config)
 time_scales = get_time_scales(config)
 analyzer_names = get_analyzer_names(config)
 observer_names = get_observer_names(config)
-observer_dict = get_observer_dict(config)
-candle_start, candle_end = get_start_end_times(observer_dict)
-data_dict = get_data_dict(config, credentials, candle_start, candle_end)
-analysis_dict = get_analysis_dict(config, data_dict)
+observer_dict = get_observer_dict(loop, mongo_cli, config, start_time_sec, end_time_sec)
+data_dict = get_data_dict(config, credentials, start_time_sec, end_time_sec)
+analysis_dict = get_analysis_dict(loop, mongo_cli, config, data_dict, start_time_sec, end_time_sec)
 
 
 # Configure dashboard
