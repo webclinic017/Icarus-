@@ -125,7 +125,7 @@ async def get_trades(config: Dict, mongo_client: mongo_utils.MongoClient, start_
 
         query_canceled = {
             'decision_time': { '$gte': start_time_sec },
-            "result.exit.time": { '$lte': end_time_sec},
+            "enter.expire": { '$lte': end_time_sec},
             'result.cause': ECause.ENTER_EXP,
             'pair': pair
         }
