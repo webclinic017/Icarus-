@@ -129,6 +129,11 @@ def plot_live_trades(p: figure, source: ColumnDataSource, df: pd.DataFrame) -> N
     df_source = pd.concat([df[['_id', 'status', 'decision_time','strategy','order_stash']], df_enter, df_exit, df_result_enters], axis=1)
     df_source['decision_datetime'] = pd.to_datetime(df_source['decision_time'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
     df_source['decision_time'] = df_source['decision_time'].mul(1000).astype(np.int64)
+
+    if 'enter_expire' in df_source:
+        df_source['enter_expire_datetime'] = pd.to_datetime(df_source['enter_expire'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
+        df_source['enter_expire'] = df_source['enter_expire'].fillna(0).mul(1000).astype(np.int64) # Quick fix but not the best solution
+
     df_source['current_time'] = source.data['open_time'][-1]
     df_source['current_price'] = source.data['close'][-1]
     df_source = add_enter_lines(df_source, 'current_time', 'enter_price')
@@ -161,8 +166,7 @@ def plot_live_trades(p: figure, source: ColumnDataSource, df: pd.DataFrame) -> N
                     pass
             
             if row['status'] in [EState.OPEN_EXIT, EState.EXIT_EXP]:
-                add_exit_order_frame(row, exit_time_column='current_time')
-                x_data_tmp, y_data_tmp = add_exit_order_frame(row)
+                x_data_tmp, y_data_tmp = add_exit_order_frame(row, exit_time_column='current_time')
                 x_data += x_data_tmp
                 y_data += y_data_tmp
 
@@ -255,7 +259,7 @@ def add_exit_order_frames(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def add_exit_order_frame(row, exit_time_column='result_exit_time') -> tuple(List[np.int64], List[np.float64]):
+def add_exit_order_frame(row, exit_time_column='result_exit_time'):
   
     x_data = []
     y_data = []
