@@ -285,9 +285,10 @@ async def dummy_reporter(index, analysis_data):
 async def strategy_statistics(index, reporter_input):
 
     df = pd.DataFrame(reporter_input[0])
-
     if df.empty:
         return Report()
+
+    strategy_name = df['strategy'].iloc[0]
 
     stats = {}
 
@@ -391,7 +392,7 @@ async def strategy_statistics(index, reporter_input):
 
     # Combine Stats
     stats = {
-        'strategy': df['strategy'].iloc[0],
+        'strategy': strategy_name,
         'count': stat_count,
         'absolute_profit': stat_absolute_profit,
         'percentage_profit': stat_percentage_profit,
@@ -413,7 +414,7 @@ async def strategy_statistics(index, reporter_input):
             elif type(v) == np.int64:
                 stat[k] = int(v)
 
-    return Report(ReportMeta(title='strategy_{}'.format(df['strategy'].iloc[0])), data=stats)
+    return Report(ReportMeta(title='strategy_{}'.format(strategy_name)), data=stats)
 
 
 async def balance_statistics(index, reporter_input):

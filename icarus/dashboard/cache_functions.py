@@ -20,6 +20,7 @@ import mongo_utils
 from utils import get_pair_min_period_mapping
 from objects import ECause
 from sshtunnel import SSHTunnelForwarder
+from typing import Dict
 
 
 @st.cache_data
@@ -59,9 +60,24 @@ def async_to_sync(async_function):
         return result
     return sync_function
 
+def async_to_sync_w_loop(async_function):
+    def sync_function(_loop, *args, **kwargs):
+        asyncio.set_event_loop(_loop)
+        result = _loop.run_until_complete(async_function(*args, **kwargs))
+        return result
+    return sync_function
+
+
+def async_to_sync_w_loop_mongo(async_function):
+    def sync_function(_loop, _mongo_client: mongo_utils.MongoClient, *args):
+        asyncio.set_event_loop(_loop)
+        result = _loop.run_until_complete(async_function(_mongo_client, *args))
+        return result
+    return sync_function
+
 @st.cache_data
 @async_to_sync
-async def get_data_dict(config, credentials, candle_start_ms, candle_end_ms):
+async def get_data_dict(config, credentials, start_time_sec, end_time_sec):
     client = await AsyncClient.create(**credentials['Binance']['Production'])
     bwrapper = backtest_wrapper.BacktestWrapper(client, config)
 
@@ -75,7 +91,7 @@ async def get_data_dict(config, credentials, candle_start_ms, candle_end_ms):
     time_scale_pool = list(set(chain(*time_scale_pool)))
     pair_pool = list(set(chain(*pair_pool)))
     meta_data_pool = list(itertools.product(time_scale_pool, pair_pool))
-    await bwrapper.obtain_candlesticks(meta_data_pool, candle_start_ms, candle_end_ms)
+    await bwrapper.obtain_candlesticks(meta_data_pool, start_time_sec*1000, end_time_sec*1000)
     # Function to recursively convert defaultdict to a normal dictionary
     def convert_nested_defaultdict(d):
         if isinstance(d, defaultdict):
@@ -99,17 +115,38 @@ def merge_dicts(dict1, dict2):
             result[key] = dict2[key]
     return result
 
-async def get_trades(config):
-    mongo_client = mongo_utils.MongoClient(**config['mongodb'])
+async def get_trades(config: Dict, mongo_client: mongo_utils.MongoClient, start_time_sec, end_time_sec):
     pair_scale_mapping = await get_pair_min_period_mapping(config)
 
     trade_ids = []
     trades_dict = {}
 
     for idx, (pair, scale) in enumerate(pair_scale_mapping.items()):
-        canceled = await mongo_utils.do_find_trades(mongo_client, 'hist-trades', {'result.cause':ECause.ENTER_EXP, 'pair':pair})
-        closed = await mongo_utils.do_find_trades(mongo_client, 'hist-trades', {'result.cause':{'$in':[ECause.MARKET, ECause.STOP_LIMIT, ECause.LIMIT]}, 'pair':pair})
-        trade_ids += [str(closed_trade._id) for closed_trade in closed]
+
+        query_canceled = {
+            'decision_time': { '$gte': start_time_sec },
+            "enter.expire": { '$lte': end_time_sec},
+            'result.cause': ECause.ENTER_EXP,
+            'pair': pair
+        }
+        canceled = await mongo_utils.do_find_trades(mongo_client, 'hist-trades', query_canceled)
+
+        query_closed = {
+            'decision_time': { '$gte': start_time_sec },
+            "result.exit.time": { '$lte': end_time_sec},
+            'result.cause': {'$in': [ECause.MARKET, ECause.STOP_LIMIT, ECause.LIMIT]},
+            'pair': pair
+        }
+        closed = await mongo_utils.do_find_trades(mongo_client, 'hist-trades', query_closed)
+
+        query_live = {
+            'decision_time': { '$gte': start_time_sec },
+            'pair': pair
+        }
+        live = await mongo_utils.do_find_trades(mongo_client, 'live-trades', query_live)
+
+        
+        trade_ids += [str(trade._id) for trade in closed + canceled + live]
         
         if len(trade_ids) == 0:
             continue
@@ -119,31 +156,45 @@ async def get_trades(config):
 
         if scale not in trades_dict[pair]:
             trades_dict[pair][scale] = {}
-        trades_dict[pair][scale]['trades'] = closed + canceled
+        trades_dict[pair][scale]['trades'] = closed + canceled + live
 
     return trades_dict
 
+
+@st.cache_resource
+@async_to_sync_w_loop
+async def get_mongo_client(config):
+    return mongo_utils.MongoClient(**config['mongodb'])
+
+@st.cache_resource
+@async_to_sync_w_loop_mongo
+async def evaluate_start_end_times(mongo_client: mongo_utils.MongoClient, config: Dict):
+    try:
+        start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
+        start_timestamp_sec = int(datetime.datetime.timestamp(start_time))
+    except KeyError as e:
+        start_obs = await mongo_client.get_n_docs('observer', {'type':'quote_asset'}, order=1) # pymongo.ASCENDING
+        start_timestamp_sec = int(start_obs[0]['ts'])
+
+    try:
+        end_time = datetime.datetime.strptime(config['backtest']['end_time'], "%Y-%m-%d %H:%M:%S")
+        end_timestamp_sec = int(datetime.datetime.timestamp(end_time))
+    except KeyError as e:
+        end_obs = await mongo_client.get_n_docs('observer', {'type':'quote_asset'}, order=-1) # pymongo.ASCENDING
+        end_timestamp_sec = int(end_obs[0]['ts']*1000)
+    
+    return start_timestamp_sec, end_timestamp_sec
+
+
 @st.cache_data
-@async_to_sync
-async def get_observer_dict(config):
-    candle_start_sec, candle_end_sec = None, None
+@async_to_sync_w_loop_mongo
+async def get_observer_dict(mongo_client: mongo_utils.MongoClient, config: Dict, start_time_sec: int, end_time_sec: int):
 
-    if 'backtest' in config:
-        if 'start_time' in config['backtest']:
-            start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
-            candle_start_sec = int(datetime.datetime.timestamp(start_time))
+    base_query = {
+        '$gte': start_time_sec,
+        '$lte': end_time_sec
+    }
 
-        if 'end_time' in config['backtest']:
-            end_time = datetime.datetime.strptime(config['backtest']['end_time'], "%Y-%m-%d %H:%M:%S")
-            candle_end_sec = int(datetime.datetime.timestamp(end_time))
-
-    base_query = {}
-    if candle_start_sec:
-        base_query["$gte"] = candle_start_sec
-    if candle_end_sec:
-        base_query["$lte"] = candle_end_sec
-
-    mongo_client = mongo_utils.MongoClient(**config['mongodb'])
     observer_dict = {}
     # Get observer objects
     for obs_config in config.get('observers', []):
@@ -179,19 +230,18 @@ async def get_observer_dict(config):
     return observer_dict
 
 @st.cache_data
-@async_to_sync
-async def get_analysis_dict(config, data_dict):
+@async_to_sync_w_loop_mongo
+async def get_analysis_dict(mongo_client, config, data_dict, start_time_sec, end_time_sec):
     analyzer = Analyzer(config)
     analysis_dict = await analyzer.analyze(data_dict)
-    trades_dict = await get_trades(config)
+    trades_dict = await get_trades(config, mongo_client, start_time_sec, end_time_sec)
     if len(trades_dict) == 0:
         return analysis_dict
     return merge_dicts(analysis_dict, trades_dict)
 
 @st.cache_data
-@async_to_sync
-async def get_start_end_times(config, observer_dict):
-    return int(observer_dict['quote_asset'].index[0]), int(observer_dict['quote_asset'].index[-1])
+def get_start_end_times(_observer_dict):
+    return int(_observer_dict['quote_asset'].index[0]), int(_observer_dict['quote_asset'].index[-1])
 
 
 @st.cache_data

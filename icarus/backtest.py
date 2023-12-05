@@ -89,6 +89,7 @@ async def application(strategy_list, strategy_res_allocator: DiscreteStrategyAll
     # TODO: Find a more generic solution to observe trades
     new_trades_obs = copy.deepcopy(new_trades)
     live_trades_obs = copy.deepcopy(live_trades)
+    trades_obs = copy.deepcopy(new_trades + live_trades)
 
     if len(new_trades) or len(live_trades):
         # NOTE: If there is any error during execution, then it the trade can be removed/fixed and the error can be handled inside the execute_decisison

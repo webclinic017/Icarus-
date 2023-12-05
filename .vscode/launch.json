@@ -22,7 +22,7 @@
             "program": "icarus/generate_report.py",
             "console": "integratedTerminal",
             "args": [
-                "${workspaceFolder}/configs/IC/176/config.json"
+                "${workspaceFolder}/configs/live/binance-spot/config_remote.json"
             ]
         },
         {
@@ -35,7 +35,7 @@
                  "icarus/developer_dashboard.py",
                  "--server.port",
                  "8501",
-                 "${workspaceFolder}/configs/IC/181/config.json"
+                 "${workspaceFolder}/configs/live/binance-spot/config_remote.json"
             ]
         },
         {

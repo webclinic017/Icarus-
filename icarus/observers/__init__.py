@@ -29,6 +29,14 @@ def quote_asset(obs_config: Dict, ikarus_time_sec: int, config: Dict, df_balance
     return Observation(obs_config['type'], ikarus_time_sec, observation_obj)
 
 
+def quote_asset_live(obs_config: Dict, ikarus_time_sec: int, config: Dict, df_balance: pd.DataFrame, live_trade_list: List[Trade], new_trade_list: List[Trade]) -> Observation:
+    observation_obj = {}
+    observation_obj['free'] = df_balance.loc[config['broker']['quote_currency'],'free']
+    observation_obj['in_trade'] = eval_total_capital_in_lto(live_trade_list+new_trade_list)
+    observation_obj['total'] = df_balance.loc[config['broker']['quote_currency'],'total']
+    return Observation(obs_config['type'], ikarus_time_sec, observation_obj)
+
+
 def analyzer(obs_config: Dict, ikarus_time_sec: int, analysis: List[Trade]) -> Observation:
     kwargs = obs_config['kwargs']
     data = analysis[kwargs['symbol']][kwargs['timeframe']][kwargs['analyzer']]

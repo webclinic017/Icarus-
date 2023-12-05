@@ -1,42 +1,70 @@
 {
+    "tag": "IC-185",
     "log":{
         "level": "DEBUG",
         "file": "log/icarus.log",
-        "clear": false
+        "clear": true
     },
-    "credential_file": "test_credentials.json",
+    "credential_file": "C:\\Users\\bilko\\PycharmProjects\\trade-bot\\test_credentials.json",
     "mongodb": {
-        "database": "production",
+        "database": "IC-185",
         "host": "localhost",
         "port": 27017,
-        "clean": false
+        "clean": true
     },
+    "balances": [
+        {
+            "asset": "USDT",
+            "free": 10000,
+            "locked": 0
+        }
+    ],
     "broker": {
-        "quote_currency": "USDT"
-    },
-    "backtest": {
-        "start_time": "2023-09-12 11:00:00"
+        "quote_currency": "USDT",
+        "fee_rate": 0.001
     },
     "time_scales": {
-        "1h": 170
+        "1h": 180
+    },
+    "backtest": {
+        "start_time": "2023-04-01 00:00:00",
+        "end_time": "2023-06-01 00:00:00",
+        "online": true,
+        "breakpoints": {
+            "1680422400000": "ss"
+        }
     },
     "strategy_allocation":{
         "type": "DiscreteStrategyAllocator",
         "kwargs": {
-            "distribution_config": ["MarketDirectionTrigger", "SREventsPredictiveVanilla-BTCUSDT", "SREventsPredictiveVanilla-XRPUSDT"],
-            "capital_coeff":0.9,
+            "distribution_config": [
+                "SREventsPredictiveVanilla-BTCUSDT", "SREventsPredictiveVanilla-XRPUSDT",
+                "HODL-BTCUSDT", "HODL-XRPUSDT"
+            ],
+            "capital_coeff":0.9, 
             "stop_capital":null,
-            "capital_limit": 100
+            "capital_limit": 1000
         }
     },
     "strategy": {
-        "MarketDirectionTrigger": {
-            "strategy": "MarketDirectionTrigger",
+        "HODL-BTCUSDT": {
+            "strategy": "Benchmark",
             "pairs": ["BTCUSDT"],
             "time_scales": ["1h"],
             "max_live_trade": 1,
             "kwargs":{
-                "analyzer": "market_direction_supertrend"
+                "enter_time": "2023-04-01 01:00:00",
+                "exit_time": "2023-05-31 22:00:00"
+            }
+        },
+        "HODL-XRPUSDT": {
+            "strategy": "Benchmark",
+            "pairs": ["XRPUSDT"],
+            "time_scales": ["1h"],
+            "max_live_trade": 1,
+            "kwargs":{
+                "enter_time": "2023-04-01 01:00:00",
+                "exit_time": "2023-05-31 22:00:00"
             }
         },
         "SREventsPredictiveVanilla-BTCUSDT": {
@@ -75,48 +103,12 @@
             "candlesticks": {},
             "close": {},
             "aroon": {"timeperiod":6}
-        },
-        {
-            "market_direction_supertrend": {},
-            "bullish_aroon_break": {"shift":-1},
-            "bearish_aroon_break": {"shift":-1}
-        },
-        {
-            "support_meanshift": {"source":"bullish_aroon_break", "min_members":2, "bandwidth_coeff":0.01},
-            "resistance_meanshift": {"source":"bearish_aroon_break", "min_members":2, "bandwidth_coeff":0.01},
-            "support_optics": {"source":"bullish_aroon_break", "min_members":2, "eps_coeff":0.01},
-            "resistance_optics": {"source":"bearish_aroon_break", "min_members":2, "eps_coeff":0.01}
-        },
-        {
-            "sr_events": {
-                "sequence_th": 5, 
-                "analyzers": [
-                    "support_meanshift", 
-                    "resistance_meanshift",
-                    "support_optics",
-                    "resistance_optics"
-                ]
-            }
-        },
-        {
-            "sr_event_filter": {
-                "analyzers": [
-                    "support_meanshift", 
-                    "resistance_meanshift", 
-                    "support_optics",
-                    "resistance_optics"
-                ],
-                "filters": {
-                    "count_pass_horizontal": [0,0],
-                    "count_pass_vertical": [0,0]
-                }
-            }
         }
     ],
     "observers": [
         {
             "type": "quote_asset",
-            "observer": "quote_asset_live",
+            "observer": "quote_asset",
             "inputs": ["icarus_time_sec", "config", "df_balance", "live_trades", "new_trades"],
             "filters": []
         },
@@ -222,11 +214,12 @@
     "grid_search_reporters": {
         "grid": {
             "<strategy>": [
-                "MarketDirectionTrigger",
                 "SREventsPredictiveVanilla-BTCUSDT",
-                "SREventsPredictiveVanilla-XRPUSDT"
+                "SREventsPredictiveVanilla-XRPUSDT",
+                "HODL-XRPUSDT",
+                "HODL-BTCUSDT"
             ],
-            "<start_time>": [1694390400],
+            "<start_time>": [0],
             "<end_time>": [1788947200]
         },
         "reporters": [
