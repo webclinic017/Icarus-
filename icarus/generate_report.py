@@ -129,17 +129,20 @@ async def main():
     config['mongodb']['clean'] = False
     mongo_client = mongo_utils.MongoClient(**config['mongodb'])
 
-    if 'backtest' in config:
+    try:
         start_time = datetime.datetime.strptime(config['backtest']['start_time'], "%Y-%m-%d %H:%M:%S")
         start_timestamp = int(datetime.datetime.timestamp(start_time))*1000
+    except KeyError as e:
+        start_obs = await mongo_client.get_n_docs('observer', {'type':'quote_asset'}, order=ASCENDING) # pymongo.ASCENDING
+        start_timestamp = int(start_obs[0]['ts']*1000)
+
+    try:
         end_time = datetime.datetime.strptime(config['backtest']['end_time'], "%Y-%m-%d %H:%M:%S")
         end_timestamp = int(datetime.datetime.timestamp(end_time))*1000
-    else:
-        start_obs = await mongo_client.get_n_docs('observer', {'type':'quote_asset'}, order=ASCENDING) # pymongo.ASCENDING
+    except KeyError as e:
         end_obs = await mongo_client.get_n_docs('observer', {'type':'quote_asset'}, order=DESCENDING) # pymongo.ASCENDING
-        
-        start_timestamp = int(start_obs[0]['ts']*1000)
         end_timestamp = int(end_obs[0]['ts']*1000)
+
 
     # Generate report configs
     if not config['report']:
@@ -222,16 +225,17 @@ if __name__ == '__main__':
     with open(config['credential_file'], 'r') as cred_file:
         cred_info = json.load(cred_file)
 
-    if 'ssh_tunnel' in config:
-        #tunnel_server = SSHTunnelForwarder(**config['ssh_tunnel'])
+    if config.get('ssh_tunnel', False):
         tunnel_server = SSHTunnelForwarder(
-            tuple(config['ssh_tunnel']['ssh_address_or_host']),
-            ssh_username=config['ssh_tunnel']['ssh_username'],
-            ssh_pkey=config['ssh_tunnel']['ssh_pkey'],
-            remote_bind_address=tuple(config['ssh_tunnel']['remote_bind_address']),
-            local_bind_address=tuple(config['ssh_tunnel']['local_bind_address'])
+            tuple(cred_info['ssh_tunnel']['ssh_address_or_host']),
+            ssh_username=cred_info['ssh_tunnel']['ssh_username'],
+            ssh_pkey=cred_info['ssh_tunnel']['ssh_pkey'],
+            remote_bind_address=tuple(cred_info['ssh_tunnel']['remote_bind_address']),
+            local_bind_address=tuple(cred_info['ssh_tunnel']['local_bind_address'])
         )
         tunnel_server.start()
+        #tunnel_server.check_tunnels()
+        #print(tunnel_server.tunnel_is_up, flush=True)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
